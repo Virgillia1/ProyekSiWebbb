@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Link, useLocation, Outlet, useNavigate } from 'react-router';
-import { Menu, X, TruckIcon, LogOut, User } from 'lucide-react';
+import { Menu, X, LogOut, User } from 'lucide-react';
 import { Button } from './ui/button';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from './ui/sheet';
 import { useAuth } from '../contexts/AuthContext';
+import cargoLiteLogo from '../../imports/cargolite-logo.png';
 
 const navItems = [
   { name: 'Home', path: '/' },
@@ -13,6 +14,16 @@ const navItems = [
   { name: 'Contact', path: '/contact' },
   { name: 'Find Staff', path: '/staff' },
 ];
+
+function BrandLogo({ className = '' }: { className?: string }) {
+  return (
+    <img
+      src={cargoLiteLogo}
+      alt="CargoLite"
+      className={`w-auto object-contain ${className}`.trim()}
+    />
+  );
+}
 
 export function Layout() {
   const [isOpen, setIsOpen] = useState(false);
@@ -47,12 +58,9 @@ export function Layout() {
               </SheetTrigger>
               <SheetContent side="left" className="w-64">
                 <SheetTitle>
-                  <div className="flex items-center gap-3 mb-8">
-                    <div className="bg-primary p-2 rounded-lg">
-                      <TruckIcon className="h-6 w-6 text-white" />
-                    </div>
-                    <span className="text-xl text-primary">CargoKu</span>
-                  </div>
+                  <Link to="/" onClick={() => setIsOpen(false)} className="mb-8 inline-flex">
+                    <BrandLogo className="h-14" />
+                  </Link>
                 </SheetTitle>
                 <nav className="flex flex-col gap-2">
                   {navItems.map((item) => (
@@ -74,11 +82,12 @@ export function Layout() {
             </Sheet>
 
             {/* Center: Logo */}
-            <Link to="/" className="absolute left-1/2 -translate-x-1/2 flex items-center gap-3">
-              <div className="bg-primary p-2 rounded-lg">
-                <TruckIcon className="h-7 w-7 text-white" />
-              </div>
-              <span className="text-2xl font-bold text-primary">CargoKu</span>
+            <Link
+              to="/"
+              aria-label="CargoLite"
+              className="absolute left-1/2 -translate-x-1/2"
+            >
+              <BrandLogo className="h-14 sm:h-16" />
             </Link>
 
             {/* Right: Account Button */}
@@ -130,12 +139,9 @@ export function Layout() {
         <div className="max-w-7xl mx-auto px-6 py-12">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="bg-primary p-2 rounded-lg">
-                  <TruckIcon className="h-6 w-6 text-white" />
-                </div>
-                <span className="text-xl font-bold text-primary">CargoKu</span>
-              </div>
+              <Link to="/" aria-label="CargoLite" className="mb-4 inline-flex">
+                <BrandLogo className="h-20" />
+              </Link>
               <p className="text-sm text-muted-foreground">
                 Solusi pengiriman terpercaya untuk bisnis Anda
               </p>
