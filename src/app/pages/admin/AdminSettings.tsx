@@ -115,7 +115,6 @@ export function AdminSettings() {
           <Card className="border-border/80 bg-white/90 shadow-sm">
             <CardHeader>
               <CardTitle>Poin Keamanan</CardTitle>
-              <CardDescription>Checklist keamanan data untuk admin POV.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3 text-sm text-muted-foreground">
               <div className="flex items-start gap-3 rounded-2xl bg-secondary/40 p-4">

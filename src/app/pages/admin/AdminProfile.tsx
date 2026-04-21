@@ -167,7 +167,6 @@ export function AdminProfile() {
           <Card className="border-border/80 bg-white/90 shadow-sm">
             <CardHeader>
               <CardTitle>Catatan Tanggung Jawab</CardTitle>
-              <CardDescription>Fokus kerja manager pada area admin POV.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3 text-sm text-muted-foreground">
               <div className="rounded-2xl bg-secondary/40 p-4">
