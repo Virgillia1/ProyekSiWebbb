@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router';
 import {
   ClipboardCheck,
@@ -6,6 +7,7 @@ import {
   Menu,
   Settings,
   ShieldCheck,
+  X,
   User,
   UserRoundCog,
   Users,
@@ -36,18 +38,25 @@ function BrandLogo({ className = '' }: { className?: string }) {
 }
 
 export function AdminLayout() {
+  const [desktopNavOpen, setDesktopNavOpen] = useState(true);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
   const isActive = (path: string) => location.pathname.startsWith(path);
 
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [location.pathname]);
+
   const handleLogout = () => {
+    setMobileNavOpen(false);
     logout();
     navigate('/');
   };
 
-  const navContent = (
+  const renderNavContent = (onNavigate?: () => void) => (
     <nav className="space-y-2">
       {navItems.map((item) => {
         const Icon = item.icon;
@@ -57,6 +66,7 @@ export function AdminLayout() {
           <Link
             key={item.path}
             to={item.path}
+            onClick={onNavigate}
             className={`flex items-center gap-3 rounded-2xl px-4 py-3 transition-all ${
               active
                 ? 'bg-primary text-white shadow-lg shadow-primary/20'
@@ -71,27 +81,83 @@ export function AdminLayout() {
     </nav>
   );
 
+  const renderAccountCard = (showLogoutButton: boolean) => (
+    <div className="rounded-[28px] border border-border/80 bg-white p-5 shadow-sm">
+      <div className="flex items-center gap-3">
+        <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-primary/10">
+          {user?.avatar ? (
+            <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
+          ) : (
+            <User className="h-6 w-6 text-primary" />
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-semibold">{user?.name}</p>
+          <p className="truncate text-sm text-muted-foreground">{user?.email}</p>
+        </div>
+      </div>
+
+      <div className="mt-4 flex items-center justify-between rounded-2xl bg-secondary/40 px-4 py-3">
+        <div>
+          <p className="text-sm font-medium">Mode Pengawasan</p>
+          <p className="text-xs text-muted-foreground">Aktif hari ini</p>
+        </div>
+        <Badge className="bg-primary/15 text-primary hover:bg-primary/15">Online</Badge>
+      </div>
+
+      {showLogoutButton && (
+        <div className="mt-4">
+          <Button className="w-full justify-start" onClick={handleLogout}>
+            <LogOut className="mr-2 h-4 w-4" />
+            Logout
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderSidebarContent = (onNavigate?: () => void, showLogoutButton = true) => (
+    <div className="space-y-6">
+      <div className="rounded-[28px] border border-border/80 bg-white p-6 shadow-[0_20px_60px_rgba(99,210,95,0.08)]">
+        <BrandLogo className="h-20" />
+        <div className="mt-5 rounded-2xl bg-[#63D25F] p-5 text-white">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-base font-semibold">Control Center</p>
+            <ShieldCheck className="h-8 w-8 text-white/90" />
+          </div>
+        </div>
+
+        <div className="mt-6 border-t border-border/70 pt-4">
+          {renderNavContent(onNavigate)}
+        </div>
+      </div>
+
+      {renderAccountCard(showLogoutButton)}
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(99,210,95,0.14),_transparent_24%),linear-gradient(180deg,_#f7fdf9_0%,_#effcf5_100%)]">
       <header className="sticky top-0 z-40 border-b border-border/70 bg-white/85 backdrop-blur lg:hidden">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
-            <Sheet>
+            <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
               <SheetTrigger asChild>
-                <Button variant="outline" size="icon">
-                  <Menu className="h-5 w-5" />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  aria-label={mobileNavOpen ? 'Tutup menu admin' : 'Buka menu admin'}
+                >
+                  {mobileNavOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-80">
-                <SheetTitle className="mb-6 text-left">
-                  <BrandLogo className="h-16" />
-                </SheetTitle>
-                <div className="space-y-6">
-                  <div className="rounded-2xl border border-border bg-secondary/40 p-4">
-                    <div className="text-sm font-semibold">{user?.name}</div>
-                    <div className="text-sm text-muted-foreground">{user?.email}</div>
-                  </div>
-                  {navContent}
+              <SheetContent
+                side="left"
+                className="w-[88vw] max-w-80 overflow-y-auto border-r border-border/70 p-4 sm:max-w-sm"
+              >
+                <SheetTitle className="sr-only">Menu Admin</SheetTitle>
+                <div className="pt-8">
+                  {renderSidebarContent(() => setMobileNavOpen(false))}
                 </div>
               </SheetContent>
             </Sheet>
@@ -104,57 +170,54 @@ export function AdminLayout() {
         </div>
       </header>
 
-      <div className="mx-auto flex max-w-[1560px] gap-6 px-4 py-4 md:px-6 lg:px-8">
-        <aside className="hidden w-80 shrink-0 lg:block">
-          <div className="sticky top-6 space-y-6">
-            <div className="rounded-[28px] border border-border/80 bg-white p-6 shadow-[0_20px_60px_rgba(99,210,95,0.08)]">
-              <BrandLogo className="h-20" />
-              <div className="mt-5 rounded-2xl bg-[#63D25F] p-5 text-white">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-base font-semibold">Control Center</p>
-                  <ShieldCheck className="h-8 w-8 text-white/90" />
-                </div>
-              </div>
-
-              <div className="mt-6 border-t border-border/70 pt-4">
-                {navContent}
-              </div>
-            </div>
-
-            <div className="rounded-[28px] border border-border/80 bg-white p-5 shadow-sm">
-              <div className="flex items-center gap-3">
-                <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-primary/10">
-                  {user?.avatar ? (
-                    <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
-                  ) : (
-                    <User className="h-6 w-6 text-primary" />
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-semibold">{user?.name}</p>
-                  <p className="truncate text-sm text-muted-foreground">{user?.email}</p>
-                </div>
-              </div>
-
-              <div className="mt-4 flex items-center justify-between rounded-2xl bg-secondary/40 px-4 py-3">
-                <div>
-                  <p className="text-sm font-medium">Mode Pengawasan</p>
-                  <p className="text-xs text-muted-foreground">Aktif hari ini</p>
-                </div>
-                <Badge className="bg-primary/15 text-primary hover:bg-primary/15">Online</Badge>
-              </div>
-
-              <div className="mt-4">
-                <Button className="w-full justify-start" onClick={handleLogout}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Logout
-                </Button>
-              </div>
+      <div
+        className={`mx-auto flex max-w-[1560px] gap-6 px-4 py-4 md:px-6 lg:px-8 ${
+          desktopNavOpen ? 'lg:gap-6' : 'lg:gap-0'
+        }`}
+      >
+        <aside
+          className={`relative hidden shrink-0 transition-[width] duration-300 ease-out lg:block ${
+            desktopNavOpen ? 'w-80' : 'w-0'
+          }`}
+          aria-hidden={!desktopNavOpen}
+        >
+          <div
+            className={`sticky top-6 transition-all duration-300 ease-out ${
+              desktopNavOpen
+                ? 'translate-x-0 opacity-100'
+                : '-translate-x-[calc(100%+2rem)] opacity-0 pointer-events-none'
+            }`}
+          >
+            <div className="relative">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="absolute right-4 top-4 z-10 rounded-full border-border/80 bg-white/90 shadow-sm"
+                onClick={() => setDesktopNavOpen(false)}
+                aria-label="Tutup sidebar admin"
+              >
+                <X className="h-5 w-5" />
+              </Button>
+              {renderSidebarContent(undefined, true)}
             </div>
           </div>
         </aside>
 
         <main className="min-w-0 flex-1 pb-8">
+          {!desktopNavOpen && (
+            <div className="mb-4 hidden lg:block">
+              <Button
+                type="button"
+                onClick={() => setDesktopNavOpen(true)}
+                className="h-11 rounded-full bg-primary px-4 text-white shadow-sm transition-all hover:bg-primary/90"
+                aria-label="Buka sidebar admin"
+              >
+                <Menu className="mr-2 h-4 w-4" />
+                Buka Menu
+              </Button>
+            </div>
+          )}
           <Outlet />
         </main>
       </div>
