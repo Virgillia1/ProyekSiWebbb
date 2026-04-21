@@ -185,7 +185,7 @@ export function CourierHistory() {
       </div>
 
       {/* Success Rate */}
-      <div className="bg-gradient-to-r from-primary to-green-500 rounded-xl p-6 mb-8 text-white">
+      <div className="bg-[#63D25F] rounded-xl p-6 mb-8 text-white">
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2 mb-2">

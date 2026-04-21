@@ -43,6 +43,9 @@ export function Layout() {
     navigate('/');
   };
 
+  const accountLink = user?.role === 'admin' ? '/admin/dashboard' : '#';
+  const roleLabel = user?.role === 'admin' ? 'Admin' : 'Customer';
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
@@ -103,12 +106,12 @@ export function Layout() {
                   Logout
                 </Button>
               )}
-              <Link to={user ? '#' : '/login'}>
+              <Link to={user ? accountLink : '/login'}>
                 {user ? (
                   <div className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                     <div className="text-right">
                       <div className="text-sm font-medium">{user.name}</div>
-                      <div className="text-xs text-muted-foreground">Customer</div>
+                      <div className="text-xs text-muted-foreground">{roleLabel}</div>
                     </div>
                     <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center overflow-hidden">
                       {user.avatar ? (

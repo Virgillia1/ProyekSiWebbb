@@ -1,6 +1,6 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, ReactNode, useContext, useState } from 'react';
 
-export type UserRole = 'customer' | 'courier';
+export type UserRole = 'customer' | 'admin';
 
 export interface AuthUser {
   id: string;
@@ -13,15 +13,15 @@ export interface AuthUser {
 
 interface AuthContextType {
   user: AuthUser | null;
-  login: (username: string, password: string) => Promise<boolean>;
+  login: (username: string, password: string) => Promise<AuthUser | null>;
   logout: () => void;
+  updateUser: (updates: Partial<AuthUser>) => void;
   isAuthenticated: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Mock users database
-const mockUsers: { [key: string]: { password: string; data: AuthUser } } = {
+const mockUsers: Record<string, { password: string; data: AuthUser }> = {
   andi: {
     password: 'andi123',
     data: {
@@ -44,25 +44,25 @@ const mockUsers: { [key: string]: { password: string; data: AuthUser } } = {
       avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop',
     },
   },
-  kurir_budi: {
-    password: 'budi123',
+  admin_maya: {
+    password: 'maya123',
     data: {
       id: '3',
-      name: 'Budi Santoso',
-      email: 'budi.santoso@cargoku.com',
-      role: 'courier',
-      phone: '08234567890',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop',
+      name: 'Maya Pratama',
+      email: 'maya.pratama@cargoku.com',
+      role: 'admin',
+      phone: '081299887766',
+      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop',
     },
   },
-  kurir_joko: {
-    password: 'joko123',
+  admin_raka: {
+    password: 'raka123',
     data: {
       id: '4',
-      name: 'Joko Widodo',
-      email: 'joko.widodo@cargoku.com',
-      role: 'courier',
-      phone: '08345678901',
+      name: 'Raka Adinata',
+      email: 'raka.adinata@cargoku.com',
+      role: 'admin',
+      phone: '081377665544',
       avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop',
     },
   },
@@ -71,8 +71,7 @@ const mockUsers: { [key: string]: { password: string; data: AuthUser } } = {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
 
-  const login = async (username: string, password: string): Promise<boolean> => {
-    // Simulate API call
+  const login = async (username: string, password: string): Promise<AuthUser | null> => {
     await new Promise((resolve) => setTimeout(resolve, 500));
 
     const normalizedUsername = username.toLowerCase().trim();
@@ -80,14 +79,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (mockUser && mockUser.password === password) {
       setUser(mockUser.data);
-      return true;
+      return mockUser.data;
     }
 
-    return false;
+    return null;
   };
 
   const logout = () => {
     setUser(null);
+  };
+
+  const updateUser = (updates: Partial<AuthUser>) => {
+    setUser((currentUser) => (currentUser ? { ...currentUser, ...updates } : currentUser));
   };
 
   return (
@@ -96,6 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         login,
         logout,
+        updateUser,
         isAuthenticated: !!user,
       }}
     >

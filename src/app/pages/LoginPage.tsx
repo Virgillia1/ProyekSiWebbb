@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { TruckIcon, User, Lock } from 'lucide-react';
+import { ArrowLeft, Lock, User } from 'lucide-react';
+import { motion } from 'motion/react';
+import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { useAuth } from '../contexts/AuthContext';
-import { motion } from 'motion/react';
+import cargoLiteLogo from '../../imports/cargolite-logo.png';
 
 export function LoginPage() {
   const [username, setUsername] = useState('');
@@ -16,28 +17,33 @@ export function LoginPage() {
   const navigate = useNavigate();
   const { login } = useAuth();
 
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+
+    navigate('/');
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
 
     try {
-      const success = await login(username, password);
-      
-      if (success) {
-        // Check if user is courier based on username
-        const isCourier = username.toLowerCase().startsWith('kurir_');
-        
-        // Navigate based on role
-        if (isCourier) {
-          navigate('/courier/dashboard');
+      const authenticatedUser = await login(username, password);
+
+      if (authenticatedUser) {
+        if (authenticatedUser.role === 'admin') {
+          navigate('/admin/dashboard');
         } else {
           navigate('/');
         }
       } else {
         setError('Username atau password salah');
       }
-    } catch (err) {
+    } catch {
       setError('Terjadi kesalahan, silakan coba lagi');
     } finally {
       setIsLoading(false);
@@ -45,32 +51,40 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-white to-primary/10 flex items-center justify-center px-4">
+    <div className="relative flex min-h-screen items-center justify-center bg-gradient-to-br from-primary/5 via-white to-primary/10 px-4">
+      <Button
+        type="button"
+        variant="outline"
+        onClick={handleBack}
+        className="absolute right-6 top-6 border-[#63D25F]/30 bg-white/90 text-foreground shadow-sm"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Back
+      </Button>
+
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
         className="w-full max-w-md"
       >
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="bg-primary p-3 rounded-lg">
-              <TruckIcon className="h-10 w-10 text-white" />
-            </div>
-            <span className="text-3xl font-bold text-primary">CargoKu</span>
+        <div className="mb-8 text-center">
+          <div className="mb-4 flex justify-center">
+            <img
+              src={cargoLiteLogo}
+              alt="CargoLite"
+              className="h-24 w-auto object-contain"
+            />
           </div>
           <p className="text-muted-foreground">Login ke akun Anda</p>
         </div>
 
-        {/* Login Card */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 border border-border">
-          {/* Login Form */}
+        <div className="rounded-2xl border border-border bg-white p-8 shadow-xl">
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="username">Username</Label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <User className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   id="username"
                   type="text"
@@ -87,7 +101,7 @@ export function LoginPage() {
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   id="password"
                   type="password"
@@ -101,40 +115,44 @@ export function LoginPage() {
             </div>
 
             {error && (
-              <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg">
+              <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
                 {error}
               </div>
             )}
 
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isLoading}
-            >
+            <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? 'Loading...' : 'Login'}
             </Button>
           </form>
 
-          {/* Demo Credentials */}
-          <div className="mt-6 pt-6 border-t border-border">
-            <p className="text-xs text-muted-foreground text-center mb-3">
+          <div className="mt-6 border-t border-border pt-6">
+            <p className="mb-3 text-center text-xs text-muted-foreground">
               Demo Credentials:
             </p>
             <div className="space-y-2 text-xs">
-              <div className="bg-secondary/50 p-3 rounded-lg">
-                <div className="font-medium mb-1">Customer:</div>
-                <div>Username: <span className="font-mono">andi</span> atau <span className="font-mono">siti</span></div>
-                <div>Password: <span className="font-mono">andi123</span> atau <span className="font-mono">siti123</span></div>
+              <div className="rounded-lg bg-secondary/50 p-3">
+                <div className="mb-1 font-medium">Customer:</div>
+                <div>
+                  Username: <span className="font-mono">andi</span> atau{' '}
+                  <span className="font-mono">siti</span>
+                </div>
+                <div>
+                  Password: <span className="font-mono">andi123</span> atau{' '}
+                  <span className="font-mono">siti123</span>
+                </div>
               </div>
-              <div className="bg-secondary/50 p-3 rounded-lg">
-                <div className="font-medium mb-1">Kurir:</div>
-                <div>Username: <span className="font-mono">kurir_budi</span> atau <span className="font-mono">kurir_joko</span></div>
-                <div>Password: <span className="font-mono">budi123</span> atau <span className="font-mono">joko123</span></div>
+              <div className="rounded-lg bg-secondary/50 p-3">
+                <div className="mb-1 font-medium">Admin:</div>
+                <div>
+                  Username: <span className="font-mono">admin_maya</span> atau{' '}
+                  <span className="font-mono">admin_raka</span>
+                </div>
+                <div>
+                  Password: <span className="font-mono">maya123</span> atau{' '}
+                  <span className="font-mono">raka123</span>
+                </div>
               </div>
             </div>
-            <p className="text-xs text-muted-foreground text-center mt-3">
-              💡 Username yang dimulai dengan "kurir_" akan login sebagai kurir
-            </p>
           </div>
         </div>
       </motion.div>

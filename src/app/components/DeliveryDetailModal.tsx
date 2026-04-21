@@ -39,7 +39,7 @@ export function DeliveryDetailModal({ open, onOpenChange, delivery }: DeliveryDe
 
         <div className="space-y-6 py-4">
           {/* Current Status */}
-          <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-4">
+          <div className="rounded-lg bg-[#63D25F]/10 p-4">
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-sm text-muted-foreground mb-1">Status Saat Ini</div>

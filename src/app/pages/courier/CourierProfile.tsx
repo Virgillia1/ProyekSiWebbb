@@ -210,7 +210,7 @@ export function CourierProfile() {
           </div>
 
           {/* Additional Info */}
-          <div className="bg-gradient-to-br from-primary to-green-500 rounded-xl p-6 text-white">
+          <div className="bg-[#63D25F] rounded-xl p-6 text-white">
             <h3 className="font-bold text-lg mb-2">Status Akun</h3>
             <div className="text-sm opacity-90 mb-4">Akun Terverifikasi ✓</div>
             <div className="bg-white/20 rounded-lg p-3 text-sm">

@@ -1,19 +1,21 @@
 import { createBrowserRouter } from 'react-router';
+import { AdminLayout } from './components/AdminLayout';
 import { Layout } from './components/Layout';
-import { CourierLayout } from './components/CourierLayout';
-import { HomePage } from './pages/HomePage';
-import { ServicesPage } from './pages/ServicesPage';
-import { InformationPage } from './pages/InformationPage';
 import { AboutPage } from './pages/AboutPage';
 import { ContactPage } from './pages/ContactPage';
+import { HomePage } from './pages/HomePage';
+import { InformationPage } from './pages/InformationPage';
+import { LoginPage } from './pages/LoginPage';
+import { NotFound } from './pages/NotFound';
+import { ServicesPage } from './pages/ServicesPage';
 import { StaffPage } from './pages/StaffPage';
 import { TrackingPage } from './pages/TrackingPage';
-import { LoginPage } from './pages/LoginPage';
-import { CourierDashboard } from './pages/courier/CourierDashboard';
-import { CourierTracking } from './pages/courier/CourierTracking';
-import { CourierHistory } from './pages/courier/CourierHistory';
-import { CourierProfile } from './pages/courier/CourierProfile';
-import { NotFound } from './pages/NotFound';
+import { AdminAttendance } from './pages/admin/AdminAttendance';
+import { AdminCustomers } from './pages/admin/AdminCustomers';
+import { AdminDashboard } from './pages/admin/AdminDashboard';
+import { AdminEmployees } from './pages/admin/AdminEmployees';
+import { AdminProfile } from './pages/admin/AdminProfile';
+import { AdminSettings } from './pages/admin/AdminSettings';
 
 export const router = createBrowserRouter([
   {
@@ -21,24 +23,32 @@ export const router = createBrowserRouter([
     Component: LoginPage,
   },
   {
-    path: '/courier',
-    Component: CourierLayout,
+    path: '/admin',
+    Component: AdminLayout,
     children: [
       {
         path: 'dashboard',
-        Component: CourierDashboard,
+        Component: AdminDashboard,
       },
       {
-        path: 'tracking',
-        Component: CourierTracking,
+        path: 'employees',
+        Component: AdminEmployees,
       },
       {
-        path: 'history',
-        Component: CourierHistory,
+        path: 'attendance',
+        Component: AdminAttendance,
+      },
+      {
+        path: 'customers',
+        Component: AdminCustomers,
       },
       {
         path: 'profile',
-        Component: CourierProfile,
+        Component: AdminProfile,
+      },
+      {
+        path: 'settings',
+        Component: AdminSettings,
       },
     ],
   },
