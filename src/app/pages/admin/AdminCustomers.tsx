@@ -18,10 +18,24 @@ import {
   TableHeader,
   TableRow,
 } from '../../components/ui/table';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '../../components/ui/pagination';
 import { customers, CustomerAccount } from '../../data/adminData';
 
 export function AdminCustomers() {
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerAccount | null>(null);
+
+  const ITEMS_PER_PAGE = 5;
+  const [currentPage, setCurrentPage] = useState(1);
+  const totalPages = Math.ceil(customers.length / ITEMS_PER_PAGE);
+  const paginatedCustomers = customers.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   const totalAccounts = customers.length;
   const totalSent = customers.reduce((sum, item) => sum + item.totalSent, 0);
@@ -86,7 +100,7 @@ export function AdminCustomers() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {customers.map((customer) => (
+              {paginatedCustomers.map((customer) => (
                 <TableRow key={customer.id}>
                   <TableCell className="font-medium">{customer.id}</TableCell>
                   <TableCell>
@@ -108,6 +122,38 @@ export function AdminCustomers() {
               ))}
             </TableBody>
           </Table>
+
+          {totalPages > 1 && (
+            <div className="mt-4">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                  {Array.from({ length: totalPages }).map((_, i) => (
+                    <PaginationItem key={i}>
+                      <PaginationLink
+                        onClick={() => setCurrentPage(i + 1)}
+                        isActive={currentPage === i + 1}
+                        className="cursor-pointer"
+                      >
+                        {i + 1}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ))}
+                  <PaginationItem>
+                    <PaginationNext 
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
         </CardContent>
       </Card>
 

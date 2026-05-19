@@ -10,12 +10,14 @@ import { NotFound } from './pages/NotFound';
 import { ServicesPage } from './pages/ServicesPage';
 import { StaffPage } from './pages/StaffPage';
 import { TrackingPage } from './pages/TrackingPage';
-import { AdminAttendance } from './pages/admin/AdminAttendance';
-import { AdminCustomers } from './pages/admin/AdminCustomers';
-import { AdminDashboard } from './pages/admin/AdminDashboard';
-import { AdminEmployees } from './pages/admin/AdminEmployees';
-import { AdminProfile } from './pages/admin/AdminProfile';
-import { AdminSettings } from './pages/admin/AdminSettings';
+import { lazy } from 'react';
+
+const AdminAttendance = lazy(() => import('./pages/admin/AdminAttendance').then(module => ({ default: module.AdminAttendance })));
+const AdminCustomers = lazy(() => import('./pages/admin/AdminCustomers').then(module => ({ default: module.AdminCustomers })));
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard').then(module => ({ default: module.AdminDashboard })));
+const AdminEmployees = lazy(() => import('./pages/admin/AdminEmployees').then(module => ({ default: module.AdminEmployees })));
+const AdminProfile = lazy(() => import('./pages/admin/AdminProfile').then(module => ({ default: module.AdminProfile })));
+const AdminSettings = lazy(() => import('./pages/admin/AdminSettings').then(module => ({ default: module.AdminSettings })));
 
 export const router = createBrowserRouter([
   {

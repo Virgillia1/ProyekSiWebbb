@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router';
 import {
   ClipboardCheck,
@@ -17,6 +17,32 @@ import { useAuth } from '../contexts/AuthContext';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from './ui/sheet';
+import { Skeleton } from './ui/skeleton';
+
+function AdminPageSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-4 md:grid-cols-3">
+        <Skeleton className="h-28 w-full rounded-xl" />
+        <Skeleton className="h-28 w-full rounded-xl" />
+        <Skeleton className="h-28 w-full rounded-xl" />
+      </div>
+      <div className="rounded-xl border border-border/80 bg-white p-6 shadow-sm">
+        <div className="mb-6 flex items-center justify-between">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-9 w-24" />
+        </div>
+        <div className="space-y-4">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const navItems = [
   { name: 'Beranda', path: '/admin/dashboard', icon: LayoutDashboard },
@@ -218,7 +244,9 @@ export function AdminLayout() {
               </Button>
             </div>
           )}
-          <Outlet />
+          <Suspense fallback={<AdminPageSkeleton />}>
+            <Outlet />
+          </Suspense>
         </main>
       </div>
     </div>
