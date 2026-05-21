@@ -6,7 +6,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
 
-const envFiles = [path.join(rootDir, '.env.local'), path.join(rootDir, 'src', '.env.local')];
+const envFiles = [
+  path.join(rootDir, '.env.local'),
+  path.join(rootDir, 'src', '.env.local'),
+  path.join(rootDir, '.env'),
+  path.join(rootDir, 'src', '.env'),
+];
 
 const parseEnvLine = (line) => {
   const trimmed = line.trim();
@@ -59,11 +64,6 @@ export const loadProjectEnv = () => {
 };
 
 export const getDatabaseUrl = () =>
-  process.env.POSTGRES_URL_NON_POOLING ??
-  process.env.DATABASE_URL_UNPOOLED ??
-  process.env.POSTGRES_URL ??
-  process.env.DATABASE_URL ??
-  process.env.POSTGRES_PRISMA_URL ??
-  null;
+  process.env.DATABASE_URL ?? null;
 
 export { rootDir };
