@@ -79,6 +79,17 @@ export interface DeliveryChartPoint {
   diproses: number;
 }
 
+export interface ManagerProfile {
+  employeeId: string;
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  department: string;
+  startDate: string;
+  bio: string;
+}
+
 export const monthOptions = [
   { value: '2026-01', label: 'Januari 2026' },
   { value: '2026-02', label: 'Februari 2026' },
@@ -1339,7 +1350,7 @@ export const customers: CustomerAccount[] = customerPlans.map((customer) => ({
   ),
 }));
 
-export const managerProfile = {
+export const managerProfile: ManagerProfile = {
   employeeId: 'ADM-001',
   name: 'Maya Pratama',
   email: 'maya.pratama@cargoku.com',

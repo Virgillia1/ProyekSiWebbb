@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, CalendarDays, CheckCircle2, Clock3 } from 'lucide-react';
 import { AdminTablePagination } from '../../components/admin/AdminTablePagination';
 import { ExpandableSearch } from '../../components/admin/ExpandableSearch';
+import { useAdminData } from '../../contexts/AdminDataContext';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
@@ -28,7 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from '../../components/ui/table';
-import { attendanceRecords, monthOptions } from '../../data/adminData';
+import { monthOptions } from '../../data/adminData';
 
 const ITEMS_PER_PAGE = 5;
 const statusBadgeClass: Record<string, string> = {
@@ -38,7 +39,14 @@ const statusBadgeClass: Record<string, string> = {
   Izin: 'bg-sky-100 text-sky-700 hover:bg-sky-100',
 };
 
-const getAttendanceSearchText = (record: (typeof attendanceRecords)[number]) =>
+const getAttendanceSearchText = (record: {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  division: string;
+  todayStatus: string;
+  lastAbsentDate: string;
+}) =>
   [
     record.id,
     record.employeeId,
@@ -51,6 +59,7 @@ const getAttendanceSearchText = (record: (typeof attendanceRecords)[number]) =>
     .toLowerCase();
 
 export function AdminAttendance() {
+  const { attendanceRecords } = useAdminData();
   const [selectedMonth, setSelectedMonth] = useState('2026-04');
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);

@@ -1,0 +1,109 @@
+DROP TABLE IF EXISTS customer_histories;
+DROP TABLE IF EXISTS package_tracking_events;
+DROP TABLE IF EXISTS attendance_records;
+DROP TABLE IF EXISTS packages;
+DROP TABLE IF EXISTS customers;
+DROP TABLE IF EXISTS employees;
+DROP TABLE IF EXISTS manager_profiles;
+
+CREATE TABLE manager_profiles (
+  employee_id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  address TEXT NOT NULL,
+  department TEXT NOT NULL,
+  start_date DATE NOT NULL,
+  bio TEXT NOT NULL
+);
+
+CREATE TABLE employees (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  origin TEXT NOT NULL,
+  age INTEGER NOT NULL CHECK (age >= 0),
+  years_working INTEGER NOT NULL CHECK (years_working >= 0),
+  salary BIGINT NOT NULL CHECK (salary >= 0),
+  status TEXT NOT NULL CHECK (status IN ('Aktif', 'Nonaktif')),
+  division TEXT NOT NULL,
+  position TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  performance_score INTEGER NOT NULL CHECK (performance_score BETWEEN 0 AND 100)
+);
+
+CREATE TABLE packages (
+  id TEXT PRIMARY KEY,
+  month_key TEXT NOT NULL,
+  week TEXT NOT NULL,
+  resi TEXT NOT NULL UNIQUE,
+  sender_name TEXT NOT NULL,
+  recipient_name TEXT NOT NULL,
+  courier_id TEXT NOT NULL,
+  courier_name TEXT NOT NULL,
+  origin TEXT NOT NULL,
+  destination TEXT NOT NULL,
+  current_location TEXT NOT NULL,
+  service TEXT NOT NULL,
+  weight_kg NUMERIC(10, 2) NOT NULL CHECK (weight_kg >= 0),
+  declared_value BIGINT NOT NULL CHECK (declared_value >= 0),
+  shipped_at TIMESTAMP NOT NULL,
+  delivered_at TIMESTAMP NULL,
+  status TEXT NOT NULL CHECK (status IN ('Sudah Dikirim', 'Lagi Dikirim'))
+);
+
+CREATE TABLE package_tracking_events (
+  id TEXT PRIMARY KEY,
+  package_id TEXT NOT NULL REFERENCES packages(id) ON DELETE CASCADE,
+  resi TEXT NOT NULL,
+  status TEXT NOT NULL,
+  location TEXT NOT NULL,
+  timestamp TIMESTAMP NOT NULL,
+  description TEXT NOT NULL,
+  photo_url TEXT NULL
+);
+
+CREATE TABLE attendance_records (
+  id TEXT PRIMARY KEY,
+  month_key TEXT NOT NULL,
+  employee_id TEXT NOT NULL,
+  employee_name TEXT NOT NULL,
+  division TEXT NOT NULL,
+  present_days INTEGER NOT NULL CHECK (present_days >= 0),
+  absent_days INTEGER NOT NULL CHECK (absent_days >= 0),
+  sick_days INTEGER NOT NULL CHECK (sick_days >= 0),
+  permit_days INTEGER NOT NULL CHECK (permit_days >= 0),
+  late_count INTEGER NOT NULL CHECK (late_count >= 0),
+  today_status TEXT NOT NULL CHECK (today_status IN ('Hadir', 'Izin', 'Sakit', 'Alpha')),
+  last_absent_date DATE NOT NULL
+);
+
+CREATE TABLE customers (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  address TEXT NOT NULL,
+  email TEXT NOT NULL UNIQUE,
+  phone TEXT NOT NULL,
+  total_sent INTEGER NOT NULL CHECK (total_sent >= 0),
+  total_received INTEGER NOT NULL CHECK (total_received >= 0),
+  last_activity DATE NOT NULL
+);
+
+CREATE TABLE customer_histories (
+  id TEXT PRIMARY KEY,
+  customer_id TEXT NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  type TEXT NOT NULL CHECK (type IN ('Mengirim', 'Menerima')),
+  resi TEXT NOT NULL,
+  route TEXT NOT NULL,
+  status TEXT NOT NULL,
+  date DATE NOT NULL
+);
+
+CREATE INDEX idx_packages_month_key ON packages(month_key);
+CREATE INDEX idx_packages_courier_id ON packages(courier_id);
+CREATE INDEX idx_packages_status ON packages(status);
+CREATE INDEX idx_package_tracking_events_package_id ON package_tracking_events(package_id);
+CREATE INDEX idx_package_tracking_events_resi ON package_tracking_events(resi);
+CREATE INDEX idx_attendance_records_month_key ON attendance_records(month_key);
+CREATE INDEX idx_attendance_records_employee_id ON attendance_records(employee_id);
+CREATE INDEX idx_customer_histories_customer_id ON customer_histories(customer_id);
+CREATE INDEX idx_customer_histories_resi ON customer_histories(resi);

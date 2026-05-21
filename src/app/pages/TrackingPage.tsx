@@ -16,7 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Badge } from '../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
-import { findDeliveryByResi } from '../mockData';
+import { fetchTrackingByResi } from '../lib/trackingApi';
 import { Delivery } from '../types';
 import { toast } from 'sonner';
 import { motion } from 'motion/react';
@@ -29,7 +29,7 @@ export function TrackingPage() {
   const [rating, setRating] = useState(0);
   const [ratingSubmitted, setRatingSubmitted] = useState(false);
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     if (!resiNumber.trim()) {
       return;
     }
@@ -38,18 +38,23 @@ export function TrackingPage() {
     setNotFound(false);
     setDelivery(null);
 
-    setTimeout(() => {
-      const result = findDeliveryByResi(resiNumber.trim());
+    try {
+      const result = await fetchTrackingByResi(resiNumber.trim());
       if (result) {
         setDelivery(result);
         setNotFound(false);
         setRating(result.courierRating || 0);
-      } else {
-        setDelivery(null);
-        setNotFound(true);
       }
+    } catch (error) {
+      setDelivery(null);
+      if (error instanceof Error && error.message.toLowerCase().includes('tidak ditemukan')) {
+        setNotFound(true);
+      } else {
+        toast.error(error instanceof Error ? error.message : 'Gagal memuat data tracking.');
+      }
+    } finally {
       setIsLoading(false);
-    }, 800);
+    }
   };
 
   const handleSubmitRating = () => {

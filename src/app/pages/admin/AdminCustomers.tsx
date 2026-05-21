@@ -1,8 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
-import { PackageCheck, PencilLine, Save, SendToBack, Users } from 'lucide-react';
+import { PackageCheck, PencilLine, Save, SendToBack, Trash2, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { AdminTablePagination } from '../../components/admin/AdminTablePagination';
 import { AdminTableToolbar } from '../../components/admin/AdminTableToolbar';
+import { useAdminData } from '../../contexts/AdminDataContext';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../../components/ui/alert-dialog';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
@@ -25,7 +36,7 @@ import {
   TableHeader,
   TableRow,
 } from '../../components/ui/table';
-import { customers, type CustomerAccount } from '../../data/adminData';
+import type { CustomerAccount } from '../../data/adminData';
 
 const ITEMS_PER_PAGE = 5;
 const padValue = (value: number, length = 3) => String(value).padStart(length, '0');
@@ -53,12 +64,18 @@ const buildNewCustomerDraft = (customerList: CustomerAccount[]): CustomerAccount
 };
 
 export function AdminCustomers() {
-  const [customerList, setCustomerList] = useState(customers);
+  const {
+    customers: customerList,
+    createCustomer,
+    updateCustomer,
+    deleteCustomer: deleteCustomerRequest,
+  } = useAdminData();
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [dialogMode, setDialogMode] = useState<'view' | 'edit' | 'create' | null>(null);
   const [activeCustomerId, setActiveCustomerId] = useState<string | null>(null);
   const [draftCustomer, setDraftCustomer] = useState<CustomerAccount | null>(null);
+  const [customerToDelete, setCustomerToDelete] = useState<CustomerAccount | null>(null);
 
   const filteredCustomers = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -143,28 +160,49 @@ export function AdminCustomers() {
     );
   };
 
-  const handleSaveCustomer = () => {
+  const handleSaveCustomer = async () => {
     if (!draftCustomer) {
       return;
     }
 
-    if (dialogMode === 'create') {
-      setCustomerList((previousCustomers) => [draftCustomer, ...previousCustomers]);
-      toast.success('Customer baru ditambahkan', {
-        description: `${draftCustomer.name || draftCustomer.id} masuk ke daftar akun customer.`,
-      });
-    } else {
-      setCustomerList((previousCustomers) =>
-        previousCustomers.map((customer) =>
-          customer.id === draftCustomer.id ? draftCustomer : customer
-        )
-      );
-      toast.success('Data customer diperbarui', {
-        description: `Perubahan untuk ${draftCustomer.name} berhasil disimpan.`,
-      });
+    try {
+      if (dialogMode === 'create') {
+        await createCustomer(draftCustomer);
+        toast.success('Customer baru ditambahkan', {
+          description: `${draftCustomer.name || draftCustomer.id} masuk ke daftar akun customer.`,
+        });
+      } else {
+        await updateCustomer(draftCustomer);
+        toast.success('Data customer diperbarui', {
+          description: `Perubahan untuk ${draftCustomer.name} berhasil disimpan.`,
+        });
+      }
+
+      resetDialog();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Gagal menyimpan data customer.');
+    }
+  };
+
+  const deleteCustomer = async () => {
+    if (!customerToDelete) {
+      return;
     }
 
-    resetDialog();
+    try {
+      await deleteCustomerRequest(customerToDelete.id);
+      toast.success('Data customer dihapus', {
+        description: `${customerToDelete.name} berhasil dihapus dari database.`,
+      });
+
+      if (activeCustomerId === customerToDelete.id) {
+        resetDialog();
+      }
+
+      setCustomerToDelete(null);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Gagal menghapus data customer.');
+    }
   };
 
   return (
@@ -357,6 +395,15 @@ export function AdminCustomers() {
               <DialogFooter>
                 <Button
                   type="button"
+                  variant="outline"
+                  className="border-destructive/30 text-destructive hover:bg-destructive/10"
+                  onClick={() => setCustomerToDelete(selectedCustomer)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Hapus
+                </Button>
+                <Button
+                  type="button"
                   onClick={() => openUpdate(selectedCustomer.id)}
                 >
                   <PencilLine className="h-4 w-4" />
@@ -479,6 +526,27 @@ export function AdminCustomers() {
           )}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!customerToDelete} onOpenChange={(open) => !open && setCustomerToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus data customer?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Data {customerToDelete?.name} akan dihapus dari Neon bersama riwayat customer yang
+              terkait. Tindakan ini tidak bisa dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive hover:bg-destructive/90"
+              onClick={deleteCustomer}
+            >
+              Hapus
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

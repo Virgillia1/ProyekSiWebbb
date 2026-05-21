@@ -4,8 +4,14 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
+    "api": "node server/app.mjs",
+    "api:dev": "node --watch server/app.mjs",
+    "dev:full": "node scripts/dev-full.mjs",
+    "db:seed:sql": "node scripts/generate-neon-seed.mjs",
+    "db:reset:neon": "node scripts/reset-neon-db.mjs",
     "build": "vite build",
-    "dev": "vite"
+    "dev": "vite",
+    "verify:crud": "node scripts/verify-admin-crud.mjs"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",
@@ -45,10 +51,12 @@
     "cmdk": "1.1.1",
     "date-fns": "3.6.0",
     "embla-carousel-react": "8.6.0",
+    "express": "^5.1.0",
     "input-otp": "1.4.2",
     "lucide-react": "0.487.0",
     "motion": "12.23.24",
     "next-themes": "0.4.6",
+    "pg": "^8.16.3",
     "react-day-picker": "8.10.1",
     "react-dnd": "16.0.1",
     "react-dnd-html5-backend": "16.0.1",

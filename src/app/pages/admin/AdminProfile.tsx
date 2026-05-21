@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Building2, Mail, MapPin, Phone, Save, UserRound } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '../../components/ui/button';
@@ -6,31 +6,56 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../..
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Textarea } from '../../components/ui/textarea';
+import { useAdminData } from '../../contexts/AdminDataContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { managerProfile } from '../../data/adminData';
 
 export function AdminProfile() {
   const { user, updateUser } = useAuth();
+  const {
+    managerProfile: managerProfileData,
+    updateManagerProfile,
+  } = useAdminData();
+  const activeManagerProfile = managerProfileData ?? managerProfile;
   const [formData, setFormData] = useState({
-    name: user?.name || managerProfile.name,
-    email: user?.email || managerProfile.email,
-    phone: user?.phone || managerProfile.phone,
-    address: managerProfile.address,
-    department: managerProfile.department,
-    startDate: managerProfile.startDate,
-    bio: managerProfile.bio,
+    employeeId: activeManagerProfile.employeeId,
+    name: user?.name || activeManagerProfile.name,
+    email: user?.email || activeManagerProfile.email,
+    phone: user?.phone || activeManagerProfile.phone,
+    address: activeManagerProfile.address,
+    department: activeManagerProfile.department,
+    startDate: activeManagerProfile.startDate,
+    bio: activeManagerProfile.bio,
   });
 
-  const handleSave = () => {
-    updateUser({
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
+  useEffect(() => {
+    setFormData({
+      employeeId: activeManagerProfile.employeeId,
+      name: user?.name || activeManagerProfile.name,
+      email: user?.email || activeManagerProfile.email,
+      phone: user?.phone || activeManagerProfile.phone,
+      address: activeManagerProfile.address,
+      department: activeManagerProfile.department,
+      startDate: activeManagerProfile.startDate,
+      bio: activeManagerProfile.bio,
     });
+  }, [activeManagerProfile, user?.email, user?.name, user?.phone]);
 
-    toast.success('Profil manager diperbarui', {
-      description: 'Perubahan identitas manager sudah diterapkan pada sesi ini.',
-    });
+  const handleSave = async () => {
+    try {
+      await updateManagerProfile(formData);
+      updateUser({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+      });
+
+      toast.success('Profil manager diperbarui', {
+        description: 'Perubahan identitas manager sudah tersimpan ke database.',
+      });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Gagal menyimpan profil manager.');
+    }
   };
 
   return (
@@ -153,7 +178,7 @@ export function AdminProfile() {
               </div>
               <div className="rounded-2xl border border-border bg-secondary/30 p-4">
                 <p className="text-sm text-muted-foreground">ID Manager</p>
-                <p className="mt-1 font-semibold">{managerProfile.employeeId}</p>
+                <p className="mt-1 font-semibold">{formData.employeeId}</p>
               </div>
               <div className="rounded-2xl border border-border bg-secondary/30 p-4">
                 <p className="text-sm text-muted-foreground">Masa Jabatan</p>

@@ -13,6 +13,7 @@ import {
   Users,
 } from 'lucide-react';
 import cargoLiteLogo from '../../imports/cargolite-logo.png';
+import { useAdminData, AdminDataProvider } from '../contexts/AdminDataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
@@ -63,12 +64,13 @@ function BrandLogo({ className = '' }: { className?: string }) {
   );
 }
 
-export function AdminLayout() {
+function AdminLayoutShell() {
   const [desktopNavOpen, setDesktopNavOpen] = useState(true);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { loading, error, notice, isUsingFallback } = useAdminData();
 
   const isActive = (path: string) => location.pathname.startsWith(path);
 
@@ -244,11 +246,35 @@ export function AdminLayout() {
               </Button>
             </div>
           )}
-          <Suspense fallback={<AdminPageSkeleton />}>
-            <Outlet />
-          </Suspense>
+          {(notice || error) && (
+            <div
+              className={`mb-6 rounded-3xl border bg-white p-6 shadow-sm ${
+                isUsingFallback ? 'border-amber-200/80' : 'border-destructive/20'
+              }`}
+            >
+              <h2 className="text-lg font-semibold">
+                {isUsingFallback ? 'Mode data cadangan aktif' : 'Data admin belum bisa dimuat'}
+              </h2>
+              <p className="mt-2 text-sm text-muted-foreground">{notice ?? error}</p>
+            </div>
+          )}
+          {loading ? (
+            <AdminPageSkeleton />
+          ) : (
+            <Suspense fallback={<AdminPageSkeleton />}>
+              <Outlet />
+            </Suspense>
+          )}
         </main>
       </div>
     </div>
+  );
+}
+
+export function AdminLayout() {
+  return (
+    <AdminDataProvider>
+      <AdminLayoutShell />
+    </AdminDataProvider>
   );
 }

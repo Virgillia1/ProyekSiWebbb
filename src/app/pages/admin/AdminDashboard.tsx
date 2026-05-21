@@ -6,6 +6,7 @@ import {
   PackageSearch,
   PencilLine,
   Save,
+  Trash2,
   Truck,
 } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -13,6 +14,17 @@ import { Bar, BarChart, CartesianGrid, XAxis } from 'recharts';
 import { toast } from 'sonner';
 import { AdminTablePagination } from '../../components/admin/AdminTablePagination';
 import { AdminTableToolbar } from '../../components/admin/AdminTableToolbar';
+import { useAdminData } from '../../contexts/AdminDataContext';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../../components/ui/alert-dialog';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
@@ -48,12 +60,8 @@ import {
   TableRow,
 } from '../../components/ui/table';
 import {
-  adminPackages,
-  employees,
   monthOptions,
   packageStatusOptions,
-  shippingLocationOptions,
-  shippingServiceOptions,
   type AdminPackage,
   type PackageStatus,
 } from '../../data/adminData';
@@ -107,7 +115,10 @@ const getPackageSearchText = (item: AdminPackage) =>
 const buildNewPackageDraft = (
   monthKey: string,
   packages: AdminPackage[],
-  defaultCourierId: string
+  defaultCourierId: string,
+  defaultCourierName: string,
+  defaultService: string,
+  defaultLocation: string
 ): AdminPackage => {
   const sameMonthPackages = packages.filter((item) => item.monthKey === monthKey);
   const nextIdNumber =
@@ -116,8 +127,6 @@ const buildNewPackageDraft = (
     Math.max(0, ...sameMonthPackages.map((item) => Number(item.resi.slice(-4)) || 0)) + 1;
   const packageCount = sameMonthPackages.length;
   const shipmentDay = Math.min(28, packageCount + 6);
-  const defaultCourier = employees.find((employee) => employee.id === defaultCourierId);
-  const defaultLocation = shippingLocationOptions[0] ?? 'Jakarta Selatan';
 
   return {
     id: `PKT-${padValue(nextIdNumber, 3)}`,
@@ -127,11 +136,11 @@ const buildNewPackageDraft = (
     senderName: '',
     recipientName: '',
     courierId: defaultCourierId,
-    courierName: defaultCourier?.name ?? '',
+    courierName: defaultCourierName,
     origin: defaultLocation,
     destination: defaultLocation,
     currentLocation: defaultLocation,
-    service: shippingServiceOptions[0] ?? 'CargoKu Reguler',
+    service: defaultService,
     weightKg: 1,
     declaredValue: 250000,
     shippedAt: `${monthKey}-${padValue(shipmentDay, 2)}T09:00:00`,
@@ -159,7 +168,13 @@ const normalizePackageDraft = (draftPackage: AdminPackage, isHistoricalMonth: bo
 };
 
 export function AdminDashboard() {
-  const [packages, setPackages] = useState(adminPackages);
+  const {
+    packages,
+    employees,
+    createPackage,
+    updatePackage,
+    deletePackage: deletePackageRequest,
+  } = useAdminData();
   const [selectedMonth, setSelectedMonth] = useState('2026-04');
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -169,11 +184,23 @@ export function AdminDashboard() {
   );
   const [activePackageId, setActivePackageId] = useState<string | null>(null);
   const [draftPackage, setDraftPackage] = useState<AdminPackage | null>(null);
+  const [packageToDelete, setPackageToDelete] = useState<AdminPackage | null>(null);
 
   const isHistoricalMonth = selectedMonth < '2026-04';
   const activeCouriers = useMemo(
     () => employees.filter((employee) => employee.status === 'Aktif'),
-    []
+    [employees]
+  );
+  const shippingServiceOptions = useMemo(
+    () => Array.from(new Set(packages.map((item) => item.service))),
+    [packages]
+  );
+  const shippingLocationOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(packages.flatMap((item) => [item.origin, item.destination, item.currentLocation]))
+      ).sort(),
+    [packages]
   );
 
   const resetPackageDialog = () => {
@@ -298,9 +325,21 @@ export function AdminDashboard() {
 
   const openCreatePackage = () => {
     const defaultCourierId = activeCouriers[0]?.id ?? employees[0]?.id ?? 'EMP-001';
+    const defaultCourierName = activeCouriers[0]?.name ?? employees[0]?.name ?? '';
+    const defaultService = shippingServiceOptions[0] ?? 'CargoKu Reguler';
+    const defaultLocation = shippingLocationOptions[0] ?? 'Jakarta Selatan';
 
     setActivePackageId(null);
-    setDraftPackage(buildNewPackageDraft(selectedMonth, packages, defaultCourierId));
+    setDraftPackage(
+      buildNewPackageDraft(
+        selectedMonth,
+        packages,
+        defaultCourierId,
+        defaultCourierName,
+        defaultService,
+        defaultLocation
+      )
+    );
     setPackageDialogMode('create');
   };
 
@@ -332,28 +371,50 @@ export function AdminDashboard() {
     );
   };
 
-  const handleSavePackage = () => {
+  const handleSavePackage = async () => {
     if (!draftPackage) {
       return;
     }
-
     const nextPackage = normalizePackageDraft(draftPackage, isHistoricalMonth);
 
-    if (packageDialogMode === 'create') {
-      setPackages((previousPackages) => [nextPackage, ...previousPackages]);
-      toast.success('Pengiriman baru ditambahkan', {
-        description: `Resi ${nextPackage.resi} siap dipantau di dashboard.`,
-      });
-    } else {
-      setPackages((previousPackages) =>
-        previousPackages.map((item) => (item.id === nextPackage.id ? nextPackage : item))
-      );
-      toast.success('Data pengiriman diperbarui', {
-        description: `Perubahan untuk resi ${nextPackage.resi} sudah tersimpan.`,
-      });
+    try {
+      if (packageDialogMode === 'create') {
+        await createPackage(nextPackage);
+        toast.success('Pengiriman baru ditambahkan', {
+          description: `Resi ${nextPackage.resi} siap dipantau di dashboard.`,
+        });
+      } else {
+        await updatePackage(nextPackage);
+        toast.success('Data pengiriman diperbarui', {
+          description: `Perubahan untuk resi ${nextPackage.resi} sudah tersimpan.`,
+        });
+      }
+
+      resetPackageDialog();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Gagal menyimpan data pengiriman.');
+    }
+  };
+
+  const deletePackage = async () => {
+    if (!packageToDelete) {
+      return;
     }
 
-    resetPackageDialog();
+    try {
+      await deletePackageRequest(packageToDelete.id);
+      toast.success('Data pengiriman dihapus', {
+        description: `Resi ${packageToDelete.resi} berhasil dihapus dari database.`,
+      });
+
+      if (activePackageId === packageToDelete.id) {
+        resetPackageDialog();
+      }
+
+      setPackageToDelete(null);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Gagal menghapus data pengiriman.');
+    }
   };
 
   const trackingStops = selectedPackage
@@ -782,6 +843,15 @@ export function AdminDashboard() {
               <DialogFooter>
                 <Button
                   type="button"
+                  variant="outline"
+                  className="border-destructive/30 text-destructive hover:bg-destructive/10"
+                  onClick={() => setPackageToDelete(selectedPackage)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Hapus
+                </Button>
+                <Button
+                  type="button"
                   onClick={() => openPackageUpdate(selectedPackage.id)}
                 >
                   <PencilLine className="h-4 w-4" />
@@ -994,6 +1064,27 @@ export function AdminDashboard() {
           )}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!packageToDelete} onOpenChange={(open) => !open && setPackageToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus data pengiriman?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Resi {packageToDelete?.resi} akan dihapus dari Neon beserta tracking event dan
+              riwayat customer yang terkait. Tindakan ini tidak bisa dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive hover:bg-destructive/90"
+              onClick={deletePackage}
+            >
+              Hapus
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { PencilLine, Save, Trash2, Wallet } from 'lucide-react';
 import { toast } from 'sonner';
 import { AdminTablePagination } from '../../components/admin/AdminTablePagination';
 import { AdminTableToolbar } from '../../components/admin/AdminTableToolbar';
+import { useAdminData } from '../../contexts/AdminDataContext';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,7 +43,7 @@ import {
   TableHeader,
   TableRow,
 } from '../../components/ui/table';
-import { employees as initialEmployees, type Employee, type EmployeeStatus } from '../../data/adminData';
+import type { Employee, EmployeeStatus } from '../../data/adminData';
 
 const ITEMS_PER_PAGE = 5;
 const employeeStatusOptions: EmployeeStatus[] = ['Aktif', 'Nonaktif'];
@@ -89,7 +90,12 @@ const buildNewEmployeeDraft = (employees: Employee[], defaultDivision: string): 
 };
 
 export function AdminEmployees() {
-  const [employees, setEmployees] = useState(initialEmployees);
+  const {
+    employees,
+    createEmployee,
+    updateEmployee,
+    deleteEmployee: deleteEmployeeRequest,
+  } = useAdminData();
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [dialogMode, setDialogMode] = useState<'view' | 'edit' | 'create' | null>(null);
@@ -191,45 +197,47 @@ export function AdminEmployees() {
     );
   };
 
-  const handleSaveEmployee = () => {
+  const handleSaveEmployee = async () => {
     if (!draftEmployee) {
       return;
     }
 
-    if (dialogMode === 'create') {
-      setEmployees((previousEmployees) => [draftEmployee, ...previousEmployees]);
-      toast.success('Karyawan baru ditambahkan', {
-        description: `${draftEmployee.name || draftEmployee.id} masuk ke daftar tim.`,
-      });
-    } else {
-      setEmployees((previousEmployees) =>
-        previousEmployees.map((employee) =>
-          employee.id === draftEmployee.id ? draftEmployee : employee
-        )
-      );
-      toast.success('Data karyawan diperbarui', {
-        description: `Perubahan untuk ${draftEmployee.name} berhasil disimpan.`,
-      });
-    }
+    try {
+      if (dialogMode === 'create') {
+        await createEmployee(draftEmployee);
+        toast.success('Karyawan baru ditambahkan', {
+          description: `${draftEmployee.name || draftEmployee.id} masuk ke daftar tim.`,
+        });
+      } else {
+        await updateEmployee(draftEmployee);
+        toast.success('Data karyawan diperbarui', {
+          description: `Perubahan untuk ${draftEmployee.name} berhasil disimpan.`,
+        });
+      }
 
-    resetDialog();
+      resetDialog();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Gagal menyimpan data karyawan.');
+    }
   };
 
-  const deleteEmployee = () => {
+  const deleteEmployee = async () => {
     if (!employeeToDelete) return;
 
-    setEmployees((previousEmployees) =>
-      previousEmployees.filter((employee) => employee.id !== employeeToDelete.id)
-    );
-    toast.success('Data karyawan dihapus', {
-      description: `${employeeToDelete.name} berhasil dihapus dari daftar karyawan.`,
-    });
+    try {
+      await deleteEmployeeRequest(employeeToDelete.id);
+      toast.success('Data karyawan dihapus', {
+        description: `${employeeToDelete.name} berhasil dihapus dari daftar karyawan.`,
+      });
 
-    if (activeEmployeeId === employeeToDelete.id) {
-      resetDialog();
+      if (activeEmployeeId === employeeToDelete.id) {
+        resetDialog();
+      }
+
+      setEmployeeToDelete(null);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Gagal menghapus data karyawan.');
     }
-
-    setEmployeeToDelete(null);
   };
 
   return (
@@ -669,7 +677,9 @@ export function AdminEmployees() {
           <AlertDialogHeader>
             <AlertDialogTitle>Hapus data karyawan?</AlertDialogTitle>
             <AlertDialogDescription>
-              Data {employeeToDelete?.name} akan dihapus dari daftar. Tindakan ini hanya untuk simulasi UI dan tidak bisa dibatalkan di sesi ini.
+              Data {employeeToDelete?.name} akan dihapus langsung dari Neon. Jika karyawan ini
+              masih dipakai sebagai kurir pada data pengiriman, hapus akan ditolak sampai paket
+              terkait dipindahkan ke kurir lain.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

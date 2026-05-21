@@ -1,67 +1,47 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Search, MapPin, Clock, Package, User, CheckCircle2, Eye } from 'lucide-react';
 import { Input } from '../../components/ui/input';
 import { Button } from '../../components/ui/button';
 import { UpdateStatusModal } from '../../components/UpdateStatusModal';
 import { DeliveryDetailModal } from '../../components/DeliveryDetailModal';
+import {
+  createCourierTrackingEvent,
+  fetchCourierPackages,
+  type CourierDelivery,
+} from '../../lib/trackingApi';
 import { motion } from 'motion/react';
+import { toast } from 'sonner';
 
 export function CourierTracking() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedDelivery, setSelectedDelivery] = useState<any>(null);
+  const [selectedDelivery, setSelectedDelivery] = useState<CourierDelivery | null>(null);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [deliveries, setDeliveries] = useState([
-    {
-      id: '1',
-      resiNumber: 'CKL2026040001',
-      recipient: 'Siti Rahayu',
-      recipientPhone: '08123456789',
-      destination: 'Jl. Merdeka No. 123, Bandung',
-      currentLocation: 'Cikampek',
-      status: 'Dalam Pengiriman',
-      estimatedTime: '2 jam lagi',
-      weight: '5 kg',
-      statusColor: 'text-primary',
-      bgColor: 'bg-primary/10',
-      history: [
-        {
-          status: 'Paket Diterima di Gudang',
-          location: 'Jakarta',
-          timestamp: new Date(Date.now() - 3600000 * 5).toISOString(),
-          description: 'Paket telah diterima di gudang',
-        },
-      ],
-    },
-    {
-      id: '2',
-      resiNumber: 'CKL2026040005',
-      recipient: 'Ahmad Fauzi',
-      recipientPhone: '08234567890',
-      destination: 'Jl. Sudirman No. 456, Surabaya',
-      currentLocation: 'Semarang',
-      status: 'Dalam Pengiriman',
-      estimatedTime: '4 jam lagi',
-      weight: '3 kg',
-      statusColor: 'text-primary',
-      bgColor: 'bg-primary/10',
-      history: [],
-    },
-    {
-      id: '3',
-      resiNumber: 'CKL2026040008',
-      recipient: 'Dewi Lestari',
-      recipientPhone: '08345678901',
-      destination: 'Jl. Malioboro No. 789, Yogyakarta',
-      currentLocation: 'Jakarta',
-      status: 'Menunggu Pickup',
-      estimatedTime: 'Belum dimulai',
-      weight: '2 kg',
-      statusColor: 'text-orange-500',
-      bgColor: 'bg-orange-500/10',
-      history: [],
-    },
-  ]);
+  const [deliveries, setDeliveries] = useState<CourierDelivery[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const loadDeliveries = async () => {
+    setIsLoading(true);
+
+    try {
+      const nextDeliveries = await fetchCourierPackages();
+      setDeliveries(nextDeliveries);
+
+      if (selectedDelivery) {
+        const refreshedSelectedDelivery =
+          nextDeliveries.find((delivery) => delivery.id === selectedDelivery.id) ?? null;
+        setSelectedDelivery(refreshedSelectedDelivery);
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Gagal memuat data pengiriman.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadDeliveries();
+  }, []);
 
   const filteredDeliveries = deliveries.filter(
     (delivery) =>
@@ -69,29 +49,28 @@ export function CourierTracking() {
       delivery.recipient.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleUpdateStatus = (delivery: any) => {
+  const handleUpdateStatus = (delivery: CourierDelivery) => {
     setSelectedDelivery(delivery);
     setIsUpdateModalOpen(true);
   };
 
-  const handleStatusUpdate = (statusData: any) => {
-    setDeliveries((prevDeliveries) =>
-      prevDeliveries.map((delivery) =>
-        delivery.id === selectedDelivery?.id
-          ? {
-              ...delivery,
-              status: statusData.status,
-              currentLocation: statusData.location,
-              statusColor: statusData.status === 'Paket Terkirim' ? 'text-green-600' : 'text-primary',
-              bgColor: statusData.status === 'Paket Terkirim' ? 'bg-green-50' : 'bg-primary/10',
-              history: [
-                ...(delivery.history || []),
-                statusData,
-              ],
-            }
-          : delivery
-      )
-    );
+  const handleStatusUpdate = async (statusData: {
+    status: string;
+    location: string;
+    description: string;
+    timestamp: string;
+    photoUrl?: string;
+  }) => {
+    if (!selectedDelivery) {
+      return;
+    }
+
+    try {
+      await createCourierTrackingEvent(selectedDelivery.id, statusData);
+      await loadDeliveries();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Gagal memperbarui status paket.');
+    }
   };
 
   return (
@@ -116,15 +95,18 @@ export function CourierTracking() {
       </div>
 
       {/* Deliveries List */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {filteredDeliveries.map((delivery, index) => (
-          <motion.div
-            key={delivery.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-            className="bg-white rounded-xl border border-border p-6 hover:shadow-lg transition-shadow"
-          >
+      {isLoading ? (
+        <div className="text-center py-12 text-muted-foreground">Memuat data pengiriman...</div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {filteredDeliveries.map((delivery, index) => (
+            <motion.div
+              key={delivery.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+              className="bg-white rounded-xl border border-border p-6 hover:shadow-lg transition-shadow"
+            >
             {/* Header */}
             <div className="flex items-start justify-between mb-4">
               <div>
@@ -219,11 +201,12 @@ export function CourierTracking() {
                 Hubungi
               </Button>
             </div>
-          </motion.div>
-        ))}
-      </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
 
-      {filteredDeliveries.length === 0 && (
+      {!isLoading && filteredDeliveries.length === 0 && (
         <div className="text-center py-12">
           <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <p className="text-muted-foreground">Tidak ada paket ditemukan</p>
