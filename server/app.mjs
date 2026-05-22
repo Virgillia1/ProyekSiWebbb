@@ -123,6 +123,4 @@ app.use((error, _request, response, _next) => {
   response.status(500).json({ message: 'Terjadi kesalahan saat mengakses data admin.' });
 });
 
-app.listen(port, () => {
-  console.log(`Admin API listening on http://localhost:${port}`);
-});
+export default app;

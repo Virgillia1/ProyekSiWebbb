@@ -22,7 +22,7 @@ const startProcess = (command) =>
     shell: true,
   });
 
-const processes = [startProcess(buildScriptCommand('api:dev')), startProcess(buildScriptCommand('dev'))];
+const processes = [startProcess(buildScriptCommand('api:dev')), startProcess(buildScriptCommand('dev:frontend'))];
 let isShuttingDown = false;
 
 const stopAll = (signal = 'SIGTERM') => {

@@ -4,13 +4,14 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "api": "node server/app.mjs",
-    "api:dev": "node --watch server/app.mjs",
+    "api": "node server/server.mjs",
+    "api:dev": "node --watch server/server.mjs",
     "dev:full": "node scripts/dev-full.mjs",
+    "dev:frontend": "vite",
     "db:seed:sql": "node scripts/generate-neon-seed.mjs",
     "db:reset:neon": "node scripts/reset-neon-db.mjs",
     "build": "vite build",
-    "dev": "vite",
+    "dev": "node scripts/dev-full.mjs",
     "verify:crud": "node scripts/verify-admin-crud.mjs"
   },
   "dependencies": {
