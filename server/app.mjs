@@ -1,7 +1,6 @@
 import express from 'express';
 import {
   appendTrackingEvent,
-  ConflictError,
   NotFoundError,
   createCustomer,
   createEmployee,
@@ -20,6 +19,12 @@ import {
   updatePackage,
   updateVehicle,
 } from './admin-data.mjs';
+import {
+  loginWithAccount,
+  registerAdminAccount,
+  registerCustomerAccount,
+} from './auth-data.mjs';
+import { BadRequestError, ConflictError } from './errors.mjs';
 
 const app = express();
 const port = Number(process.env.PORT ?? 3001);
@@ -28,6 +33,21 @@ app.use(express.json({ limit: '1mb' }));
 
 app.get('/api/health', (_request, response) => {
   response.json({ ok: true });
+});
+
+app.post('/api/auth/login', async (request, response) => {
+  const user = await loginWithAccount(request.body?.username, request.body?.password);
+  response.json(user);
+});
+
+app.post('/api/auth/register/customer', async (request, response) => {
+  const user = await registerCustomerAccount(request.body);
+  response.status(201).json(user);
+});
+
+app.post('/api/auth/register/admin', async (request, response) => {
+  const user = await registerAdminAccount(request.body);
+  response.status(201).json(user);
 });
 
 app.get('/api/admin/bootstrap', async (_request, response) => {
@@ -127,6 +147,11 @@ app.use((error, _request, response, _next) => {
     return;
   }
 
+  if (error instanceof BadRequestError) {
+    response.status(400).json({ message: error.message });
+    return;
+  }
+
   if (error instanceof ConflictError) {
     response.status(409).json({ message: error.message });
     return;
@@ -138,7 +163,7 @@ app.use((error, _request, response, _next) => {
   }
 
   console.error(error);
-  response.status(500).json({ message: 'Terjadi kesalahan saat mengakses data admin.' });
+  response.status(500).json({ message: 'Terjadi kesalahan saat memproses permintaan.' });
 });
 
 export default app;

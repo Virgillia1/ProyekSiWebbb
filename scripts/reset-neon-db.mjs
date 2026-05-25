@@ -30,6 +30,7 @@ const summaryQuery = `
     (SELECT COUNT(*) FROM package_tracking_events) AS tracking_events_count,
     (SELECT COUNT(*) FROM attendance_records) AS attendance_count,
     (SELECT COUNT(*) FROM customers) AS customers_count,
+    (SELECT COUNT(*) FROM user_accounts) AS user_accounts_count,
     (SELECT COUNT(*) FROM customer_histories) AS histories_count,
     (SELECT COUNT(*) FROM vehicles) AS vehicles_count
 `;
@@ -44,6 +45,7 @@ console.log(
     `package_tracking_events=${summary.tracking_events_count}`,
     `attendance_records=${summary.attendance_count}`,
     `customers=${summary.customers_count}`,
+    `user_accounts=${summary.user_accounts_count}`,
     `customer_histories=${summary.histories_count}`,
     `vehicles=${summary.vehicles_count}`,
   ].join(', ')

@@ -1,7 +1,5 @@
 import { pool, withTransaction } from './db.mjs';
-
-class NotFoundError extends Error {}
-class ConflictError extends Error {}
+import { ConflictError, NotFoundError } from './errors.mjs';
 
 const pad = (value) => String(value).padStart(2, '0');
 

@@ -9,6 +9,7 @@ import {
   managerProfile,
   vehicles,
 } from '../src/app/data/adminData.ts';
+import { createPasswordHash } from '../server/password-hash.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -151,11 +152,75 @@ const customerHistories = customers.flatMap((customer) =>
   }))
 );
 
+const andiCustomer =
+  customers.find((customer) => customer.email.toLowerCase() === 'andi.wijaya@cargolite.com') ??
+  customers[0];
+
+const sitiCustomer =
+  customers.find((customer) => customer.email.toLowerCase() === 'siti.rahayu@cargolite.com') ??
+  customers[1];
+
+const userAccounts = await Promise.all(
+  [
+    {
+      id: 'USR-SEED-001',
+      username: 'andi',
+      password: 'andi123',
+      role: 'customer',
+      name: andiCustomer.name,
+      email: andiCustomer.email,
+      phone: andiCustomer.phone,
+      address: andiCustomer.address,
+      avatar_url: null,
+      customer_id: andiCustomer.id,
+    },
+    {
+      id: 'USR-SEED-002',
+      username: 'siti',
+      password: 'siti123',
+      role: 'customer',
+      name: sitiCustomer.name,
+      email: sitiCustomer.email,
+      phone: sitiCustomer.phone,
+      address: sitiCustomer.address,
+      avatar_url: null,
+      customer_id: sitiCustomer.id,
+    },
+    {
+      id: 'USR-SEED-003',
+      username: 'admin_maya',
+      password: 'maya123',
+      role: 'admin',
+      name: managerProfile.name,
+      email: managerProfile.email,
+      phone: managerProfile.phone,
+      address: managerProfile.address,
+      avatar_url: null,
+      customer_id: null,
+    },
+    {
+      id: 'USR-SEED-004',
+      username: 'admin_raka',
+      password: 'raka123',
+      role: 'admin',
+      name: 'Raka Adinata',
+      email: 'raka.adinata@cargolite.com',
+      phone: '081377665544',
+      address: 'Jl. Sisingamangaraja No. 17, Jakarta',
+      avatar_url: null,
+      customer_id: null,
+    },
+  ].map(async (account) => ({
+    ...account,
+    password_hash: await createPasswordHash(account.password),
+  }))
+);
+
 const sqlSections = [
   '-- Generated from src/app/data/adminData.ts',
   '-- Safe for local/dev dummy data refresh in Neon',
   'BEGIN;',
-  'TRUNCATE TABLE customer_histories, package_tracking_events, attendance_records, packages, customers, employees, manager_profiles, vehicles RESTART IDENTITY CASCADE;',
+  'TRUNCATE TABLE user_accounts, customer_histories, package_tracking_events, attendance_records, packages, customers, employees, manager_profiles, vehicles RESTART IDENTITY CASCADE;',
   buildInsert(
     'vehicles',
     ['id', 'name', 'type', 'plate_number', 'capacity', 'status'],
@@ -314,6 +379,22 @@ const sqlSections = [
     }))
   ),
   buildInsert(
+    'user_accounts',
+    [
+      'id',
+      'username',
+      'password_hash',
+      'role',
+      'name',
+      'email',
+      'phone',
+      'address',
+      'avatar_url',
+      'customer_id',
+    ],
+    userAccounts
+  ),
+  buildInsert(
     'customer_histories',
     ['id', 'customer_id', 'type', 'resi', 'route', 'status', 'date'],
     customerHistories
@@ -348,6 +429,7 @@ console.log(
     `package_tracking_events=${trackingEvents.length}`,
     `attendance_records=${attendanceRecords.length}`,
     `customers=${customers.length}`,
+    `user_accounts=${userAccounts.length}`,
     `customer_histories=${customerHistories.length}`,
     `vehicles=${vehicles.length}`,
   ].join(', ')
