@@ -85,7 +85,7 @@ export function HomePage() {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <h2 className="text-4xl font-bold mb-4">Why Choose CargoKu?</h2>
+            <h2 className="text-4xl font-bold mb-4">Why Choose CargoLite?</h2>
             <p className="text-xl text-muted-foreground">Your trusted partner for all logistics needs</p>
           </motion.div>
 
@@ -178,7 +178,7 @@ export function HomePage() {
             transition={{ duration: 0.6 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-4xl font-bold mb-4">Ready to Ship with CargoKu?</h2>
+            <h2 className="text-4xl font-bold mb-4">Ready to Ship with CargoLite?</h2>
             <p className="text-xl text-green-100 mb-8">
               Join thousands of businesses that trust us with their deliveries
             </p>

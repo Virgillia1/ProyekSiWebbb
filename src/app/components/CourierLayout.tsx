@@ -32,7 +32,7 @@ export function CourierLayout() {
             <div className="bg-primary p-2 rounded-lg">
               <TruckIcon className="h-6 w-6 text-white" />
             </div>
-            <span className="text-xl font-bold text-primary">CargoKu</span>
+            <span className="text-xl font-bold text-primary">CargoLite</span>
           </div>
           <p className="text-sm text-muted-foreground mt-2">Kurir Dashboard</p>
         </div>

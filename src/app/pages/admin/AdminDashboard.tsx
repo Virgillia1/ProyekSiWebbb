@@ -62,8 +62,13 @@ import {
 import {
   monthOptions,
   packageStatusOptions,
+  itemStatusOptions,
+  transactionStatusOptions,
+  shippingServiceOptions,
   type AdminPackage,
   type PackageStatus,
+  type ItemStatus,
+  type TransactionStatus,
 } from '../../data/adminData';
 
 const ITEMS_PER_PAGE = 5;
@@ -94,6 +99,23 @@ const formatDateTime = (value?: string) =>
     : 'Belum tersedia';
 
 const padValue = (value: number, length = 4) => String(value).padStart(length, '0');
+
+const getStatusBadgeClass = (status: string) => {
+  switch (status) {
+    case 'Selesai':
+      return 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border border-emerald-200';
+    case 'Sampai Tujuan':
+      return 'bg-teal-100 text-teal-700 hover:bg-teal-100 border border-teal-200';
+    case 'Dalam Pengiriman':
+      return 'bg-blue-100 text-blue-700 hover:bg-blue-100 border border-blue-200';
+    case 'Diproses':
+      return 'bg-indigo-100 text-indigo-700 hover:bg-indigo-100 border border-indigo-200';
+    case 'Pending':
+      return 'bg-amber-100 text-amber-700 hover:bg-amber-100 border border-amber-200';
+    default:
+      return 'bg-gray-100 text-gray-700 hover:bg-gray-100 border border-gray-200';
+  }
+};
 
 const getPackageSearchText = (item: AdminPackage) =>
   [
@@ -144,14 +166,22 @@ const buildNewPackageDraft = (
     weightKg: 1,
     declaredValue: 250000,
     shippedAt: `${monthKey}-${padValue(shipmentDay, 2)}T09:00:00`,
-    status: 'Lagi Dikirim',
+    status: 'Diproses',
+    recipientPhone: '',
+    itemType: '',
+    shippingCost: 0,
+    vehicleType: 'Motor',
+    deliveryType: 'Reguler',
+    description: '',
+    itemStatus: 'Baik',
+    transactionStatus: 'Belum Bayar',
   };
 };
 
 const normalizePackageDraft = (draftPackage: AdminPackage, isHistoricalMonth: boolean) => {
-  const normalizedStatus: PackageStatus = isHistoricalMonth ? 'Sudah Dikirim' : draftPackage.status;
+  const normalizedStatus: PackageStatus = isHistoricalMonth ? 'Selesai' : draftPackage.status;
   const currentLocation =
-    normalizedStatus === 'Sudah Dikirim'
+    normalizedStatus === 'Selesai' || normalizedStatus === 'Sampai Tujuan'
       ? draftPackage.destination
       : draftPackage.currentLocation;
 
@@ -159,9 +189,10 @@ const normalizePackageDraft = (draftPackage: AdminPackage, isHistoricalMonth: bo
     ...draftPackage,
     weightKg: Number(draftPackage.weightKg),
     declaredValue: Number(draftPackage.declaredValue),
+    shippingCost: Number(draftPackage.shippingCost || 0),
     status: normalizedStatus,
     currentLocation,
-    deliveredAt: normalizedStatus === 'Sudah Dikirim'
+    deliveredAt: normalizedStatus === 'Selesai' || normalizedStatus === 'Sampai Tujuan'
       ? draftPackage.deliveredAt ?? draftPackage.shippedAt
       : undefined,
   };
@@ -191,10 +222,6 @@ export function AdminDashboard() {
     () => employees.filter((employee) => employee.status === 'Aktif'),
     [employees]
   );
-  const shippingServiceOptions = useMemo(
-    () => Array.from(new Set(packages.map((item) => item.service))),
-    [packages]
-  );
   const shippingLocationOptions = useMemo(
     () =>
       Array.from(
@@ -221,7 +248,7 @@ export function AdminDashboard() {
 
     return monthPackages.map((item) => ({
       ...item,
-      status: 'Sudah Dikirim' as const,
+      status: 'Selesai' as const,
       currentLocation: item.destination,
       deliveredAt: item.deliveredAt ?? item.shippedAt,
     }));
@@ -233,8 +260,8 @@ export function AdminDashboard() {
 
       return {
         week,
-        terkirim: weekPackages.filter((item) => item.status === 'Sudah Dikirim').length,
-        diproses: weekPackages.filter((item) => item.status === 'Lagi Dikirim').length,
+        terkirim: weekPackages.filter((item) => item.status === 'Selesai' || item.status === 'Sampai Tujuan').length,
+        diproses: weekPackages.filter((item) => item.status !== 'Selesai' && item.status !== 'Sampai Tujuan').length,
       };
     });
 
@@ -266,13 +293,13 @@ export function AdminDashboard() {
   );
 
   const activeLocations = useMemo(
-    () => displayPackages.filter((item) => item.status === 'Lagi Dikirim'),
+    () => displayPackages.filter((item) => item.status !== 'Selesai' && item.status !== 'Sampai Tujuan'),
     [displayPackages]
   );
 
   const summary = useMemo(() => {
-    const delivered = displayPackages.filter((item) => item.status === 'Sudah Dikirim');
-    const inTransit = displayPackages.filter((item) => item.status === 'Lagi Dikirim');
+    const delivered = displayPackages.filter((item) => item.status === 'Selesai' || item.status === 'Sampai Tujuan');
+    const inTransit = displayPackages.filter((item) => item.status !== 'Selesai' && item.status !== 'Sampai Tujuan');
     const totalValue = displayPackages.reduce((sum, item) => sum + item.declaredValue, 0);
 
     return {
@@ -326,7 +353,7 @@ export function AdminDashboard() {
   const openCreatePackage = () => {
     const defaultCourierId = activeCouriers[0]?.id ?? employees[0]?.id ?? 'EMP-001';
     const defaultCourierName = activeCouriers[0]?.name ?? employees[0]?.name ?? '';
-    const defaultService = shippingServiceOptions[0] ?? 'CargoKu Reguler';
+    const defaultService = shippingServiceOptions[0] ?? 'CargoLite REG';
     const defaultLocation = shippingLocationOptions[0] ?? 'Jakarta Selatan';
 
     setActivePackageId(null);
@@ -426,12 +453,12 @@ export function AdminDashboard() {
         },
         {
           title:
-            selectedPackage.status === 'Sudah Dikirim'
+            selectedPackage.status === 'Selesai' || selectedPackage.status === 'Sampai Tujuan'
               ? 'Paket sudah sampai'
               : 'Posisi terakhir paket',
           description: selectedPackage.currentLocation,
           meta:
-            selectedPackage.status === 'Sudah Dikirim'
+            selectedPackage.status === 'Selesai' || selectedPackage.status === 'Sampai Tujuan'
               ? `Diterima di ${selectedPackage.destination}`
               : `Menuju ${selectedPackage.destination}`,
         },
@@ -439,7 +466,7 @@ export function AdminDashboard() {
           title: 'Status pengiriman',
           description: selectedPackage.status,
           meta:
-            selectedPackage.status === 'Sudah Dikirim'
+            selectedPackage.status === 'Selesai' || selectedPackage.status === 'Sampai Tujuan'
               ? formatDateTime(selectedPackage.deliveredAt)
               : 'Masih dipantau admin',
         },
@@ -641,13 +668,7 @@ export function AdminDashboard() {
                     <TableCell>{item.service}</TableCell>
                     <TableCell>{item.weightKg} kg</TableCell>
                     <TableCell>
-                      <Badge
-                        className={
-                          item.status === 'Sudah Dikirim'
-                            ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100'
-                            : 'bg-amber-100 text-amber-700 hover:bg-amber-100'
-                        }
-                      >
+                      <Badge className={getStatusBadgeClass(item.status)}>
                         {item.status}
                       </Badge>
                     </TableCell>
@@ -703,7 +724,7 @@ export function AdminDashboard() {
                         {item.origin} - {item.destination}
                       </p>
                     </div>
-                    <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100">
+                    <Badge className={getStatusBadgeClass(item.status)}>
                       {item.status}
                     </Badge>
                   </div>
@@ -773,13 +794,7 @@ export function AdminDashboard() {
                         <p className="text-xs uppercase tracking-wide text-muted-foreground">Resi</p>
                         <p className="mt-1 text-xl font-semibold">{selectedPackage.resi}</p>
                       </div>
-                      <Badge
-                        className={
-                          selectedPackage.status === 'Sudah Dikirim'
-                            ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100'
-                            : 'bg-amber-100 text-amber-700 hover:bg-amber-100'
-                        }
-                      >
+                      <Badge className={getStatusBadgeClass(selectedPackage.status)}>
                         {selectedPackage.status}
                       </Badge>
                     </div>
@@ -794,9 +809,12 @@ export function AdminDashboard() {
                     <div className="rounded-2xl border border-border bg-white p-4">
                       <p className="text-xs uppercase tracking-wide text-muted-foreground">Penerima</p>
                       <p className="mt-2 font-semibold">{selectedPackage.recipientName}</p>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {selectedPackage.destination}
-                      </p>
+                      <p className="mt-1 text-sm text-muted-foreground">{selectedPackage.destination}</p>
+                      {selectedPackage.recipientPhone && (
+                        <p className="mt-1 text-xs text-muted-foreground font-mono">
+                          Telp: {selectedPackage.recipientPhone}
+                        </p>
+                      )}
                     </div>
                     <div className="rounded-2xl border border-border bg-white p-4">
                       <p className="text-xs uppercase tracking-wide text-muted-foreground">Kurir</p>
@@ -805,12 +823,48 @@ export function AdminDashboard() {
                     </div>
                     <div className="rounded-2xl border border-border bg-white p-4">
                       <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                        Layanan dan Nilai
+                        Layanan & Biaya
                       </p>
-                      <p className="mt-2 font-semibold">{selectedPackage.service}</p>
+                      <p className="mt-2 font-semibold">
+                        {selectedPackage.service} ({selectedPackage.deliveryType ?? 'Reguler'})
+                      </p>
                       <p className="mt-1 text-sm text-muted-foreground">
                         {selectedPackage.weightKg} kg - {formatCurrency(selectedPackage.declaredValue)}
                       </p>
+                      <p className="mt-1 text-xs text-[#2F8A2E] font-semibold">
+                        Tarif: {formatCurrency(selectedPackage.shippingCost ?? 0)}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-border bg-white p-4 sm:col-span-2">
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Detail Informasi Kargo</p>
+                      <div className="mt-2 grid grid-cols-2 gap-y-2 gap-x-4 text-xs">
+                        <div>
+                          <span className="text-muted-foreground">Jenis Barang: </span>
+                          <span className="font-semibold text-foreground">{selectedPackage.itemType || 'Umum'}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Jenis Kendaraan: </span>
+                          <span className="font-semibold text-foreground">{selectedPackage.vehicleType || 'Motor'}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Status Barang: </span>
+                          <span className={`font-semibold ${selectedPackage.itemStatus === 'Rusak' ? 'text-rose-600' : selectedPackage.itemStatus === 'Dalam Pemeriksaan' ? 'text-amber-600' : 'text-emerald-600'}`}>
+                            {selectedPackage.itemStatus || 'Baik'}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Status Transaksi: </span>
+                          <span className={`font-semibold ${selectedPackage.transactionStatus === 'Lunas' ? 'text-emerald-600' : selectedPackage.transactionStatus === 'Pending' ? 'text-amber-600' : 'text-rose-600'}`}>
+                            {selectedPackage.transactionStatus || 'Belum Bayar'}
+                          </span>
+                        </div>
+                        <div className="col-span-2 border-t border-border/60 pt-2">
+                          <span className="text-muted-foreground block font-medium mb-1">Catatan / Deskripsi Barang:</span>
+                          <p className="rounded-xl bg-secondary/30 p-2.5 text-muted-foreground italic leading-relaxed">
+                            {selectedPackage.description || 'Tidak ada catatan khusus.'}
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -872,7 +926,7 @@ export function AdminDashboard() {
                 {isHistoricalMonth && (
                   <div className="rounded-2xl border border-[#63D25F]/25 bg-[#63D25F]/10 p-4 text-sm text-muted-foreground">
                     Untuk bulan sebelum April 2026, status pengiriman dikunci sebagai{' '}
-                    <span className="font-medium text-foreground">Sudah Dikirim</span> sesuai aturan dashboard.
+                    <span className="font-medium text-foreground">Selesai</span> sesuai aturan dashboard.
                   </div>
                 )}
 
@@ -922,6 +976,28 @@ export function AdminDashboard() {
                   </div>
 
                   <div className="space-y-2">
+                    <Label htmlFor="package-recipient-phone">No Telepon Penerima</Label>
+                    <Input
+                      id="package-recipient-phone"
+                      value={draftPackage.recipientPhone ?? ''}
+                      onChange={(event) => updateDraftPackage('recipientPhone', event.target.value)}
+                      placeholder="Contoh: 081234567890"
+                    />
+                  </div>
+
+
+
+                  <div className="space-y-2">
+                    <Label htmlFor="package-item-type">Jenis Barang</Label>
+                    <Input
+                      id="package-item-type"
+                      value={draftPackage.itemType ?? ''}
+                      onChange={(event) => updateDraftPackage('itemType', event.target.value)}
+                      placeholder="Contoh: Pakaian, Alat Rumah Tangga, Kayu, dll."
+                    />
+                  </div>
+
+                  <div className="space-y-2">
                     <Label htmlFor="package-courier">Kurir</Label>
                     <Select value={draftPackage.courierId} onValueChange={handleCourierChange}>
                       <SelectTrigger id="package-courier">
@@ -938,9 +1014,9 @@ export function AdminDashboard() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="package-status">Status</Label>
+                    <Label htmlFor="package-status">Status Pengiriman</Label>
                     <Select
-                      value={isHistoricalMonth ? 'Sudah Dikirim' : draftPackage.status}
+                      value={isHistoricalMonth ? 'Selesai' : draftPackage.status}
                       onValueChange={(value: PackageStatus) => updateDraftPackage('status', value)}
                       disabled={isHistoricalMonth}
                     >
@@ -949,6 +1025,44 @@ export function AdminDashboard() {
                       </SelectTrigger>
                       <SelectContent>
                         {packageStatusOptions.map((status) => (
+                          <SelectItem key={status} value={status}>
+                            {status}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="package-item-status">Status Barang</Label>
+                    <Select
+                      value={draftPackage.itemStatus ?? 'Baik'}
+                      onValueChange={(value: ItemStatus) => updateDraftPackage('itemStatus', value)}
+                    >
+                      <SelectTrigger id="package-item-status">
+                        <SelectValue placeholder="Pilih status barang" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {itemStatusOptions.map((status) => (
+                          <SelectItem key={status} value={status}>
+                            {status}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="package-transaction-status">Status Transaksi</Label>
+                    <Select
+                      value={draftPackage.transactionStatus ?? 'Belum Bayar'}
+                      onValueChange={(value: TransactionStatus) => updateDraftPackage('transactionStatus', value)}
+                    >
+                      <SelectTrigger id="package-transaction-status">
+                        <SelectValue placeholder="Pilih status transaksi" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {transactionStatusOptions.map((status) => (
                           <SelectItem key={status} value={status}>
                             {status}
                           </SelectItem>
@@ -999,12 +1113,12 @@ export function AdminDashboard() {
                     <Label htmlFor="package-location">Lokasi Pengiriman</Label>
                     <Select
                       value={
-                        isHistoricalMonth || draftPackage.status === 'Sudah Dikirim'
+                        isHistoricalMonth || draftPackage.status === 'Selesai' || draftPackage.status === 'Sampai Tujuan'
                           ? draftPackage.destination
                           : draftPackage.currentLocation
                       }
                       onValueChange={(value) => updateDraftPackage('currentLocation', value)}
-                      disabled={isHistoricalMonth || draftPackage.status === 'Sudah Dikirim'}
+                      disabled={isHistoricalMonth || draftPackage.status === 'Selesai' || draftPackage.status === 'Sampai Tujuan'}
                     >
                       <SelectTrigger id="package-location">
                         <SelectValue placeholder="Pilih lokasi saat ini" />
@@ -1042,6 +1156,49 @@ export function AdminDashboard() {
                       onChange={(event) =>
                         updateDraftPackage('declaredValue', Number(event.target.value))
                       }
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="package-shipping-cost">Tarif Pengiriman (Rp)</Label>
+                    <Input
+                      id="package-shipping-cost"
+                      type="number"
+                      min="0"
+                      step="1000"
+                      value={draftPackage.shippingCost ?? 0}
+                      onChange={(event) =>
+                        updateDraftPackage('shippingCost', Number(event.target.value))
+                      }
+                      placeholder="Masukkan tarif pengiriman"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="package-vehicle-type">Jenis Kendaraan</Label>
+                    <Select
+                      value={draftPackage.vehicleType ?? 'Motor'}
+                      onValueChange={(value) => updateDraftPackage('vehicleType', value)}
+                    >
+                      <SelectTrigger id="package-vehicle-type">
+                        <SelectValue placeholder="Pilih jenis kendaraan" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Motor">Motor</SelectItem>
+                        <SelectItem value="Pick Up">Pick Up</SelectItem>
+                        <SelectItem value="Mobil Box (Truck)">Mobil Box (Truck)</SelectItem>
+                        <SelectItem value="Fuso Heavy Duty">Fuso Heavy Duty</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="package-description">Deskripsi / Catatan Barang</Label>
+                    <Input
+                      id="package-description"
+                      value={draftPackage.description ?? ''}
+                      onChange={(event) => updateDraftPackage('description', event.target.value)}
+                      placeholder="Contoh: Barang pecah belah, harap ditaruh teras jika kosong."
                     />
                   </div>
                 </div>

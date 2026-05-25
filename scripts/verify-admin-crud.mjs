@@ -147,11 +147,11 @@ const run = async () => {
       origin: 'Jakarta Selatan',
       destination: 'Bandung',
       currentLocation: 'Jakarta Selatan',
-      service: 'CargoKu Express',
+      service: 'CargoLite Express',
       weightKg: 3.5,
       declaredValue: 275000,
       shippedAt: '2026-04-21T08:00:00',
-      status: 'Lagi Dikirim',
+      status: 'Dalam Pengiriman',
     };
 
     const createdPackage = await requestJson('/api/admin/packages', {
@@ -176,10 +176,10 @@ const run = async () => {
         recipientName: 'Verifikasi Recipient Update',
         currentLocation: 'Bandung',
         deliveredAt: '2026-04-22T10:30:00',
-        status: 'Sudah Dikirim',
+        status: 'Selesai',
       }),
     });
-    ensure(updatedPackage.status === 'Sudah Dikirim', 'Update package gagal.');
+    ensure(updatedPackage.status === 'Selesai', 'Update package gagal.');
     console.log(`Package update OK -> ${updatedPackage.status}`);
 
     const trackingAfterUpdate = await requestJson(`/api/tracking/${encodeURIComponent(resi)}`);

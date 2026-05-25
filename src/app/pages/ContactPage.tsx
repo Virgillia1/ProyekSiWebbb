@@ -110,8 +110,8 @@ export function ContactPage() {
                   <div>
                     <h3 className="font-semibold mb-1">Email</h3>
                     <p className="text-muted-foreground text-sm">
-                      info@cargoku.com<br />
-                      support@cargoku.com
+                      info@cargolite.com<br />
+                      support@cargolite.com
                     </p>
                   </div>
                 </div>

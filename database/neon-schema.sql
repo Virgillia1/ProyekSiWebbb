@@ -5,6 +5,16 @@ DROP TABLE IF EXISTS packages;
 DROP TABLE IF EXISTS customers;
 DROP TABLE IF EXISTS employees;
 DROP TABLE IF EXISTS manager_profiles;
+DROP TABLE IF EXISTS vehicles;
+
+CREATE TABLE vehicles (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  type TEXT NOT NULL,
+  plate_number TEXT NOT NULL UNIQUE,
+  capacity TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('Tersedia', 'Sedang Jalan', 'Servis'))
+);
 
 CREATE TABLE manager_profiles (
   employee_id TEXT PRIMARY KEY,
@@ -48,7 +58,15 @@ CREATE TABLE packages (
   declared_value BIGINT NOT NULL CHECK (declared_value >= 0),
   shipped_at TIMESTAMP NOT NULL,
   delivered_at TIMESTAMP NULL,
-  status TEXT NOT NULL CHECK (status IN ('Sudah Dikirim', 'Lagi Dikirim'))
+  status TEXT NOT NULL CHECK (status IN ('Diproses', 'Dalam Pengiriman', 'Sampai Tujuan', 'Pending', 'Selesai')),
+  recipient_phone TEXT NULL,
+  item_type TEXT NULL,
+  shipping_cost BIGINT NOT NULL DEFAULT 0,
+  vehicle_type TEXT NULL,
+  delivery_type TEXT NOT NULL DEFAULT 'Reguler' CHECK (delivery_type IN ('Vvip', 'Cepat', 'Reguler')),
+  description TEXT NULL,
+  item_status TEXT NOT NULL DEFAULT 'Baik' CHECK (item_status IN ('Baik', 'Rusak', 'Dalam Pemeriksaan')),
+  transaction_status TEXT NOT NULL DEFAULT 'Belum Bayar' CHECK (transaction_status IN ('Belum Bayar', 'Lunas', 'Pending'))
 );
 
 CREATE TABLE package_tracking_events (

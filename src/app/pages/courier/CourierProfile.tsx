@@ -84,7 +84,7 @@ export function CourierProfile() {
               </div>
               <div>
                 <div className="font-bold text-2xl mb-1">{user?.name}</div>
-                <div className="text-sm text-muted-foreground mb-2">Kurir CargoKu</div>
+                <div className="text-sm text-muted-foreground mb-2">Kurir CargoLite</div>
                 <div className="flex items-center gap-1">
                   <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
                   <span className="font-medium">4.9</span>
@@ -214,7 +214,7 @@ export function CourierProfile() {
             <h3 className="font-bold text-lg mb-2">Status Akun</h3>
             <div className="text-sm opacity-90 mb-4">Akun Terverifikasi ✓</div>
             <div className="bg-white/20 rounded-lg p-3 text-sm">
-              Anda adalah bagian dari 10% kurir terbaik di CargoKu!
+              Anda adalah bagian dari 10% kurir terbaik di CargoLite!
             </div>
           </div>
         </div>

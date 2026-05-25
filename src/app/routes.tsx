@@ -18,6 +18,7 @@ const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard').then(mo
 const AdminEmployees = lazy(() => import('./pages/admin/AdminEmployees').then(module => ({ default: module.AdminEmployees })));
 const AdminProfile = lazy(() => import('./pages/admin/AdminProfile').then(module => ({ default: module.AdminProfile })));
 const AdminSettings = lazy(() => import('./pages/admin/AdminSettings').then(module => ({ default: module.AdminSettings })));
+const AdminVehicles = lazy(() => import('./pages/admin/AdminVehicles').then(module => ({ default: module.AdminVehicles })));
 
 export const router = createBrowserRouter([
   {
@@ -43,6 +44,10 @@ export const router = createBrowserRouter([
       {
         path: 'customers',
         Component: AdminCustomers,
+      },
+      {
+        path: 'vehicles',
+        Component: AdminVehicles,
       },
       {
         path: 'profile',

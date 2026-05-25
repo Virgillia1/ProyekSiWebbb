@@ -52,10 +52,10 @@ const toTimestampString = (value) => {
 };
 
 const mapPackageStatusToTrackingStatus = (status) =>
-  status === 'Sudah Dikirim' ? 'Paket Terkirim' : 'Dalam Pengiriman';
+  status === 'Selesai' ? 'Paket Terkirim' : 'Dalam Pengiriman';
 
 const buildPackageTrackingDescription = (packageData) =>
-  packageData.status === 'Sudah Dikirim'
+  packageData.status === 'Selesai'
     ? `Paket telah diterima di ${packageData.destination}.`
     : `Paket sedang berada di ${packageData.currentLocation} menuju ${packageData.destination}.`;
 
@@ -91,6 +91,14 @@ const mapPackageRow = (row) => ({
   shippedAt: toTimestampString(row.shipped_at),
   deliveredAt: row.delivered_at ? toTimestampString(row.delivered_at) : undefined,
   status: row.status,
+  recipientPhone: row.recipient_phone,
+  itemType: row.item_type,
+  shippingCost: Number(row.shipping_cost),
+  vehicleType: row.vehicle_type,
+  deliveryType: row.delivery_type,
+  description: row.description,
+  itemStatus: row.item_status,
+  transactionStatus: row.transaction_status,
 });
 
 const mapAttendanceRow = (row) => ({
@@ -212,7 +220,7 @@ const mapPackageToTrackingDelivery = (packageItem, trackingEvents, courier, reci
   destination: packageItem.destination,
   currentStatus:
     trackingEvents[trackingEvents.length - 1]?.status ??
-    (packageItem.status === 'Sudah Dikirim' ? 'Paket Terkirim' : 'Dalam Pengiriman'),
+    (packageItem.status === 'Selesai' ? 'Paket Terkirim' : 'Dalam Pengiriman'),
   weight: packageItem.weightKg,
   estimatedDelivery: estimateDeliveryDate(packageItem),
   historyLogs: trackingEvents,
@@ -232,7 +240,7 @@ const mapPackageToCourierDelivery = (packageItem, trackingEvents, recipientCusto
   currentLocation: packageItem.currentLocation,
   status: trackingEvents[trackingEvents.length - 1]?.status ?? packageItem.status,
   estimatedTime:
-    packageItem.status === 'Sudah Dikirim'
+    packageItem.status === 'Selesai'
       ? 'Terkirim'
       : new Date(estimateDeliveryDate(packageItem)).toLocaleString('id-ID', {
           day: 'numeric',
@@ -385,12 +393,13 @@ const ensureEmployeeCanBeDeleted = async (client, employeeId) => {
 };
 
 export const getBootstrapData = async () => {
-  const [employees, packages, attendanceRecords, customers, managerProfile] = await Promise.all([
+  const [employees, packages, attendanceRecords, customers, managerProfile, vehicles] = await Promise.all([
     getEmployees(),
     getPackages(),
     getAttendanceRecords(),
     getCustomers(),
     getManagerProfile(),
+    getVehicles(),
   ]);
 
   return {
@@ -399,6 +408,7 @@ export const getBootstrapData = async () => {
     attendanceRecords,
     customers,
     managerProfile,
+    vehicles,
   };
 };
 
@@ -537,10 +547,14 @@ export const createPackage = async (packageData) =>
       `
         INSERT INTO packages (
           id, month_key, week, resi, sender_name, recipient_name, courier_id, courier_name,
-          origin, destination, current_location, service, weight_kg, declared_value, shipped_at, delivered_at, status
+          origin, destination, current_location, service, weight_kg, declared_value, shipped_at, delivered_at, status,
+          recipient_phone, item_type, shipping_cost, vehicle_type, delivery_type, description,
+          item_status, transaction_status
         ) VALUES (
           $1, $2, $3, $4, $5, $6, $7, $8,
-          $9, $10, $11, $12, $13, $14, $15, $16, $17
+          $9, $10, $11, $12, $13, $14, $15, $16, $17,
+          $18, $19, $20, $21, $22, $23,
+          $24, $25
         )
       `,
       [
@@ -561,13 +575,21 @@ export const createPackage = async (packageData) =>
         toTimestampString(nextPackage.shippedAt),
         toTimestampString(nextPackage.deliveredAt),
         nextPackage.status,
+        nextPackage.recipientPhone ?? null,
+        nextPackage.itemType ?? null,
+        nextPackage.shippingCost ?? 0,
+        nextPackage.vehicleType ?? null,
+        nextPackage.deliveryType ?? 'Reguler',
+        nextPackage.description ?? null,
+        nextPackage.itemStatus ?? 'Baik',
+        nextPackage.transactionStatus ?? 'Belum Bayar',
       ]
     );
 
     await insertPackageTrackingSnapshot(
       client,
       nextPackage,
-      nextPackage.status === 'Sudah Dikirim'
+      nextPackage.status === 'Selesai'
         ? nextPackage.deliveredAt ?? nextPackage.shippedAt
         : nextPackage.shippedAt
     );
@@ -603,7 +625,15 @@ export const updatePackage = async (id, packageData) =>
           declared_value = $14,
           shipped_at = $15,
           delivered_at = $16,
-          status = $17
+          status = $17,
+          recipient_phone = $18,
+          item_type = $19,
+          shipping_cost = $20,
+          vehicle_type = $21,
+          delivery_type = $22,
+          description = $23,
+          item_status = $24,
+          transaction_status = $25
         WHERE id = $1
       `,
       [
@@ -624,6 +654,14 @@ export const updatePackage = async (id, packageData) =>
         toTimestampString(nextPackage.shippedAt),
         toTimestampString(nextPackage.deliveredAt),
         nextPackage.status,
+        nextPackage.recipientPhone ?? null,
+        nextPackage.itemType ?? null,
+        nextPackage.shippingCost ?? 0,
+        nextPackage.vehicleType ?? null,
+        nextPackage.deliveryType ?? 'Reguler',
+        nextPackage.description ?? null,
+        nextPackage.itemStatus ?? 'Baik',
+        nextPackage.transactionStatus ?? 'Belum Bayar',
       ]
     );
 
@@ -650,7 +688,7 @@ export const updatePackage = async (id, packageData) =>
       await insertPackageTrackingSnapshot(
         client,
         nextPackage,
-        nextPackage.status === 'Sudah Dikirim'
+        nextPackage.status === 'Selesai'
           ? nextPackage.deliveredAt ?? new Date()
           : new Date()
       );
@@ -665,7 +703,7 @@ export const appendTrackingEvent = async (packageId, trackingEvent) =>
     const eventId = `EVT-${packageId}-${Date.now()}`;
     const timestamp = trackingEvent.timestamp ?? new Date();
     const nextPackageStatus =
-      trackingEvent.status === 'Paket Terkirim' ? 'Sudah Dikirim' : 'Lagi Dikirim';
+      trackingEvent.status === 'Paket Terkirim' ? 'Selesai' : 'Dalam Pengiriman';
     const deliveredAt =
       trackingEvent.status === 'Paket Terkirim'
         ? toTimestampString(timestamp)
@@ -846,6 +884,86 @@ export const updateManagerProfile = async (profile) =>
     }
 
     return getManagerProfile(client);
+  });
+
+const mapVehicleRow = (row) => ({
+  id: row.id,
+  name: row.name,
+  type: row.type,
+  plateNumber: row.plate_number,
+  capacity: row.capacity,
+  status: row.status,
+});
+
+export const getVehicles = async (client = pool) => {
+  const { rows } = await client.query('SELECT * FROM vehicles ORDER BY id');
+  return rows.map(mapVehicleRow);
+};
+
+export const getVehicleById = async (id, client = pool) => {
+  const { rows } = await client.query('SELECT * FROM vehicles WHERE id = $1 LIMIT 1', [id]);
+  if (!rows[0]) throw new NotFoundError('Data kendaraan tidak ditemukan.');
+  return mapVehicleRow(rows[0]);
+};
+
+export const createVehicle = async (vehicle) =>
+  withTransaction(async (client) => {
+    await client.query(
+      `
+        INSERT INTO vehicles (
+          id, name, type, plate_number, capacity, status
+        ) VALUES (
+          $1, $2, $3, $4, $5, $6
+        )
+      `,
+      [
+        vehicle.id,
+        vehicle.name,
+        vehicle.type,
+        vehicle.plateNumber,
+        vehicle.capacity,
+        vehicle.status,
+      ]
+    );
+
+    return getVehicleById(vehicle.id, client);
+  });
+
+export const updateVehicle = async (id, vehicle) =>
+  withTransaction(async (client) => {
+    const result = await client.query(
+      `
+        UPDATE vehicles
+        SET
+          name = $2,
+          type = $3,
+          plate_number = $4,
+          capacity = $5,
+          status = $6
+        WHERE id = $1
+      `,
+      [
+        id,
+        vehicle.name,
+        vehicle.type,
+        vehicle.plateNumber,
+        vehicle.capacity,
+        vehicle.status,
+      ]
+    );
+
+    if (!result.rowCount) {
+      throw new NotFoundError('Data kendaraan tidak ditemukan.');
+    }
+
+    return getVehicleById(id, client);
+  });
+
+export const deleteVehicle = async (id) =>
+  withTransaction(async (client) => {
+    const existingVehicle = await getVehicleById(id, client);
+    await client.query('DELETE FROM vehicles WHERE id = $1', [id]);
+    return existingVehicle;
   });
 
 export { ConflictError, NotFoundError };

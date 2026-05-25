@@ -6,9 +6,11 @@ import {
   createCustomer,
   createEmployee,
   createPackage,
+  createVehicle,
   deleteCustomer,
   deleteEmployee,
   deletePackage,
+  deleteVehicle,
   getBootstrapData,
   getCourierDeliveries,
   getTrackingDeliveryByResi,
@@ -16,6 +18,7 @@ import {
   updateEmployee,
   updateManagerProfile,
   updatePackage,
+  updateVehicle,
 } from './admin-data.mjs';
 
 const app = express();
@@ -81,6 +84,21 @@ app.put('/api/admin/packages/:id', async (request, response) => {
 app.delete('/api/admin/packages/:id', async (request, response) => {
   const packageData = await deletePackage(request.params.id);
   response.json(packageData);
+});
+
+app.post('/api/admin/vehicles', async (request, response) => {
+  const vehicle = await createVehicle(request.body);
+  response.status(201).json(vehicle);
+});
+
+app.put('/api/admin/vehicles/:id', async (request, response) => {
+  const vehicle = await updateVehicle(request.params.id, request.body);
+  response.json(vehicle);
+});
+
+app.delete('/api/admin/vehicles/:id', async (request, response) => {
+  const vehicle = await deleteVehicle(request.params.id);
+  response.json(vehicle);
 });
 
 app.post('/api/admin/customers', async (request, response) => {

@@ -24,7 +24,7 @@ export function InformationPage() {
           >
             <h1 className="text-5xl font-bold mb-4">Information Center</h1>
             <p className="text-xl text-green-100 max-w-2xl">
-              Everything you need to know about shipping with CargoKu
+              Everything you need to know about shipping with CargoLite
             </p>
           </motion.div>
         </div>
@@ -97,7 +97,7 @@ export function InformationPage() {
               {
                 icon: Mail,
                 title: 'Email Support',
-                description: 'info@cargoku.com',
+                description: 'info@cargolite.com',
                 action: 'Send Email',
               },
             ].map((support, index) => (

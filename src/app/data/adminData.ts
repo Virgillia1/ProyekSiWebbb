@@ -1,7 +1,19 @@
-export type PackageStatus = 'Sudah Dikirim' | 'Lagi Dikirim';
+export type PackageStatus = 'Diproses' | 'Dalam Pengiriman' | 'Sampai Tujuan' | 'Pending' | 'Selesai';
 export type EmployeeStatus = 'Aktif' | 'Nonaktif';
 export type PresenceStatus = 'Hadir' | 'Izin' | 'Sakit' | 'Alpha';
 export type ShipmentHistoryType = 'Mengirim' | 'Menerima';
+export type VehicleStatus = 'Tersedia' | 'Sedang Jalan' | 'Servis';
+export type ItemStatus = 'Baik' | 'Rusak' | 'Dalam Pemeriksaan';
+export type TransactionStatus = 'Belum Bayar' | 'Lunas' | 'Pending';
+
+export interface Vehicle {
+  id: string;
+  name: string;
+  type: string;
+  plateNumber: string;
+  capacity: string;
+  status: VehicleStatus;
+}
 
 export interface AdminPackage {
   id: string;
@@ -21,6 +33,14 @@ export interface AdminPackage {
   shippedAt: string;
   deliveredAt?: string;
   status: PackageStatus;
+  recipientPhone?: string;
+  itemType?: string;
+  shippingCost?: number;
+  vehicleType?: string;
+  deliveryType?: 'Vvip' | 'Cepat' | 'Reguler';
+  description?: string;
+  itemStatus?: ItemStatus;
+  transactionStatus?: TransactionStatus;
 }
 
 export interface Employee {
@@ -97,7 +117,9 @@ export const monthOptions = [
   { value: '2026-04', label: 'April 2026' },
 ];
 
-export const packageStatusOptions: PackageStatus[] = ['Lagi Dikirim', 'Sudah Dikirim'];
+export const packageStatusOptions: PackageStatus[] = ['Diproses', 'Dalam Pengiriman', 'Sampai Tujuan', 'Pending', 'Selesai'];
+export const itemStatusOptions: ItemStatus[] = ['Baik', 'Rusak', 'Dalam Pemeriksaan'];
+export const transactionStatusOptions: TransactionStatus[] = ['Belum Bayar', 'Lunas', 'Pending'];
 export const presenceStatusOptions: PresenceStatus[] = ['Hadir', 'Izin', 'Sakit', 'Alpha'];
 
 const padValue = (value: number, length = 4) => String(value).padStart(length, '0');
@@ -248,7 +270,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
       origin: 'Jakarta Selatan',
       destination: 'Bandung',
       currentLocation: 'Bandung',
-      service: 'CargoKu Reguler',
+      service: 'CargoLite REG',
       weightKg: 8.5,
       declaredValue: 1250000,
       shippedAt: '2026-01-07T08:10:00',
@@ -262,7 +284,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
       origin: 'Depok',
       destination: 'Yogyakarta',
       currentLocation: 'Yogyakarta',
-      service: 'CargoKu Express',
+      service: 'CargoLite Express',
       weightKg: 3.2,
       declaredValue: 640000,
       shippedAt: '2026-01-13T09:40:00',
@@ -276,7 +298,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
       origin: 'Bekasi',
       destination: 'Semarang',
       currentLocation: 'Gerbang Tol Kalikangkung',
-      service: 'CargoKu Cargo',
+      service: 'CargoLite Cargo',
       weightKg: 22.1,
       declaredValue: 2850000,
       shippedAt: '2026-01-17T17:25:00',
@@ -289,7 +311,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
       origin: 'Jakarta Barat',
       destination: 'Surabaya',
       currentLocation: 'Surabaya Barat',
-      service: 'CargoKu Express',
+      service: 'CargoLite Express',
       weightKg: 5.4,
       declaredValue: 920000,
       shippedAt: '2026-01-19T10:15:00',
@@ -303,7 +325,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
       origin: 'Bogor',
       destination: 'Malang',
       currentLocation: 'Hub Malang',
-      service: 'CargoKu Reguler',
+      service: 'CargoLite REG',
       weightKg: 11.7,
       declaredValue: 480000,
       shippedAt: '2026-01-22T07:45:00',
@@ -317,7 +339,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
       origin: 'Tangerang',
       destination: 'Solo',
       currentLocation: 'Rest Area Salatiga',
-      service: 'CargoKu Cargo',
+      service: 'CargoLite Cargo',
       weightKg: 18.6,
       declaredValue: 1540000,
       shippedAt: '2026-01-24T18:00:00',
@@ -330,7 +352,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
       origin: 'Jakarta Utara',
       destination: 'Cirebon',
       currentLocation: 'Cirebon',
-      service: 'CargoKu Same Day',
+      service: 'CargoLite Same Day',
       weightKg: 2.1,
       declaredValue: 265000,
       shippedAt: '2026-01-27T08:30:00',
@@ -344,7 +366,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
       origin: 'Bandung',
       destination: 'Tasikmalaya',
       currentLocation: 'Tasikmalaya',
-      service: 'CargoKu Reguler',
+      service: 'CargoLite REG',
       weightKg: 6.3,
       declaredValue: 390000,
       shippedAt: '2026-01-29T09:25:00',
@@ -360,7 +382,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
       origin: 'Karawang',
       destination: 'Purwokerto',
       currentLocation: 'Purwokerto',
-      service: 'CargoKu Express',
+      service: 'CargoLite Express',
       weightKg: 4.8,
       declaredValue: 780000,
       shippedAt: '2026-02-03T13:15:00',
@@ -374,7 +396,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
       origin: 'Tangerang',
       destination: 'Semarang',
       currentLocation: 'Kendal',
-      service: 'CargoKu Cargo',
+      service: 'CargoLite Cargo',
       weightKg: 16.4,
       declaredValue: 1330000,
       shippedAt: '2026-02-05T07:30:00',
@@ -387,7 +409,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
       origin: 'Bogor',
       destination: 'Cirebon',
       currentLocation: 'Cirebon',
-      service: 'CargoKu Reguler',
+      service: 'CargoLite REG',
       weightKg: 7.8,
       declaredValue: 540000,
       shippedAt: '2026-02-10T12:45:00',
@@ -401,7 +423,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
       origin: 'Jakarta Selatan',
       destination: 'Bandung',
       currentLocation: 'Gudang Bandung',
-      service: 'CargoKu Reguler',
+      service: 'CargoLite REG',
       weightKg: 5.1,
       declaredValue: 350000,
       shippedAt: '2026-02-12T08:00:00',
@@ -415,7 +437,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
       origin: 'Surabaya',
       destination: 'Malang',
       currentLocation: 'Malang',
-      service: 'CargoKu Express',
+      service: 'CargoLite Express',
       weightKg: 10,
       declaredValue: 875000,
       shippedAt: '2026-02-17T09:00:00',
@@ -429,7 +451,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
       origin: 'Jakarta Barat',
       destination: 'Bekasi',
       currentLocation: 'Cawang',
-      service: 'CargoKu Same Day',
+      service: 'CargoLite Same Day',
       weightKg: 3,
       declaredValue: 1225000,
       shippedAt: '2026-02-20T16:00:00',
@@ -442,7 +464,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
       origin: 'Bandung',
       destination: 'Cirebon',
       currentLocation: 'Cirebon',
-      service: 'CargoKu Reguler',
+      service: 'CargoLite REG',
       weightKg: 9.4,
       declaredValue: 730000,
       shippedAt: '2026-02-24T09:10:00',
@@ -456,7 +478,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
       origin: 'Semarang',
       destination: 'Solo',
       currentLocation: 'Solo',
-      service: 'CargoKu Express',
+      service: 'CargoLite Express',
       weightKg: 6.8,
       declaredValue: 985000,
       shippedAt: '2026-02-26T11:50:00',
@@ -472,7 +494,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
       origin: 'Jakarta Selatan',
       destination: 'Bandung',
       currentLocation: 'Bandung',
-      service: 'CargoKu Express',
+      service: 'CargoLite Express',
       weightKg: 4.2,
       declaredValue: 690000,
       shippedAt: '2026-03-03T08:20:00',
@@ -486,7 +508,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
       origin: 'Bogor',
       destination: 'Yogyakarta',
       currentLocation: 'Klaten',
-      service: 'CargoKu Cargo',
+      service: 'CargoLite Cargo',
       weightKg: 14.6,
       declaredValue: 1180000,
       shippedAt: '2026-03-06T07:35:00',
@@ -499,7 +521,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
       origin: 'Bekasi',
       destination: 'Semarang',
       currentLocation: 'Hub Semarang',
-      service: 'CargoKu Reguler',
+      service: 'CargoLite REG',
       weightKg: 12.4,
       declaredValue: 1475000,
       shippedAt: '2026-03-10T10:05:00',
@@ -513,7 +535,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
       origin: 'Jakarta Barat',
       destination: 'Surabaya',
       currentLocation: 'Nganjuk',
-      service: 'CargoKu Express',
+      service: 'CargoLite Express',
       weightKg: 7.2,
       declaredValue: 1060000,
       shippedAt: '2026-03-12T13:50:00',
@@ -526,7 +548,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
       origin: 'Bandung',
       destination: 'Tasikmalaya',
       currentLocation: 'Tasikmalaya',
-      service: 'CargoKu Same Day',
+      service: 'CargoLite Same Day',
       weightKg: 2.7,
       declaredValue: 310000,
       shippedAt: '2026-03-17T07:45:00',
@@ -540,7 +562,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
       origin: 'Tangerang',
       destination: 'Solo',
       currentLocation: 'Boyolali',
-      service: 'CargoKu Cargo',
+      service: 'CargoLite Cargo',
       weightKg: 17.3,
       declaredValue: 1680000,
       shippedAt: '2026-03-20T18:20:00',
@@ -553,7 +575,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
       origin: 'Karawang',
       destination: 'Cirebon',
       currentLocation: 'Cirebon',
-      service: 'CargoKu Reguler',
+      service: 'CargoLite REG',
       weightKg: 8.1,
       declaredValue: 615000,
       shippedAt: '2026-03-24T09:35:00',
@@ -567,7 +589,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
       origin: 'Depok',
       destination: 'Bekasi',
       currentLocation: 'Bekasi',
-      service: 'CargoKu Same Day',
+      service: 'CargoLite Same Day',
       weightKg: 3.4,
       declaredValue: 450000,
       shippedAt: '2026-03-28T11:20:00',
@@ -583,7 +605,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
       origin: 'Jakarta Selatan',
       destination: 'Bandung',
       currentLocation: 'Cikampek',
-      service: 'CargoKu Reguler',
+      service: 'CargoLite REG',
       weightKg: 5,
       declaredValue: 350000,
       shippedAt: '2026-04-02T08:00:00',
@@ -596,7 +618,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
       origin: 'Surabaya',
       destination: 'Malang',
       currentLocation: 'Malang',
-      service: 'CargoKu Express',
+      service: 'CargoLite Express',
       weightKg: 10,
       declaredValue: 875000,
       shippedAt: '2026-04-04T09:00:00',
@@ -610,7 +632,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
       origin: 'Jakarta Barat',
       destination: 'Bekasi',
       currentLocation: 'Jakarta Barat',
-      service: 'CargoKu Same Day',
+      service: 'CargoLite Same Day',
       weightKg: 3,
       declaredValue: 1225000,
       shippedAt: '2026-04-06T16:00:00',
@@ -623,7 +645,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
       origin: 'Tangerang',
       destination: 'Semarang',
       currentLocation: 'Hub Semarang',
-      service: 'CargoKu Cargo',
+      service: 'CargoLite Cargo',
       weightKg: 16.4,
       declaredValue: 1330000,
       shippedAt: '2026-04-09T07:30:00',
@@ -637,7 +659,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
       origin: 'Bogor',
       destination: 'Cirebon',
       currentLocation: 'Tol Cipali KM 112',
-      service: 'CargoKu Reguler',
+      service: 'CargoLite REG',
       weightKg: 7.8,
       declaredValue: 540000,
       shippedAt: '2026-04-12T12:45:00',
@@ -650,7 +672,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
       origin: 'Bandung',
       destination: 'Yogyakarta',
       currentLocation: 'Yogyakarta',
-      service: 'CargoKu Express',
+      service: 'CargoLite Express',
       weightKg: 6.6,
       declaredValue: 960000,
       shippedAt: '2026-04-14T08:35:00',
@@ -664,7 +686,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
       origin: 'Tasikmalaya',
       destination: 'Jakarta Barat',
       currentLocation: 'Cipularang KM 88',
-      service: 'CargoKu Reguler',
+      service: 'CargoLite REG',
       weightKg: 4.4,
       declaredValue: 415000,
       shippedAt: '2026-04-17T06:55:00',
@@ -677,7 +699,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
       origin: 'Depok',
       destination: 'Cirebon',
       currentLocation: 'Cirebon',
-      service: 'CargoKu Cargo',
+      service: 'CargoLite Cargo',
       weightKg: 13.5,
       declaredValue: 1490000,
       shippedAt: '2026-04-19T09:45:00',
@@ -700,11 +722,62 @@ export const adminPackages: AdminPackage[] = monthOptions.flatMap(({ value: mont
       week: weekSlots[planIndex] ?? 'M4',
       resi: `CKL${monthKey.replace('-', '')}${padValue(planIndex + 1)}`,
       courierName: assignedCourier?.name ?? 'Kurir Belum Diatur',
+      recipientPhone: '081234567890',
+      itemType: plan.service.includes('Cargo') ? 'Paket Furnitur & Kayu' : 'Pakaian & Gadget',
+      shippingCost: Math.round(plan.weightKg * 12500 + 10000),
+      vehicleType: plan.weightKg > 15 ? 'Mobil Box (Truck)' : 'Motor',
+      deliveryType: plan.service.includes('Express') ? 'Cepat' : plan.service.includes('Same Day') ? 'Vvip' : 'Reguler',
+      description: 'Harap hubungi penerima sebelum pengantaran barang.',
+      status: plan.status === 'Sudah Dikirim' ? 'Selesai' : plan.status === 'Lagi Dikirim' ? 'Dalam Pengiriman' : plan.status as PackageStatus,
+      itemStatus: 'Baik' as ItemStatus,
+      transactionStatus: plan.status === 'Sudah Dikirim' ? 'Lunas' as TransactionStatus : 'Belum Bayar' as TransactionStatus,
     };
   })
 );
 
-export const shippingServiceOptions = Array.from(new Set(adminPackages.map((item) => item.service)));
+export const vehicles: Vehicle[] = [
+  {
+    id: 'VHC-001',
+    name: 'Fuso Heavy Duty',
+    type: 'Truck Fuso',
+    plateNumber: 'B 9001 UX',
+    capacity: '8000 kg',
+    status: 'Tersedia',
+  },
+  {
+    id: 'VHC-002',
+    name: 'Isuzu Elf Box',
+    type: 'Engkel Box',
+    plateNumber: 'B 9234 KOS',
+    capacity: '3000 kg',
+    status: 'Sedang Jalan',
+  },
+  {
+    id: 'VHC-003',
+    name: 'Suzuki Carry Pick Up',
+    type: 'Pick Up',
+    plateNumber: 'D 1287 AA',
+    capacity: '1000 kg',
+    status: 'Tersedia',
+  },
+  {
+    id: 'VHC-004',
+    name: 'Honda Supra X',
+    type: 'Motor',
+    plateNumber: 'B 4120 PQR',
+    capacity: '100 kg',
+    status: 'Servis',
+  },
+];
+
+export const shippingServiceOptions = [
+  'CargoLite REG',
+  'CargoLite Express',
+  'CargoLite Cargo',
+  'CargoLite International',
+  'CargoLite Same Day',
+  'CargoLite Economy',
+];
 
 export const shippingLocationOptions = Array.from(
   new Set(
@@ -1205,7 +1278,7 @@ const customerPlans: CustomerPlan[] = [
     id: 'CUS-001',
     name: 'Andi Wijaya',
     address: 'Jl. Kenanga No. 12, Jakarta Selatan',
-    email: 'andi.wijaya@cargoku.com',
+    email: 'andi.wijaya@cargolite.com',
     phone: '08123456789',
     totalSent: 12,
     totalReceived: 8,
@@ -1219,7 +1292,7 @@ const customerPlans: CustomerPlan[] = [
     id: 'CUS-002',
     name: 'Siti Rahayu',
     address: 'Jl. Merpati No. 8, Bandung',
-    email: 'siti.rahayu@cargoku.com',
+    email: 'siti.rahayu@cargolite.com',
     phone: '08198765432',
     totalSent: 5,
     totalReceived: 14,
@@ -1331,7 +1404,7 @@ const customerPlans: CustomerPlan[] = [
     id: 'CUS-010',
     name: 'Maya Pratama',
     address: 'Jl. Gatot Subroto No. 88, Jakarta',
-    email: 'maya.pratama@cargoku.com',
+    email: 'maya.pratama@cargolite.com',
     phone: '081299887766',
     totalSent: 13,
     totalReceived: 15,
@@ -1353,7 +1426,7 @@ export const customers: CustomerAccount[] = customerPlans.map((customer) => ({
 export const managerProfile: ManagerProfile = {
   employeeId: 'ADM-001',
   name: 'Maya Pratama',
-  email: 'maya.pratama@cargoku.com',
+  email: 'maya.pratama@cargolite.com',
   phone: '081299887766',
   address: 'Jl. Gatot Subroto No. 88, Jakarta',
   department: 'Manajemen Operasional',

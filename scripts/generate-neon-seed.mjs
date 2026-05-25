@@ -7,6 +7,7 @@ import {
   customers,
   employees,
   managerProfile,
+  vehicles,
 } from '../src/app/data/adminData.ts';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -82,7 +83,7 @@ const trackingEvents = adminPackages.flatMap((item) => {
       status: 'Paket Diterima di Gudang',
       location: item.origin,
       timestamp: item.shippedAt,
-      description: `Paket telah diterima di gudang CargoKu ${item.origin}`,
+      description: `Paket telah diterima di gudang CargoLite ${item.origin}`,
       photo_url: null,
     },
     {
@@ -154,7 +155,19 @@ const sqlSections = [
   '-- Generated from src/app/data/adminData.ts',
   '-- Safe for local/dev dummy data refresh in Neon',
   'BEGIN;',
-  'TRUNCATE TABLE customer_histories, package_tracking_events, attendance_records, packages, customers, employees, manager_profiles RESTART IDENTITY CASCADE;',
+  'TRUNCATE TABLE customer_histories, package_tracking_events, attendance_records, packages, customers, employees, manager_profiles, vehicles RESTART IDENTITY CASCADE;',
+  buildInsert(
+    'vehicles',
+    ['id', 'name', 'type', 'plate_number', 'capacity', 'status'],
+    vehicles.map((vehicle) => ({
+      id: vehicle.id,
+      name: vehicle.name,
+      type: vehicle.type,
+      plate_number: vehicle.plateNumber,
+      capacity: vehicle.capacity,
+      status: vehicle.status,
+    }))
+  ),
   buildInsert(
     'employees',
     [
@@ -204,6 +217,14 @@ const sqlSections = [
       'shipped_at',
       'delivered_at',
       'status',
+      'recipient_phone',
+      'item_type',
+      'shipping_cost',
+      'vehicle_type',
+      'delivery_type',
+      'description',
+      'item_status',
+      'transaction_status',
     ],
     adminPackages.map((item) => ({
       id: item.id,
@@ -223,6 +244,14 @@ const sqlSections = [
       shipped_at: item.shippedAt,
       delivered_at: item.deliveredAt ?? null,
       status: item.status,
+      recipient_phone: item.recipientPhone ?? null,
+      item_type: item.itemType ?? null,
+      shipping_cost: item.shippingCost ?? 0,
+      vehicle_type: item.vehicleType ?? null,
+      delivery_type: item.deliveryType ?? 'Reguler',
+      description: item.description ?? null,
+      item_status: item.itemStatus ?? 'Baik',
+      transaction_status: item.transactionStatus ?? 'Belum Bayar',
     }))
   ),
   buildInsert(
@@ -320,5 +349,6 @@ console.log(
     `attendance_records=${attendanceRecords.length}`,
     `customers=${customers.length}`,
     `customer_histories=${customerHistories.length}`,
+    `vehicles=${vehicles.length}`,
   ].join(', ')
 );

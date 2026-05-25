@@ -35,7 +35,7 @@ export interface FAQ {
 export const services: Service[] = [
   {
     id: '1',
-    name: 'CargoKu REG',
+    name: 'CargoLite REG',
     eta: '2-3 days',
     coverage: 'All major cities in Indonesia',
     notes: 'Standard delivery service with tracking',
@@ -43,7 +43,7 @@ export const services: Service[] = [
   },
   {
     id: '2',
-    name: 'CargoKu Express',
+    name: 'CargoLite Express',
     eta: '1 day',
     coverage: 'Jakarta, Surabaya, Bandung',
     notes: 'Same-day delivery for selected areas',
@@ -51,7 +51,7 @@ export const services: Service[] = [
   },
   {
     id: '3',
-    name: 'CargoKu Cargo',
+    name: 'CargoLite Cargo',
     eta: '3-5 days',
     coverage: 'Nationwide',
     notes: 'For heavy and bulky items',
@@ -59,7 +59,7 @@ export const services: Service[] = [
   },
   {
     id: '4',
-    name: 'CargoKu International',
+    name: 'CargoLite International',
     eta: '5-7 days',
     coverage: 'Asia Pacific region',
     notes: 'International shipping service',
@@ -67,7 +67,7 @@ export const services: Service[] = [
   },
   {
     id: '5',
-    name: 'CargoKu Same Day',
+    name: 'CargoLite Same Day',
     eta: '4-6 hours',
     coverage: 'Jakarta area only',
     notes: 'Urgent delivery within the same day',
@@ -75,7 +75,7 @@ export const services: Service[] = [
   },
   {
     id: '6',
-    name: 'CargoKu Economy',
+    name: 'CargoLite Economy',
     eta: '4-7 days',
     coverage: 'All regions',
     notes: 'Most affordable option',

@@ -7,6 +7,7 @@ import {
   Menu,
   Settings,
   ShieldCheck,
+  Truck,
   X,
   User,
   UserRoundCog,
@@ -50,6 +51,7 @@ const navItems = [
   { name: 'Manajemen Karyawan', path: '/admin/employees', icon: UserRoundCog },
   { name: 'Presensi Karyawan', path: '/admin/attendance', icon: ClipboardCheck },
   { name: 'Data Customer', path: '/admin/customers', icon: Users },
+  { name: 'Data Kendaraan', path: '/admin/vehicles', icon: Truck },
   { name: 'Profil Manager', path: '/admin/profile', icon: User },
   { name: 'Settings', path: '/admin/settings', icon: Settings },
 ];
@@ -58,7 +60,7 @@ function BrandLogo({ className = '' }: { className?: string }) {
   return (
     <img
       src={cargoLiteLogo}
-      alt="CargoKu"
+      alt="CargoLite"
       className={`w-auto object-contain ${className}`.trim()}
     />
   );

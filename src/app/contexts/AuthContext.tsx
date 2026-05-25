@@ -27,7 +27,7 @@ const mockUsers: Record<string, { password: string; data: AuthUser }> = {
     data: {
       id: '1',
       name: 'Andi Wijaya',
-      email: 'andi@cargoku.com',
+      email: 'andi@cargolite.com',
       role: 'customer',
       phone: '08123456789',
       avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop',
@@ -38,7 +38,7 @@ const mockUsers: Record<string, { password: string; data: AuthUser }> = {
     data: {
       id: '2',
       name: 'Siti Rahayu',
-      email: 'siti@cargoku.com',
+      email: 'siti@cargolite.com',
       role: 'customer',
       phone: '08198765432',
       avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop',
@@ -49,7 +49,7 @@ const mockUsers: Record<string, { password: string; data: AuthUser }> = {
     data: {
       id: '3',
       name: 'Maya Pratama',
-      email: 'maya.pratama@cargoku.com',
+      email: 'maya.pratama@cargolite.com',
       role: 'admin',
       phone: '081299887766',
       avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop',
@@ -60,7 +60,7 @@ const mockUsers: Record<string, { password: string; data: AuthUser }> = {
     data: {
       id: '4',
       name: 'Raka Adinata',
-      email: 'raka.adinata@cargoku.com',
+      email: 'raka.adinata@cargolite.com',
       role: 'admin',
       phone: '081377665544',
       avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop',

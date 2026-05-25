@@ -12,7 +12,7 @@ export function AboutPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <h1 className="text-5xl font-bold mb-4">About CargoKu</h1>
+            <h1 className="text-5xl font-bold mb-4">About CargoLite</h1>
             <p className="text-xl text-green-100 max-w-2xl">
               Your trusted logistics partner since 2010
             </p>
@@ -33,7 +33,7 @@ export function AboutPage() {
               <h2 className="text-4xl font-bold mb-6">Who We Are</h2>
               <div className="space-y-4 text-muted-foreground">
                 <p>
-                  CargoKu is Indonesia's leading logistics and delivery service provider, specializing in fast, reliable, and secure package transportation across the archipelago and beyond.
+                  CargoLite is Indonesia's leading logistics and delivery service provider, specializing in fast, reliable, and secure package transportation across the archipelago and beyond.
                 </p>
                 <p>
                   Founded in 2010, we have grown from a small local courier service to a nationwide logistics network serving thousands of businesses and individuals every day.
@@ -52,7 +52,7 @@ export function AboutPage() {
             >
               <img
                 src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=800&h=600&fit=crop"
-                alt="CargoKu Team"
+                alt="CargoLite Team"
                 className="w-full h-full object-cover"
               />
             </motion.div>
@@ -165,7 +165,7 @@ export function AboutPage() {
             className="text-center mb-12"
           >
             <h2 className="text-4xl font-bold mb-4">Our Journey</h2>
-            <p className="text-muted-foreground">Key milestones in CargoKu's history</p>
+            <p className="text-muted-foreground">Key milestones in CargoLite's history</p>
           </motion.div>
 
           <div className="space-y-8">
@@ -173,7 +173,7 @@ export function AboutPage() {
               {
                 year: '2010',
                 title: 'Founded',
-                description: 'CargoKu started as a small local courier service in Jakarta',
+                description: 'CargoLite started as a small local courier service in Jakarta',
               },
               {
                 year: '2015',

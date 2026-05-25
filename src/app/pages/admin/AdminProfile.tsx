@@ -64,7 +64,7 @@ export function AdminProfile() {
         <Card className="border-border/80 bg-white/90 shadow-sm">
           <CardHeader>
             <CardTitle>Informasi Manager</CardTitle>
-            <CardDescription>Perbarui data utama manager operasional CargoKu.</CardDescription>
+            <CardDescription>Perbarui data utama manager operasional CargoLite.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
             <div className="grid gap-5 md:grid-cols-2">

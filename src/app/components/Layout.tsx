@@ -170,12 +170,12 @@ export function Layout() {
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li>Jakarta, Indonesia</li>
                 <li>Phone: +62 21 1234 5678</li>
-                <li>Email: info@cargoku.com</li>
+                <li>Email: info@cargolite.com</li>
               </ul>
             </div>
           </div>
           <div className="border-t border-border mt-8 pt-8 text-center text-sm text-muted-foreground">
-            <p>&copy; 2026 CargoKu. All rights reserved.</p>
+            <p>&copy; 2026 CargoLite. All rights reserved.</p>
           </div>
         </div>
       </footer>

@@ -83,7 +83,7 @@ export function ServicesPage() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Email Support</p>
-                  <p className="text-lg font-semibold text-primary">info@cargoku.com</p>
+                  <p className="text-lg font-semibold text-primary">info@cargolite.com</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Live Chat</p>

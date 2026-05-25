@@ -31,7 +31,7 @@ export const mockDeliveries: Delivery[] = [
         status: 'Paket Diterima',
         location: 'Jakarta Selatan',
         timestamp: '2026-04-06T08:00:00',
-        description: 'Paket telah diterima di gudang CargoKu Jakarta Selatan',
+        description: 'Paket telah diterima di gudang CargoLite Jakarta Selatan',
       },
       {
         id: '2',
@@ -100,7 +100,7 @@ export const mockDeliveries: Delivery[] = [
         status: 'Paket Diterima',
         location: 'Surabaya',
         timestamp: '2026-04-04T09:00:00',
-        description: 'Paket telah diterima di gudang CargoKu Surabaya',
+        description: 'Paket telah diterima di gudang CargoLite Surabaya',
       },
       {
         id: '5',

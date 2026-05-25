@@ -13,6 +13,7 @@ import type {
   CustomerAccount,
   Employee,
   ManagerProfile,
+  Vehicle,
 } from '../data/adminData';
 import {
   adminPackages,
@@ -20,19 +21,23 @@ import {
   customers,
   employees,
   managerProfile,
+  vehicles,
 } from '../data/adminData';
 import {
   createCustomerRequest,
   createEmployeeRequest,
   createPackageRequest,
+  createVehicleRequest,
   deleteCustomerRequest,
   fetchAdminBootstrap,
   updateCustomerRequest,
   updateEmployeeRequest,
   updateManagerProfileRequest,
   updatePackageRequest,
+  updateVehicleRequest,
   deleteEmployeeRequest,
   deletePackageRequest,
+  deleteVehicleRequest,
   type AdminBootstrapData,
 } from '../lib/adminApi';
 
@@ -52,6 +57,9 @@ interface AdminDataContextValue extends AdminBootstrapData {
   updateCustomer: (customer: CustomerAccount) => Promise<CustomerAccount>;
   deleteCustomer: (customerId: string) => Promise<CustomerAccount>;
   updateManagerProfile: (profile: ManagerProfile) => Promise<ManagerProfile>;
+  createVehicle: (vehicle: Vehicle) => Promise<Vehicle>;
+  updateVehicle: (vehicle: Vehicle) => Promise<Vehicle>;
+  deleteVehicle: (vehicleId: string) => Promise<Vehicle>;
 }
 
 const fallbackData: AdminBootstrapData = {
@@ -60,6 +68,7 @@ const fallbackData: AdminBootstrapData = {
   attendanceRecords,
   customers,
   managerProfile,
+  vehicles,
 };
 
 const adminApiHint =
@@ -152,6 +161,9 @@ export function AdminDataProvider({ children }: { children: ReactNode }) {
       updateCustomer: (customer) => mutateAndRefresh(updateCustomerRequest(customer)),
       deleteCustomer: (customerId) => mutateAndRefresh(deleteCustomerRequest(customerId)),
       updateManagerProfile: (profile) => mutateAndRefresh(updateManagerProfileRequest(profile)),
+      createVehicle: (vehicle) => mutateAndRefresh(createVehicleRequest(vehicle)),
+      updateVehicle: (vehicle) => mutateAndRefresh(updateVehicleRequest(vehicle)),
+      deleteVehicle: (vehicleId) => mutateAndRefresh(deleteVehicleRequest(vehicleId)),
     }),
     [data, loading, error, notice, isUsingFallback, refreshData, mutateAndRefresh]
   );

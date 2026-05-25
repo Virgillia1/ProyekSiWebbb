@@ -4,6 +4,7 @@ import type {
   CustomerAccount,
   Employee,
   ManagerProfile,
+  Vehicle,
 } from '../data/adminData';
 
 export interface AdminBootstrapData {
@@ -12,6 +13,7 @@ export interface AdminBootstrapData {
   attendanceRecords: AttendanceRecord[];
   customers: CustomerAccount[];
   managerProfile: ManagerProfile | null;
+  vehicles: Vehicle[];
 }
 
 const requestJson = async <T>(input: RequestInfo | URL, init?: RequestInit): Promise<T> => {
@@ -96,4 +98,21 @@ export const updateManagerProfileRequest = (profile: ManagerProfile) =>
   requestJson<ManagerProfile>('/api/admin/manager-profile', {
     method: 'PUT',
     body: JSON.stringify(profile),
+  });
+
+export const createVehicleRequest = (vehicle: Vehicle) =>
+  requestJson<Vehicle>('/api/admin/vehicles', {
+    method: 'POST',
+    body: JSON.stringify(vehicle),
+  });
+
+export const updateVehicleRequest = (vehicle: Vehicle) =>
+  requestJson<Vehicle>(`/api/admin/vehicles/${vehicle.id}`, {
+    method: 'PUT',
+    body: JSON.stringify(vehicle),
+  });
+
+export const deleteVehicleRequest = (vehicleId: string) =>
+  requestJson<Vehicle>(`/api/admin/vehicles/${vehicleId}`, {
+    method: 'DELETE',
   });
