@@ -43,8 +43,18 @@ export function Layout() {
     navigate('/');
   };
 
-  const accountLink = user?.role === 'admin' ? '/admin/dashboard' : '#';
-  const roleLabel = user?.role === 'admin' ? 'Admin' : 'Customer';
+  const accountLink =
+    user?.role === 'admin'
+      ? '/admin/dashboard'
+      : user?.role === 'courier'
+        ? '/courier/dashboard'
+        : '#';
+  const roleLabel =
+    user?.role === 'admin'
+      ? 'Admin'
+      : user?.role === 'courier'
+        ? 'Kurir'
+        : 'Customer';
 
   return (
     <div className="min-h-screen bg-background flex flex-col">

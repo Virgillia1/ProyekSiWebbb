@@ -143,6 +143,8 @@ const getPackageSearchText = (item: AdminPackage) =>
 const buildNewPackageDraft = (
   monthKey: string,
   packages: AdminPackage[],
+  defaultCourierId: string,
+  defaultCourierName: string,
   defaultService: string,
   defaultLocation: string
 ): AdminPackage => {
@@ -161,8 +163,8 @@ const buildNewPackageDraft = (
     resi: `CKL${monthKey.replace('-', '')}${padValue(nextResiNumber)}`,
     senderName: '',
     recipientName: '',
-    courierId: DEFAULT_COURIER_ID,
-    courierName: DEFAULT_COURIER_NAME,
+    courierId: defaultCourierId,
+    courierName: defaultCourierName,
     origin: defaultLocation,
     destination: defaultLocation,
     currentLocation: defaultLocation,
@@ -207,6 +209,7 @@ export function AdminShipments() {
   const [searchParams, setSearchParams] = useSearchParams();
   const {
     packages,
+    employees,
     createPackage,
     updatePackage,
     deletePackage: deletePackageRequest,
@@ -225,6 +228,33 @@ export function AdminShipments() {
   const [packageToDelete, setPackageToDelete] = useState<AdminPackage | null>(null);
 
   const isHistoricalMonth = selectedMonth < '2026-04';
+  const activeCouriers = useMemo(
+    () =>
+      employees.filter(
+        (employee) =>
+          employee.status === 'Aktif' &&
+          (employee.division === 'Operasional' ||
+            employee.position.toLowerCase().includes('kurir'))
+      ),
+    [employees]
+  );
+
+  const handleCourierChange = (courierId: string) => {
+    const courier = employees.find((employee) => employee.id === courierId);
+    setDraftPackage((previousDraft) =>
+      previousDraft
+        ? {
+            ...previousDraft,
+            courierId,
+            courierName:
+              courierId === 'UNASSIGNED'
+                ? 'Kurir Belum Diatur'
+                : (courier?.name ?? previousDraft.courierName),
+          }
+        : previousDraft
+    );
+  };
+
   const shippingLocationOptions = useMemo(
     () =>
       Array.from(
@@ -328,6 +358,8 @@ export function AdminShipments() {
   };
 
   const openCreatePackage = () => {
+    const defaultCourierId = activeCouriers[0]?.id ?? employees[0]?.id ?? 'EMP-001';
+    const defaultCourierName = activeCouriers[0]?.name ?? employees[0]?.name ?? '';
     const defaultService = shippingServiceOptions[0] ?? 'CargoLite REG';
     const defaultLocation = shippingLocationOptions[0] ?? 'Jakarta Selatan';
 
@@ -336,6 +368,8 @@ export function AdminShipments() {
       buildNewPackageDraft(
         selectedMonth,
         packages,
+        defaultCourierId,
+        defaultCourierName,
         defaultService,
         defaultLocation
       )
@@ -532,11 +566,12 @@ export function AdminShipments() {
         </CardHeader>
         <CardContent>
           <Table>
-            <TableHeader>
+             <TableHeader>
               <TableRow>
                 <TableHead>Resi</TableHead>
                 <TableHead>Pengirim</TableHead>
                 <TableHead>Penerima</TableHead>
+                <TableHead>Kurir</TableHead>
                 <TableHead>Lokasi Pengiriman</TableHead>
                 <TableHead>Layanan</TableHead>
                 <TableHead>Berat</TableHead>
@@ -551,6 +586,10 @@ export function AdminShipments() {
                     <TableCell className="font-medium">{item.resi}</TableCell>
                     <TableCell>{item.senderName}</TableCell>
                     <TableCell>{item.recipientName}</TableCell>
+                    <TableCell>
+                      <div className="font-medium">{item.courierName}</div>
+                      <div className="text-xs text-muted-foreground font-mono">{item.courierId}</div>
+                    </TableCell>
                     <TableCell>
                       <div>{item.currentLocation}</div>
                       <div className="text-xs text-muted-foreground">
@@ -580,7 +619,7 @@ export function AdminShipments() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={8} className="py-8 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={9} className="py-8 text-center text-sm text-muted-foreground">
                     Tidak ada data pengiriman yang cocok dengan pencarian saat ini.
                   </TableCell>
                 </TableRow>
@@ -659,6 +698,17 @@ export function AdminShipments() {
                       </p>
                       <p className="mt-1 text-xs text-[#2F8A2E] font-semibold">
                         Harga Pengiriman: {formatCurrency(selectedPackage.shippingCost ?? 0)}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-border bg-white p-4">
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                        Kurir Ditugaskan
+                      </p>
+                      <p className="mt-2 font-semibold">
+                        {selectedPackage.courierName || 'Kurir Belum Diatur'}
+                      </p>
+                      <p className="mt-1 text-sm text-muted-foreground font-mono">
+                        {selectedPackage.courierId || 'Belum Ditugaskan'}
                       </p>
                     </div>
                     <div className="rounded-2xl border border-border bg-white p-4 sm:col-span-2">
@@ -811,8 +861,24 @@ export function AdminShipments() {
                     />
                   </div>
 
-
-
+                  <div className="space-y-2">
+                    <Label htmlFor="package-courier">Kurir</Label>
+                    <Select
+                      value={draftPackage.courierId}
+                      onValueChange={handleCourierChange}
+                    >
+                      <SelectTrigger id="package-courier">
+                        <SelectValue placeholder="Pilih kurir" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {activeCouriers.map((courier) => (
+                          <SelectItem key={courier.id} value={courier.id}>
+                            {courier.name} ({courier.id})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div className="space-y-2">
                     <Label htmlFor="package-item-type">Jenis Barang</Label>
                     <Input
