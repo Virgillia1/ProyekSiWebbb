@@ -1,10 +1,11 @@
 import { Link, useLocation, Outlet, useNavigate } from 'react-router';
-import { TruckIcon, Package, Map, User, LogOut } from 'lucide-react';
+import { TruckIcon, Package, Map, User, LogOut, ClipboardList } from 'lucide-react';
 import { Button } from './ui/button';
 import { useAuth } from '../contexts/AuthContext';
 
 const navItems = [
   { name: 'Dashboard', path: '/courier/dashboard', icon: TruckIcon },
+  { name: 'Ambil Paket Baru', path: '/courier/claim', icon: ClipboardList },
   { name: 'Tracking Resi', path: '/courier/tracking', icon: Package },
   { name: 'Histori Pengiriman', path: '/courier/history', icon: Map },
   { name: 'Profile', path: '/courier/profile', icon: User },

@@ -115,6 +115,8 @@ export const monthOptions = [
   { value: '2026-02', label: 'Februari 2026' },
   { value: '2026-03', label: 'Maret 2026' },
   { value: '2026-04', label: 'April 2026' },
+  { value: '2026-05', label: 'Mei 2026' },
+  { value: '2026-06', label: 'Juni 2026' },
 ];
 
 export const packageStatusOptions: PackageStatus[] = ['Diproses', 'Dalam Pengiriman', 'Sampai Tujuan', 'Pending', 'Selesai'];

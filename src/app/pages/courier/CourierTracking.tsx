@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Search, MapPin, Clock, Package, User, CheckCircle2, Eye } from 'lucide-react';
+import { Search, MapPin, Clock, Package, User, CheckCircle2, Eye, RefreshCw } from 'lucide-react';
 import { Input } from '../../components/ui/input';
 import { Button } from '../../components/ui/button';
 import { UpdateStatusModal } from '../../components/UpdateStatusModal';
@@ -12,19 +12,25 @@ import {
 import { motion } from 'motion/react';
 import { toast } from 'sonner';
 
+import { useAuth } from '../../contexts/AuthContext';
+
 export function CourierTracking() {
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDelivery, setSelectedDelivery] = useState<CourierDelivery | null>(null);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [deliveries, setDeliveries] = useState<CourierDelivery[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const loadDeliveries = async () => {
-    setIsLoading(true);
+  const loadDeliveries = async (silent = false) => {
+    if (!silent) {
+      setIsLoading(true);
+    }
 
     try {
-      const nextDeliveries = await fetchCourierPackages();
+      const nextDeliveries = await fetchCourierPackages(user?.employeeId);
       setDeliveries(nextDeliveries);
 
       if (selectedDelivery) {
@@ -32,16 +38,22 @@ export function CourierTracking() {
           nextDeliveries.find((delivery) => delivery.id === selectedDelivery.id) ?? null;
         setSelectedDelivery(refreshedSelectedDelivery);
       }
+      if (silent) {
+        toast.success('Daftar resi diperbarui!', {
+          description: 'Data pengiriman paling mutakhir telah dimuat.',
+        });
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Gagal memuat data pengiriman.');
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   };
 
   useEffect(() => {
     void loadDeliveries();
-  }, []);
+  }, [user?.employeeId]);
 
   const filteredDeliveries = deliveries.filter(
     (delivery) =>
@@ -76,9 +88,22 @@ export function CourierTracking() {
   return (
     <div className="p-8">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Tracking Resi</h1>
-        <p className="text-muted-foreground">Lacak dan kelola paket pengiriman Anda</p>
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">Tracking Resi</h1>
+          <p className="text-muted-foreground">Lacak dan kelola paket pengiriman Anda</p>
+        </div>
+        <button
+          onClick={() => {
+            setIsRefreshing(true);
+            void loadDeliveries(true);
+          }}
+          disabled={isLoading || isRefreshing}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-border hover:bg-secondary hover:text-foreground text-muted-foreground font-semibold shadow-sm transition-all duration-300 active:scale-95 disabled:opacity-50"
+        >
+          <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin text-primary' : ''}`} />
+          Segarkan
+        </button>
       </div>
 
       {/* Search Bar */}
@@ -99,8 +124,10 @@ export function CourierTracking() {
         <div className="text-center py-12 text-muted-foreground">Memuat data pengiriman...</div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {filteredDeliveries.map((delivery, index) => (
-            <motion.div
+          {filteredDeliveries.map((delivery, index) => {
+            const isDelivered = delivery.status.includes('Terkirim') || delivery.status === 'Selesai' || delivery.status === 'Sampai Tujuan';
+            return (
+              <motion.div
               key={delivery.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -183,8 +210,9 @@ export function CourierTracking() {
                 className="flex-1" 
                 size="sm"
                 onClick={() => handleUpdateStatus(delivery)}
+                disabled={isDelivered}
               >
-                Update Status
+                {isDelivered ? 'Terkirim' : 'Update Status'}
               </Button>
               <Button 
                 variant="outline" 
@@ -202,7 +230,8 @@ export function CourierTracking() {
               </Button>
             </div>
             </motion.div>
-          ))}
+            );
+          })}
         </div>
       )}
 

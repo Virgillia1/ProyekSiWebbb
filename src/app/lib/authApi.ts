@@ -1,4 +1,4 @@
-export type UserRole = 'customer' | 'admin';
+export type UserRole = 'customer' | 'admin' | 'courier';
 
 export interface AuthUser {
   id: string;
@@ -7,6 +7,7 @@ export interface AuthUser {
   role: UserRole;
   phone?: string;
   avatar?: string;
+  employeeId?: string;
 }
 
 export interface RegisterCustomerPayload {

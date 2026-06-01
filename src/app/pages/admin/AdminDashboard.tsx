@@ -411,7 +411,7 @@ export function AdminDashboard() {
         ? {
             ...previousDraft,
             courierId,
-            courierName: courier?.name ?? previousDraft.courierName,
+            courierName: courierId === 'UNASSIGNED' ? 'Kurir Belum Diatur' : (courier?.name ?? previousDraft.courierName),
           }
         : previousDraft
     );
