@@ -1,4 +1,5 @@
 DROP TABLE IF EXISTS customer_histories;
+DROP TABLE IF EXISTS user_accounts;
 DROP TABLE IF EXISTS package_tracking_events;
 DROP TABLE IF EXISTS attendance_records;
 DROP TABLE IF EXISTS packages;
@@ -106,6 +107,20 @@ CREATE TABLE customers (
   last_activity DATE NOT NULL
 );
 
+CREATE TABLE user_accounts (
+  id TEXT PRIMARY KEY,
+  username TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  role TEXT NOT NULL CHECK (role IN ('customer', 'admin')),
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT NULL,
+  address TEXT NULL,
+  avatar_url TEXT NULL,
+  customer_id TEXT NULL UNIQUE REFERENCES customers(id) ON DELETE SET NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE customer_histories (
   id TEXT PRIMARY KEY,
   customer_id TEXT NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
@@ -123,5 +138,7 @@ CREATE INDEX idx_package_tracking_events_package_id ON package_tracking_events(p
 CREATE INDEX idx_package_tracking_events_resi ON package_tracking_events(resi);
 CREATE INDEX idx_attendance_records_month_key ON attendance_records(month_key);
 CREATE INDEX idx_attendance_records_employee_id ON attendance_records(employee_id);
+CREATE INDEX idx_user_accounts_role ON user_accounts(role);
+CREATE INDEX idx_user_accounts_customer_id ON user_accounts(customer_id);
 CREATE INDEX idx_customer_histories_customer_id ON customer_histories(customer_id);
 CREATE INDEX idx_customer_histories_resi ON customer_histories(resi);

@@ -425,6 +425,9 @@ export function AdminEmployees() {
             <DialogDescription>Ringkasan aksi cepat untuk manajemen tim.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3 text-sm text-muted-foreground">
+            <div className="rounded-2xl border border-[#63D25F]/30 bg-[#63D25F]/10 p-4 font-medium text-foreground">
+              KODE VERIFIKASI ADMIN: ADMCARGOLITE
+            </div>
             <div className="rounded-2xl bg-secondary/40 p-4">
               Gunakan tombol detail lalu lanjutkan update dari pop-up untuk merapikan data
               karyawan.
