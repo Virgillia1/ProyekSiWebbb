@@ -211,10 +211,17 @@ INSERT INTO customers (id, name, address, email, phone, total_sent, total_receiv
   ('CUS-010', 'Maya Pratama', 'Jl. Gatot Subroto No. 88, Jakarta', 'maya.pratama@cargolite.com', '081299887766', 13, 15, '2026-04-20');
 
 INSERT INTO user_accounts (id, username, password_hash, role, name, email, phone, address, avatar_url, customer_id) VALUES
+<<<<<<< HEAD
   ('USR-SEED-001', 'andi', 'scrypt$7ec526051ae5317cb3c952b4a2d73c25$2500a605033de5e1ebd33e87ea925a63a9ca2888c3849894c4f28b392cec184bfd51e37a078ecf698709eb3e2ce95779a06939a760d6b8b7ee910d36e987ebe6', 'customer', 'Andi Wijaya', 'andi.wijaya@cargolite.com', '08123456789', 'Jl. Kenanga No. 12, Jakarta Selatan', NULL, 'CUS-001'),
   ('USR-SEED-002', 'siti', 'scrypt$e4451c81740a135371cb896e2bdc7d5c$eddb5bc8e41d0712d0eb2c967b6b759ed33dfc07bdb3fb488615da2978e2725734b8ef97f61ec972e16ad829d6a1009b58b6e2bb62bb1cbe1c0ece9c3932d127', 'customer', 'Siti Rahayu', 'siti.rahayu@cargolite.com', '08198765432', 'Jl. Merpati No. 8, Bandung', NULL, 'CUS-002'),
   ('USR-SEED-003', 'admin_maya', 'scrypt$d0c361b5e14f1304d8426f96a37ab444$f3d29e4ab400f936cce1d1b86982b18be445b2a29735d6d980105f95731f89ad9de1364d50f063885c017379a67fc20d02f1f863f117013dfdbe8a814b68f3f4', 'admin', 'Maya Pratama', 'maya.pratama@cargolite.com', '081299887766', 'Jl. Gatot Subroto No. 88, Jakarta', NULL, NULL),
   ('USR-SEED-004', 'admin_raka', 'scrypt$c4a3a56d6b3cde3a3afd5935f474d595$48a10ad7b90bb895af7ed0ce300eed9001e70117cc03f3e9e96ec9e2af08d320a89a93a4183614bd1cb66be0c6e1089caa5155686d00ed6e1ac1283917125060', 'admin', 'Raka Adinata', 'raka.adinata@cargolite.com', '081377665544', 'Jl. Sisingamangaraja No. 17, Jakarta', NULL, NULL);
+=======
+  ('USR-SEED-001', 'andi', 'scrypt$30cc633a27369dbf8f9a63b6ce08a3f5$d922632a54580ed1e7aba8cbfdcf79560ac3aa1a0efcd8b775e4c17673d14f3e0c1159c5bd2fa2391472ab05362d90ded1924f782d462040941a99a64973c868', 'customer', 'Andi Wijaya', 'andi.wijaya@cargolite.com', '08123456789', 'Jl. Kenanga No. 12, Jakarta Selatan', NULL, 'CUS-001'),
+  ('USR-SEED-002', 'siti', 'scrypt$f8bb920dc231830ae977408c379c84c7$2821d7b9dc583d102649493d5d204ece1d72d49976bb7f2fcfa6dd6ec0be0bcb24c032e52062ab669eabf57aca42a5cf66ef47cdfc1a76fd8055a79f46321936', 'customer', 'Siti Rahayu', 'siti.rahayu@cargolite.com', '08198765432', 'Jl. Merpati No. 8, Bandung', NULL, 'CUS-002'),
+  ('USR-SEED-003', 'admin_maya', 'scrypt$6be11a1add21f54fe149323093623eab$311dd0bba8a2c75733982401d4c1f4e1ba0707fa4a73e973206e5bf540e572172f19a13c360be9f1a2aa470e2f71a3233d5e81ee685e2f9e99d8715ab7456bb7', 'admin', 'Maya Pratama', 'maya.pratama@cargolite.com', '081299887766', 'Jl. Gatot Subroto No. 88, Jakarta', NULL, NULL),
+  ('USR-SEED-004', 'admin_raka', 'scrypt$97faa74a8cf78f9754f78f269a719800$d375fb2d602c1925a40790c682241f0ddefd5060e0c60e2e4a14ecea33af4f648a3f3265c4a9873b8d7bf8c9522c57ea734ec5ceebda2a1f9a751277f0afa37c', 'admin', 'Raka Adinata', 'raka.adinata@cargolite.com', '081377665544', 'Jl. Sisingamangaraja No. 17, Jakarta', NULL, NULL);
+>>>>>>> parent of f78b3a8 (marsel kurir role)
 
 INSERT INTO customer_histories (id, customer_id, type, resi, route, status, date) VALUES
   ('HIS-001', 'CUS-001', 'Mengirim', 'CKL2026040007', 'Tasikmalaya - Jakarta Barat', 'Dalam Pengiriman', '2026-04-17'),

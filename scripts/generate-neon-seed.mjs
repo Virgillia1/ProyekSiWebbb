@@ -216,41 +216,11 @@ const userAccounts = await Promise.all(
   }))
 );
 
-const courierAccounts = await Promise.all(
-  [
-    {
-      id: 'USR-SEED-005',
-      username: 'budi',
-      password: 'budi123',
-      role: 'courier',
-      employee_id: 'EMP-001',
-      name: 'Budi Santoso',
-      email: 'budi.santoso@cargolite.com',
-      phone: '08234567890',
-      avatar_url: null,
-    },
-    {
-      id: 'USR-SEED-006',
-      username: 'rina',
-      password: 'rina123',
-      role: 'courier',
-      employee_id: 'EMP-004',
-      name: 'Rina Permata',
-      email: 'rina.permata@cargolite.com',
-      phone: '08456789012',
-      avatar_url: null,
-    },
-  ].map(async (account) => ({
-    ...account,
-    password_hash: await createPasswordHash(account.password),
-  }))
-);
-
 const sqlSections = [
   '-- Generated from src/app/data/adminData.ts',
   '-- Safe for local/dev dummy data refresh in Neon',
   'BEGIN;',
-  'TRUNCATE TABLE user_accounts, courier_accounts, customer_histories, package_tracking_events, attendance_records, packages, customers, employees, manager_profiles, vehicles RESTART IDENTITY CASCADE;',
+  'TRUNCATE TABLE user_accounts, customer_histories, package_tracking_events, attendance_records, packages, customers, employees, manager_profiles, vehicles RESTART IDENTITY CASCADE;',
   buildInsert(
     'vehicles',
     ['id', 'name', 'type', 'plate_number', 'capacity', 'status'],
@@ -425,21 +395,6 @@ const sqlSections = [
     userAccounts
   ),
   buildInsert(
-    'courier_accounts',
-    [
-      'id',
-      'username',
-      'password_hash',
-      'role',
-      'employee_id',
-      'name',
-      'email',
-      'phone',
-      'avatar_url',
-    ],
-    courierAccounts
-  ),
-  buildInsert(
     'customer_histories',
     ['id', 'customer_id', 'type', 'resi', 'route', 'status', 'date'],
     customerHistories
@@ -475,7 +430,6 @@ console.log(
     `attendance_records=${attendanceRecords.length}`,
     `customers=${customers.length}`,
     `user_accounts=${userAccounts.length}`,
-    `courier_accounts=${courierAccounts.length}`,
     `customer_histories=${customerHistories.length}`,
     `vehicles=${vehicles.length}`,
   ].join(', ')
