@@ -18,12 +18,12 @@ import {
   updateManagerProfile,
   updatePackage,
   updateVehicle,
-  claimPackage,
 } from './admin-data.mjs';
 import {
   loginWithAccount,
   registerAdminAccount,
   registerCustomerAccount,
+  registerCourierAccount,
 } from './auth-data.mjs';
 import { BadRequestError, ConflictError } from './errors.mjs';
 
@@ -67,8 +67,8 @@ app.get('/api/tracking/:resi', async (request, response) => {
   response.json(delivery);
 });
 
-app.get('/api/courier/packages', async (request, response) => {
-  const deliveries = await getCourierDeliveries(request.query.courierId, request.query.status);
+app.get('/api/courier/packages', async (_request, response) => {
+  const deliveries = await getCourierDeliveries();
   response.json(deliveries);
 });
 
@@ -77,15 +77,30 @@ app.post('/api/courier/packages/:id/tracking-events', async (request, response) 
   response.status(201).json(delivery);
 });
 
-app.post('/api/courier/packages/:id/claim', async (request, response) => {
-  const { courierId, courierName } = request.body;
-  const updatedPackage = await claimPackage(request.params.id, courierId, courierName);
-  response.json(updatedPackage);
-});
-
 app.post('/api/admin/employees', async (request, response) => {
   const employee = await createEmployee(request.body);
   response.status(201).json(employee);
+});
+
+app.post('/api/admin/employees/:id/courier-account', async (request, response) => {
+  const account = await registerCourierAccount({
+    employeeId: request.params.id,
+    ...request.body,
+  });
+  response.status(201).json(account);
+});
+
+app.get('/api/admin/employees/:id/courier-account', async (request, response) => {
+  const { pool: dbPool } = await import('./db.mjs');
+  const { rows } = await dbPool.query(
+    'SELECT id, username, email, phone, created_at FROM courier_accounts WHERE employee_id = $1 LIMIT 1',
+    [request.params.id]
+  );
+  if (!rows[0]) {
+    response.status(404).json({ hasCourierAccount: false });
+    return;
+  }
+  response.json({ hasCourierAccount: true, ...rows[0] });
 });
 
 app.put('/api/admin/employees/:id', async (request, response) => {

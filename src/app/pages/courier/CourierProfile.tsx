@@ -1,12 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { User, Mail, Phone, MapPin, Star, Award, Calendar, Edit2 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { useAuth } from '../../contexts/AuthContext';
 import { motion } from 'motion/react';
-import { fetchCourierPackages, type CourierDelivery } from '../../lib/trackingApi';
-import { toast } from 'sonner';
 
 export function CourierProfile() {
   const { user } = useAuth();
@@ -17,23 +15,6 @@ export function CourierProfile() {
     phone: user?.phone || '',
     address: 'Jl. Sudirman No. 123, Jakarta Selatan',
   });
-  const [deliveries, setDeliveries] = useState<CourierDelivery[]>([]);
-
-  useEffect(() => {
-    async function loadProfileStats() {
-      try {
-        const nextDeliveries = await fetchCourierPackages(user?.employeeId);
-        setDeliveries(nextDeliveries);
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : 'Gagal memuat data statistik profil.');
-      }
-    }
-    void loadProfileStats();
-  }, [user?.employeeId]);
-
-  const total = deliveries.length;
-  const completed = deliveries.filter(d => d.status.includes('Terkirim') || d.status === 'Selesai' || d.status === 'Sampai Tujuan').length;
-  const successRate = total > 0 ? ((completed / total) * 100).toFixed(1) : '100';
 
   const handleSave = () => {
     // Save logic here
@@ -63,8 +44,8 @@ export function CourierProfile() {
 
   const performanceStats = [
     { label: 'Rating', value: '4.9', max: '5.0' },
-    { label: 'Pengiriman Selesai', value: String(completed), max: '' },
-    { label: 'Tingkat Keberhasilan', value: `${successRate}%`, max: '' },
+    { label: 'Pengiriman Selesai', value: '1,842', max: '' },
+    { label: 'Tingkat Keberhasilan', value: '98.5%', max: '' },
     { label: 'Waktu Rata-rata', value: '2.3 jam', max: '' },
   ];
 

@@ -116,3 +116,29 @@ export const deleteVehicleRequest = (vehicleId: string) =>
   requestJson<Vehicle>(`/api/admin/vehicles/${vehicleId}`, {
     method: 'DELETE',
   });
+
+export interface CourierAccountPayload {
+  username: string;
+  email: string;
+  phone: string;
+  password: string;
+}
+
+export interface CourierAccountInfo {
+  hasCourierAccount: boolean;
+  id?: string;
+  username?: string;
+  email?: string;
+  phone?: string;
+  created_at?: string;
+}
+
+export const createCourierAccountRequest = (employeeId: string, payload: CourierAccountPayload) =>
+  requestJson<CourierAccountInfo>(`/api/admin/employees/${employeeId}/courier-account`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+
+export const getCourierAccountInfoRequest = (employeeId: string) =>
+  requestJson<CourierAccountInfo>(`/api/admin/employees/${employeeId}/courier-account`);
+

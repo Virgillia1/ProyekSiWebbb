@@ -59,7 +59,7 @@ export function CourierDashboard() {
       title: 'Selesai',
       value: String(completedCount),
       icon: CheckCircle2,
-      color: 'bg-green-50',
+      color: 'bg-green-500',
       trend: 'Sukses',
     },
     {

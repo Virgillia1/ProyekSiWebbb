@@ -1,5 +1,5 @@
 import { pool, withTransaction } from './db.mjs';
-import { ConflictError, NotFoundError, BadRequestError } from './errors.mjs';
+import { ConflictError, NotFoundError } from './errors.mjs';
 
 const pad = (value) => String(value).padStart(2, '0');
 
@@ -239,9 +239,8 @@ const mapPackageToCourierDelivery = (packageItem, trackingEvents, recipientCusto
   id: packageItem.id,
   resiNumber: packageItem.resi,
   recipient: packageItem.recipientName,
-  recipientPhone: packageItem.recipientPhone || recipientCustomer?.phone || '-',
+  recipientPhone: recipientCustomer?.phone ?? '-',
   destination: packageItem.destination,
-  date: packageItem.shippedAt,
   currentLocation: packageItem.currentLocation,
   status: trackingEvents[trackingEvents.length - 1]?.status ?? packageItem.status,
   estimatedTime:
@@ -442,20 +441,22 @@ export const getCourierDeliveries = async (courierId, statusFilter, client = poo
   // If the first argument is pool/client instead of courierId, handle gracefully
   let actualCourierId = typeof courierId === 'string' ? courierId : undefined;
   let actualStatusFilter = typeof statusFilter === 'string' ? statusFilter : undefined;
-  let actualClient = typeof statusFilter === 'object' ? statusFilter : client;
+  let actualClient = typeof statusFilter === 'object' ? statusFilter : (typeof courierId === 'object' ? courierId : client);
 
   let queryText = 'SELECT * FROM packages';
   let queryParams = [];
 
-  if (actualCourierId) {
-    queryText += ' WHERE courier_id = $1';
+  if (actualStatusFilter === 'unclaimed' && actualCourierId) {
+    // Paket yang sudah ditugaskan ke kurir ini tapi belum diambil (masih Diproses)
+    queryText += " WHERE courier_id = $1 AND status = 'Diproses'";
     queryParams.push(actualCourierId);
-
-    if (actualStatusFilter === 'unclaimed') {
-      queryText += " AND status = 'Diproses'";
-    } else {
-      queryText += " AND status != 'Diproses'";
-    }
+  } else if (actualStatusFilter === 'unclaimed') {
+    // Tanpa courierId: tampilkan semua paket unclaimed (belum ada kurir)
+    queryText += " WHERE (courier_id IS NULL OR courier_id = '') AND status = 'Diproses'";
+  } else if (actualCourierId) {
+    // Paket milik kurir tertentu yang sudah dalam pengiriman (bukan Diproses)
+    queryText += " WHERE courier_id = $1 AND status != 'Diproses'";
+    queryParams.push(actualCourierId);
   }
 
   queryText += ' ORDER BY shipped_at DESC';
@@ -474,9 +475,12 @@ export const getCourierDeliveries = async (courierId, statusFilter, client = poo
   );
   const trackingEvents = eventRows.map(mapTrackingEventRow);
 
+  const customers = await getCustomers(actualClient);
+
   return packages.map((packageItem) => {
+    const recipientCustomer = findCustomerByName(customers, packageItem.recipientName);
     const events = trackingEvents.filter((event) => event.deliveryId === packageItem.id);
-    return mapPackageToCourierDelivery(packageItem, events, null);
+    return mapPackageToCourierDelivery(packageItem, events, recipientCustomer);
   });
 };
 
@@ -565,56 +569,6 @@ export const deleteEmployee = async (id) =>
     return existingEmployee;
   });
 
-const insertPackageHistories = async (client, packageData) => {
-  const { rows: customerRows } = await client.query('SELECT id, name FROM customers');
-  
-  const senderCustomer = customerRows.find(
-    (c) => c.name.toLowerCase() === packageData.senderName.toLowerCase()
-  );
-  const recipientCustomer = customerRows.find(
-    (c) => c.name.toLowerCase() === packageData.recipientName.toLowerCase()
-  );
-
-  const route = `${packageData.origin} - ${packageData.destination}`;
-  const dateStr = toDateString(packageData.deliveredAt ?? packageData.shippedAt);
-
-  if (senderCustomer) {
-    await client.query(
-      `
-        INSERT INTO customer_histories (id, customer_id, type, resi, route, status, date)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
-      `,
-      [
-        `HIS-SND-${packageData.id}-${Date.now()}`,
-        senderCustomer.id,
-        'Mengirim',
-        packageData.resi,
-        route,
-        packageData.status,
-        dateStr,
-      ]
-    );
-  }
-
-  if (recipientCustomer) {
-    await client.query(
-      `
-        INSERT INTO customer_histories (id, customer_id, type, resi, route, status, date)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
-      `,
-      [
-        `HIS-REC-${packageData.id}-${Date.now()}`,
-        recipientCustomer.id,
-        'Menerima',
-        packageData.resi,
-        route,
-        packageData.status,
-        dateStr,
-      ]
-    );
-  }
-};
-
 export const createPackage = async (packageData) =>
   withTransaction(async (client) => {
     const courierRows = await client.query('SELECT name FROM employees WHERE id = $1 LIMIT 1', [
@@ -673,8 +627,6 @@ export const createPackage = async (packageData) =>
         ? nextPackage.deliveredAt ?? nextPackage.shippedAt
         : nextPackage.shippedAt
     );
-
-    await insertPackageHistories(client, nextPackage);
 
     return getPackageById(nextPackage.id, client);
   });
@@ -782,9 +734,6 @@ export const updatePackage = async (id, packageData) =>
 export const appendTrackingEvent = async (packageId, trackingEvent) =>
   withTransaction(async (client) => {
     const packageData = await getPackageById(packageId, client);
-    if (packageData.status === 'Selesai' || packageData.status === 'Sampai Tujuan') {
-      throw new BadRequestError('Paket sudah terkirim dan tidak dapat diperbarui statusnya lagi.');
-    }
     const eventId = `EVT-${packageId}-${Date.now()}`;
     const timestamp = trackingEvent.timestamp ?? new Date();
     const nextPackageStatus =
@@ -1018,41 +967,6 @@ export const deleteVehicle = async (id) =>
     const existingVehicle = await getVehicleById(id, client);
     await client.query('DELETE FROM vehicles WHERE id = $1', [id]);
     return existingVehicle;
-  });
-
-export const claimPackage = async (packageId, courierId, courierName) =>
-  withTransaction(async (client) => {
-    const result = await client.query(
-      `
-        UPDATE packages
-        SET
-          courier_id = $2,
-          courier_name = $3,
-          status = 'Dalam Pengiriman'
-        WHERE id = $1
-        RETURNING *
-      `,
-      [packageId, courierId, courierName]
-    );
-
-    if (!result.rowCount) {
-      throw new NotFoundError('Data pengiriman tidak ditemukan.');
-    }
-
-    // Also update history records
-    await client.query(
-      `
-        UPDATE customer_histories
-        SET status = 'Dalam Pengiriman'
-        WHERE resi = $1
-      `,
-      [result.rows[0].resi]
-    );
-
-    // Also create tracking snapshot
-    await insertPackageTrackingSnapshot(client, mapPackageRow(result.rows[0]), new Date());
-
-    return mapPackageRow(result.rows[0]);
   });
 
 export { ConflictError, NotFoundError };
