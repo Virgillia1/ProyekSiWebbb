@@ -53,7 +53,6 @@ const mapAuthUserRow = (row) => ({
   role: row.role,
   phone: row.phone ?? undefined,
   avatar: row.avatar_url ?? undefined,
-  employeeId: row.employee_id ?? undefined,
 });
 
 const getNextCustomerId = async (client) => {
@@ -80,8 +79,7 @@ const getAccountByUsername = async (client, username) => {
         COALESCE(c.name, ua.name) AS name,
         COALESCE(c.email, ua.email) AS email,
         COALESCE(c.phone, ua.phone) AS phone,
-        ua.avatar_url,
-        NULL AS employee_id
+        ua.avatar_url
       FROM user_accounts ua
       LEFT JOIN customers c ON c.id = ua.customer_id
       WHERE ua.username = $1
@@ -90,31 +88,7 @@ const getAccountByUsername = async (client, username) => {
     [username]
   );
 
-  if (rows[0]) {
-    return rows[0];
-  }
-
-  const { rows: courierRows } = await client.query(
-    `
-      SELECT
-        ca.id,
-        ca.username,
-        ca.password_hash,
-        ca.role,
-        COALESCE(e.name, ca.name) AS name,
-        ca.email AS email,
-        COALESCE(e.phone, ca.phone) AS phone,
-        ca.avatar_url,
-        ca.employee_id
-      FROM courier_accounts ca
-      LEFT JOIN employees e ON e.id = ca.employee_id
-      WHERE ca.username = $1
-      LIMIT 1
-    `,
-    [username]
-  );
-
-  return courierRows[0] ?? null;
+  return rows[0] ?? null;
 };
 
 const ensureUsernameAvailable = async (client, username) => {
@@ -188,24 +162,6 @@ const createAuthInfrastructure = async () => {
   await pool.query(
     'CREATE INDEX IF NOT EXISTS idx_user_accounts_customer_id ON user_accounts(customer_id)'
   );
-
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS courier_accounts (
-      id TEXT PRIMARY KEY,
-      username TEXT NOT NULL UNIQUE,
-      password_hash TEXT NOT NULL,
-      role TEXT NOT NULL DEFAULT 'courier' CHECK (role = 'courier'),
-      employee_id TEXT NOT NULL UNIQUE REFERENCES employees(id) ON DELETE CASCADE,
-      name TEXT NOT NULL,
-      email TEXT NOT NULL,
-      phone TEXT NULL,
-      avatar_url TEXT NULL,
-      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-
-  await pool.query('CREATE INDEX IF NOT EXISTS idx_courier_accounts_role ON courier_accounts(role)');
-  await pool.query('CREATE INDEX IF NOT EXISTS idx_courier_accounts_employee_id ON courier_accounts(employee_id)');
 };
 
 export const ensureAuthInfrastructure = async () => {

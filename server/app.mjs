@@ -18,7 +18,6 @@ import {
   updateManagerProfile,
   updatePackage,
   updateVehicle,
-  claimPackage,
 } from './admin-data.mjs';
 import {
   loginWithAccount,
@@ -67,20 +66,14 @@ app.get('/api/tracking/:resi', async (request, response) => {
   response.json(delivery);
 });
 
-app.get('/api/courier/packages', async (request, response) => {
-  const deliveries = await getCourierDeliveries(request.query.courierId, request.query.status);
+app.get('/api/courier/packages', async (_request, response) => {
+  const deliveries = await getCourierDeliveries();
   response.json(deliveries);
 });
 
 app.post('/api/courier/packages/:id/tracking-events', async (request, response) => {
   const delivery = await appendTrackingEvent(request.params.id, request.body);
   response.status(201).json(delivery);
-});
-
-app.post('/api/courier/packages/:id/claim', async (request, response) => {
-  const { courierId, courierName } = request.body;
-  const updatedPackage = await claimPackage(request.params.id, courierId, courierName);
-  response.json(updatedPackage);
 });
 
 app.post('/api/admin/employees', async (request, response) => {

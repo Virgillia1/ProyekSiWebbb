@@ -14,7 +14,6 @@ export interface CourierDelivery {
   recipient: string;
   recipientPhone: string;
   destination: string;
-  date: string;
   currentLocation: string;
   status: string;
   estimatedTime: string;
@@ -58,14 +57,7 @@ const requestJson = async <T>(input: RequestInfo | URL, init?: RequestInit): Pro
 export const fetchTrackingByResi = (resi: string) =>
   requestJson<Delivery>(`/api/tracking/${encodeURIComponent(resi)}`);
 
-export const fetchCourierPackages = (courierId?: string, status?: string) => {
-  let url = `/api/courier/packages`;
-  const params = [];
-  if (courierId) params.push(`courierId=${encodeURIComponent(courierId)}`);
-  if (status) params.push(`status=${encodeURIComponent(status)}`);
-  if (params.length) url += `?${params.join('&')}`;
-  return requestJson<CourierDelivery[]>(url);
-};
+export const fetchCourierPackages = () => requestJson<CourierDelivery[]>('/api/courier/packages');
 
 export const createCourierTrackingEvent = (
   packageId: string,
@@ -74,10 +66,4 @@ export const createCourierTrackingEvent = (
   requestJson<Delivery>(`/api/courier/packages/${packageId}/tracking-events`, {
     method: 'POST',
     body: JSON.stringify(payload),
-  });
-
-export const claimPackageRequest = (packageId: string, courierId: string, courierName: string) =>
-  requestJson<CourierDelivery>(`/api/courier/packages/${packageId}/claim`, {
-    method: 'POST',
-    body: JSON.stringify({ courierId, courierName }),
   });
