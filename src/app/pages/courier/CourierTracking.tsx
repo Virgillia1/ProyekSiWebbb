@@ -11,8 +11,10 @@ import {
 } from '../../lib/trackingApi';
 import { motion } from 'motion/react';
 import { toast } from 'sonner';
+import { useAuth } from '../../contexts/AuthContext';
 
 export function CourierTracking() {
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDelivery, setSelectedDelivery] = useState<CourierDelivery | null>(null);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
@@ -24,7 +26,7 @@ export function CourierTracking() {
     setIsLoading(true);
 
     try {
-      const nextDeliveries = await fetchCourierPackages();
+      const nextDeliveries = await fetchCourierPackages(user?.employeeId);
       setDeliveries(nextDeliveries);
 
       if (selectedDelivery) {
@@ -41,7 +43,7 @@ export function CourierTracking() {
 
   useEffect(() => {
     void loadDeliveries();
-  }, []);
+  }, [user?.employeeId]);
 
   const filteredDeliveries = deliveries.filter(
     (delivery) =>

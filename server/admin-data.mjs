@@ -417,24 +417,38 @@ export const getBootstrapData = async () => {
 };
 
 export const getTrackingDeliveryByResi = async (resi, client = pool) => {
-  const [packages, customers, employees, trackingEvents] = await Promise.all([
-    getPackages(client),
-    getCustomers(client),
-    getEmployees(client),
-    getTrackingEvents(client),
-  ]);
+  // 1. Fetch only the specific package matching the resi
+  const { rows: packageRows } = await client.query(
+    'SELECT * FROM packages WHERE LOWER(resi) = LOWER($1) LIMIT 1',
+    [resi]
+  );
 
-  const packageItem = packages.find((item) => item.resi.toLowerCase() === resi.toLowerCase());
-
-  if (!packageItem) {
+  if (!packageRows[0]) {
     return null;
   }
 
-  const courier = employees.find((employee) => employee.id === packageItem.courierId) ?? null;
-  const recipientCustomer = findCustomerByName(customers, packageItem.recipientName);
-  const events = trackingEvents.filter((event) => event.deliveryId === packageItem.id);
+  const packageItem = mapPackageRow(packageRows[0]);
 
-  return mapPackageToTrackingDelivery(packageItem, events, courier, recipientCustomer);
+  // 2. Fetch specific tracking events, courier, and recipient details in parallel
+  const [eventResult, courierResult, customerResult] = await Promise.all([
+    client.query(
+      'SELECT * FROM package_tracking_events WHERE package_id = $1 ORDER BY timestamp, id',
+      [packageItem.id]
+    ),
+    packageItem.courierId
+      ? client.query('SELECT * FROM employees WHERE id = $1 LIMIT 1', [packageItem.courierId])
+      : Promise.resolve({ rows: [] }),
+    client.query(
+      'SELECT phone FROM customers WHERE LOWER(name) = LOWER($1) LIMIT 1',
+      [packageItem.recipientName]
+    ),
+  ]);
+
+  const trackingEvents = eventResult.rows.map(mapTrackingEventRow);
+  const courier = courierResult.rows[0] ? mapEmployeeRow(courierResult.rows[0]) : null;
+  const recipientCustomer = customerResult.rows[0] ? { phone: customerResult.rows[0].phone } : null;
+
+  return mapPackageToTrackingDelivery(packageItem, trackingEvents, courier, recipientCustomer);
 };
 
 export const getCourierDeliveries = async (courierId, statusFilter, client = pool) => {
@@ -469,18 +483,27 @@ export const getCourierDeliveries = async (courierId, statusFilter, client = poo
   }
 
   const packageIds = packages.map((p) => p.id);
-  const { rows: eventRows } = await actualClient.query(
-    'SELECT * FROM package_tracking_events WHERE package_id = ANY($1) ORDER BY timestamp, id',
-    [packageIds]
-  );
-  const trackingEvents = eventRows.map(mapTrackingEventRow);
+  
+  // Fetch tracking events for these specific packages
+  const [eventResult, phoneResult] = await Promise.all([
+    actualClient.query(
+      'SELECT * FROM package_tracking_events WHERE package_id = ANY($1) ORDER BY timestamp, id',
+      [packageIds]
+    ),
+    // Fetch only the phone numbers of the specific recipients in these packages
+    actualClient.query(
+      'SELECT name, phone FROM customers WHERE name = ANY($1)',
+      [[...new Set(packages.map((p) => p.recipientName))]]
+    ),
+  ]);
 
-  const customers = await getCustomers(actualClient);
+  const trackingEvents = eventResult.rows.map(mapTrackingEventRow);
+  const phonesByName = new Map(phoneResult.rows.map((row) => [row.name.toLowerCase(), row.phone]));
 
   return packages.map((packageItem) => {
-    const recipientCustomer = findCustomerByName(customers, packageItem.recipientName);
+    const phone = phonesByName.get(packageItem.recipientName.toLowerCase()) ?? '-';
     const events = trackingEvents.filter((event) => event.deliveryId === packageItem.id);
-    return mapPackageToCourierDelivery(packageItem, events, recipientCustomer);
+    return mapPackageToCourierDelivery(packageItem, events, { phone });
   });
 };
 

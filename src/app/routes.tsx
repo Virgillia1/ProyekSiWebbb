@@ -20,6 +20,13 @@ const AdminSettings = lazy(() => import('./pages/admin/AdminSettings').then(modu
 const AdminShipments = lazy(() => import('./pages/admin/AdminShipments').then(module => ({ default: module.AdminShipments })));
 const AdminVehicles = lazy(() => import('./pages/admin/AdminVehicles').then(module => ({ default: module.AdminVehicles })));
 
+import { CourierLayout } from './components/CourierLayout';
+
+const CourierDashboard = lazy(() => import('./pages/courier/CourierDashboard').then(module => ({ default: module.CourierDashboard })));
+const CourierHistory = lazy(() => import('./pages/courier/CourierHistory').then(module => ({ default: module.CourierHistory })));
+const CourierProfile = lazy(() => import('./pages/courier/CourierProfile').then(module => ({ default: module.CourierProfile })));
+const CourierTracking = lazy(() => import('./pages/courier/CourierTracking').then(module => ({ default: module.CourierTracking })));
+
 export const router = createBrowserRouter([
   {
     path: '/login',
@@ -56,6 +63,28 @@ export const router = createBrowserRouter([
       {
         path: 'settings',
         Component: AdminSettings,
+      },
+    ],
+  },
+  {
+    path: '/courier',
+    Component: CourierLayout,
+    children: [
+      {
+        path: 'dashboard',
+        Component: CourierDashboard,
+      },
+      {
+        path: 'tracking',
+        Component: CourierTracking,
+      },
+      {
+        path: 'history',
+        Component: CourierHistory,
+      },
+      {
+        path: 'profile',
+        Component: CourierProfile,
       },
     ],
   },
