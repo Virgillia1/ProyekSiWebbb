@@ -326,3 +326,86 @@ export const registerAdminAccount = async (payload) => {
     return mapAuthUserRow(createdAccount);
   });
 };
+
+export const registerCourierAccount = async (payload) => {
+  await ensureAuthInfrastructure();
+
+  return withTransaction(async (client) => {
+    const employeeId = normalizeText(payload.employeeId);
+    const username = normalizeUsername(payload.username);
+    const email = normalizeEmail(payload.email);
+    const phone = normalizeText(payload.phone);
+    const password = String(payload.password ?? '');
+
+    validateRequired(employeeId, 'ID karyawan wajib diisi.');
+    validateRequired(email, 'Email kurir wajib diisi.');
+    validateUsername(username);
+    validatePassword(password);
+
+    // Pastikan employee ada
+    const { rows: empRows } = await client.query(
+      'SELECT id, name, phone FROM employees WHERE id = $1 LIMIT 1',
+      [employeeId]
+    );
+    if (!empRows[0]) {
+      throw new BadRequestError('Data karyawan tidak ditemukan.');
+    }
+    const employee = empRows[0];
+
+    // Cek apakah employee sudah punya akun kurir
+    const { rowCount: existingCourierCount } = await client.query(
+      'SELECT 1 FROM courier_accounts WHERE employee_id = $1 LIMIT 1',
+      [employeeId]
+    );
+    if (existingCourierCount) {
+      throw new ConflictError('Karyawan ini sudah memiliki akun kurir.');
+    }
+
+    // Cek username tidak bentrok di user_accounts maupun courier_accounts
+    const { rowCount: userCount } = await client.query(
+      'SELECT 1 FROM user_accounts WHERE username = $1 LIMIT 1',
+      [username]
+    );
+    if (userCount) {
+      throw new ConflictError('Username sudah digunakan oleh akun lain.');
+    }
+    const { rowCount: courierCount } = await client.query(
+      'SELECT 1 FROM courier_accounts WHERE username = $1 LIMIT 1',
+      [username]
+    );
+    if (courierCount) {
+      throw new ConflictError('Username sudah digunakan oleh akun kurir lain.');
+    }
+
+    const passwordHash = await createPasswordHash(password);
+    const accountId = `CUR-${crypto.randomUUID()}`;
+
+    await client.query(
+      `
+        INSERT INTO courier_accounts (
+          id, username, password_hash, role, employee_id, name, email, phone, avatar_url
+        ) VALUES (
+          $1, $2, $3, 'courier', $4, $5, $6, $7, NULL
+        )
+      `,
+      [
+        accountId,
+        username,
+        passwordHash,
+        employeeId,
+        employee.name,
+        email,
+        phone || employee.phone || null,
+      ]
+    );
+
+    return {
+      id: accountId,
+      name: employee.name,
+      email,
+      role: 'courier',
+      phone: phone || employee.phone || undefined,
+      employeeId,
+    };
+  });
+};

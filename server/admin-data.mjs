@@ -447,15 +447,17 @@ export const getCourierDeliveries = async (courierId, statusFilter, client = poo
   let queryText = 'SELECT * FROM packages';
   let queryParams = [];
 
-  if (actualCourierId) {
-    queryText += ' WHERE courier_id = $1';
+  if (actualStatusFilter === 'unclaimed' && actualCourierId) {
+    // Paket yang sudah ditugaskan ke kurir ini tapi belum diambil (masih Diproses)
+    queryText += " WHERE courier_id = $1 AND status = 'Diproses'";
     queryParams.push(actualCourierId);
-
-    if (actualStatusFilter === 'unclaimed') {
-      queryText += " AND status = 'Diproses'";
-    } else {
-      queryText += " AND status != 'Diproses'";
-    }
+  } else if (actualStatusFilter === 'unclaimed') {
+    // Tanpa courierId: tampilkan semua paket unclaimed (belum ada kurir)
+    queryText += " WHERE (courier_id IS NULL OR courier_id = '') AND status = 'Diproses'";
+  } else if (actualCourierId) {
+    // Paket milik kurir tertentu yang sudah dalam pengiriman (bukan Diproses)
+    queryText += " WHERE courier_id = $1 AND status != 'Diproses'";
+    queryParams.push(actualCourierId);
   }
 
   queryText += ' ORDER BY shipped_at DESC';

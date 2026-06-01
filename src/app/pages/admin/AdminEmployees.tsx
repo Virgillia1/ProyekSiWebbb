@@ -1,9 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import { PencilLine, Save, Trash2, Wallet } from 'lucide-react';
+import { PencilLine, Save, Trash2, Wallet, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { AdminTablePagination } from '../../components/admin/AdminTablePagination';
 import { AdminTableToolbar } from '../../components/admin/AdminTableToolbar';
 import { useAdminData } from '../../contexts/AdminDataContext';
+import {
+  createCourierAccountRequest,
+  type CourierAccountPayload,
+} from '../../lib/adminApi';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -103,6 +107,16 @@ export function AdminEmployees() {
   const [draftEmployee, setDraftEmployee] = useState<Employee | null>(null);
   const [isNotesOpen, setIsNotesOpen] = useState(false);
   const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(null);
+
+  // State untuk dialog buat akun kurir
+  const [courierAccountEmployee, setCourierAccountEmployee] = useState<Employee | null>(null);
+  const [courierAccountForm, setCourierAccountForm] = useState<CourierAccountPayload>({
+    username: '',
+    email: '',
+    phone: '',
+    password: '',
+  });
+  const [isCreatingCourierAccount, setIsCreatingCourierAccount] = useState(false);
 
   const divisionOptions = useMemo(
     () => Array.from(new Set(employees.map((employee) => employee.division))),
@@ -237,6 +251,34 @@ export function AdminEmployees() {
       setEmployeeToDelete(null);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Gagal menghapus data karyawan.');
+    }
+  };
+
+  const openCourierAccountDialog = (employee: Employee) => {
+    setCourierAccountEmployee(employee);
+    // Pre-fill username dari nama karyawan (tanpa spasi, lowercase)
+    const suggestedUsername = employee.name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+    setCourierAccountForm({
+      username: `kurir_${suggestedUsername}`,
+      email: '',
+      phone: employee.phone,
+      password: '',
+    });
+  };
+
+  const handleCreateCourierAccount = async () => {
+    if (!courierAccountEmployee) return;
+    setIsCreatingCourierAccount(true);
+    try {
+      await createCourierAccountRequest(courierAccountEmployee.id, courierAccountForm);
+      toast.success('Akun kurir berhasil dibuat!', {
+        description: `${courierAccountEmployee.name} sekarang bisa login sebagai kurir dengan username "${courierAccountForm.username}".`,
+      });
+      setCourierAccountEmployee(null);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Gagal membuat akun kurir.');
+    } finally {
+      setIsCreatingCourierAccount(false);
     }
   };
 
@@ -391,6 +433,16 @@ export function AdminEmployees() {
                         <Button
                           variant="outline"
                           size="sm"
+                          className="border-[#63D25F]/40 text-[#2F8A2E] hover:bg-[#63D25F]/10"
+                          onClick={() => openCourierAccountDialog(employee)}
+                          title="Buat Akun Kurir"
+                        >
+                          <UserPlus className="h-3 w-3" />
+                          Akun Kurir
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
                           className="border-destructive/30 text-destructive hover:bg-destructive/10"
                           onClick={() => setEmployeeToDelete(employee)}
                         >
@@ -442,6 +494,81 @@ export function AdminEmployees() {
           </div>
           <DialogFooter>
             <Button onClick={() => setIsNotesOpen(false)}>Tutup</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Buat Akun Kurir */}
+      <Dialog open={courierAccountEmployee !== null} onOpenChange={(open) => !open && setCourierAccountEmployee(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Buat Akun Kurir</DialogTitle>
+            <DialogDescription>
+              Membuat akun login untuk <span className="font-semibold text-foreground">{courierAccountEmployee?.name}</span> ({courierAccountEmployee?.id}) sebagai kurir. Kurir dapat login dan mengakses dashboard kurir.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="rounded-xl border border-[#63D25F]/30 bg-[#63D25F]/8 p-4 text-sm text-muted-foreground">
+            <p className="font-semibold text-foreground mb-1">ℹ️ Info Penting</p>
+            <p>Akun kurir dihubungkan ke data karyawan ini secara otomatis. Kurir bisa langsung login setelah akun dibuat.</p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="courier-username">Username <span className="text-red-500">*</span></Label>
+              <Input
+                id="courier-username"
+                value={courierAccountForm.username}
+                onChange={(e) => setCourierAccountForm(prev => ({ ...prev, username: e.target.value }))}
+                placeholder="contoh: kurir_budi"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="courier-email">Email <span className="text-red-500">*</span></Label>
+              <Input
+                id="courier-email"
+                type="email"
+                value={courierAccountForm.email}
+                onChange={(e) => setCourierAccountForm(prev => ({ ...prev, email: e.target.value }))}
+                placeholder="email@example.com"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="courier-phone">No. Telepon</Label>
+              <Input
+                id="courier-phone"
+                value={courierAccountForm.phone}
+                onChange={(e) => setCourierAccountForm(prev => ({ ...prev, phone: e.target.value }))}
+                placeholder="08xxxxxxxxxx"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="courier-password">Password <span className="text-red-500">*</span></Label>
+              <Input
+                id="courier-password"
+                type="password"
+                value={courierAccountForm.password}
+                onChange={(e) => setCourierAccountForm(prev => ({ ...prev, password: e.target.value }))}
+                placeholder="Minimal 6 karakter"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              onClick={handleCreateCourierAccount}
+              disabled={isCreatingCourierAccount}
+              className="bg-[#63D25F] hover:bg-[#52c14e] text-white"
+            >
+              <UserPlus className="h-4 w-4" />
+              {isCreatingCourierAccount ? 'Membuat...' : 'Buat Akun Kurir'}
+            </Button>
+            <Button variant="outline" onClick={() => setCourierAccountEmployee(null)}>
+              Batal
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

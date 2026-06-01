@@ -143,8 +143,6 @@ const getPackageSearchText = (item: AdminPackage) =>
 const buildNewPackageDraft = (
   monthKey: string,
   packages: AdminPackage[],
-  defaultCourierId: string,
-  defaultCourierName: string,
   defaultService: string,
   defaultLocation: string
 ): AdminPackage => {
@@ -163,8 +161,8 @@ const buildNewPackageDraft = (
     resi: `CKL${monthKey.replace('-', '')}${padValue(nextResiNumber)}`,
     senderName: '',
     recipientName: '',
-    courierId: defaultCourierId,
-    courierName: defaultCourierName,
+    courierId: '',
+    courierName: 'Kurir Belum Dipilih',
     origin: defaultLocation,
     destination: defaultLocation,
     currentLocation: defaultLocation,
@@ -358,8 +356,6 @@ export function AdminShipments() {
   };
 
   const openCreatePackage = () => {
-    const defaultCourierId = activeCouriers[0]?.id ?? employees[0]?.id ?? 'EMP-001';
-    const defaultCourierName = activeCouriers[0]?.name ?? employees[0]?.name ?? '';
     const defaultService = shippingServiceOptions[0] ?? 'CargoLite REG';
     const defaultLocation = shippingLocationOptions[0] ?? 'Jakarta Selatan';
 
@@ -368,8 +364,6 @@ export function AdminShipments() {
       buildNewPackageDraft(
         selectedMonth,
         packages,
-        defaultCourierId,
-        defaultCourierName,
         defaultService,
         defaultLocation
       )
@@ -398,13 +392,22 @@ export function AdminShipments() {
     if (!draftPackage) {
       return;
     }
+
+    // Validasi: kurir wajib dipilih saat membuat paket baru
+    if (packageDialogMode === 'create' && !draftPackage.courierId) {
+      toast.error('Pilih kurir terlebih dahulu', {
+        description: 'Admin wajib memilih kurir yang bertugas untuk paket ini sebelum menyimpan.',
+      });
+      return;
+    }
+
     const nextPackage = normalizePackageDraft(draftPackage, isHistoricalMonth);
 
     try {
       if (packageDialogMode === 'create') {
         await createPackage(nextPackage);
         toast.success('Pengiriman baru ditambahkan', {
-          description: `Resi ${nextPackage.resi} siap dipantau di dashboard.`,
+          description: `Resi ${nextPackage.resi} telah ditugaskan ke ${nextPackage.courierName}. Kurir dapat mengambil paket dari halaman "Ambil Paket Baru".`,
         });
       } else {
         await updatePackage(nextPackage);
@@ -862,13 +865,23 @@ export function AdminShipments() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="package-courier">Kurir</Label>
+                    <Label htmlFor="package-courier">
+                      Kurir {packageDialogMode === 'create' && <span className="text-red-500">*</span>}
+                      {packageDialogMode === 'create' && (
+                        <span className="ml-2 text-xs text-amber-600 font-normal">
+                          (Wajib dipilih — paket akan dikirim ke halaman "Ambil Paket Baru" kurir)
+                        </span>
+                      )}
+                    </Label>
                     <Select
                       value={draftPackage.courierId}
                       onValueChange={handleCourierChange}
                     >
-                      <SelectTrigger id="package-courier">
-                        <SelectValue placeholder="Pilih kurir" />
+                      <SelectTrigger
+                        id="package-courier"
+                        className={packageDialogMode === 'create' && !draftPackage.courierId ? 'border-amber-400 bg-amber-50' : ''}
+                      >
+                        <SelectValue placeholder="— Pilih Kurir (Wajib) —" />
                       </SelectTrigger>
                       <SelectContent>
                         {activeCouriers.map((courier) => (
