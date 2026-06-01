@@ -68,7 +68,7 @@ CREATE TABLE packages (
   delivery_type TEXT NOT NULL DEFAULT 'Reguler' CHECK (delivery_type IN ('Vvip', 'Cepat', 'Reguler')),
   description TEXT NULL,
   item_status TEXT NOT NULL DEFAULT 'Baik' CHECK (item_status IN ('Baik', 'Rusak', 'Dalam Pemeriksaan')),
-  transaction_status TEXT NOT NULL DEFAULT 'Belum Bayar' CHECK (transaction_status IN ('Belum Bayar', 'Lunas', 'Pending'))
+  transaction_status TEXT NOT NULL DEFAULT 'Belum Bayar' CHECK (transaction_status IN ('Belum Bayar', 'Bayar', 'Lunas'))
 );
 
 CREATE TABLE package_tracking_events (

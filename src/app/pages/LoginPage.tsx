@@ -94,8 +94,6 @@ export function LoginPage() {
 
       if (authenticatedUser.role === 'admin') {
         navigate('/admin/dashboard');
-      } else if (authenticatedUser.role === 'courier') {
-        navigate('/courier/dashboard');
       } else {
         navigate('/');
       }
@@ -243,6 +241,7 @@ export function LoginPage() {
               Buat Akun Admin
             </Button>
           </div>
+
         </div>
       </motion.div>
 

@@ -52,6 +52,12 @@ const toTimestampString = (value) => {
 const mapPackageStatusToTrackingStatus = (status) =>
   status === 'Selesai' ? 'Paket Terkirim' : 'Dalam Pengiriman';
 
+const normalizeTransactionStatusForApi = (status) =>
+  status === 'Bayar' || status === 'Lunas' ? 'Bayar' : 'Belum Bayar';
+
+const normalizeTransactionStatusForStorage = (status) =>
+  status === 'Bayar' || status === 'Lunas' ? 'Lunas' : 'Belum Bayar';
+
 const buildPackageTrackingDescription = (packageData) =>
   packageData.status === 'Selesai'
     ? `Paket telah diterima di ${packageData.destination}.`
@@ -96,7 +102,7 @@ const mapPackageRow = (row) => ({
   deliveryType: row.delivery_type,
   description: row.description,
   itemStatus: row.item_status,
-  transactionStatus: row.transaction_status,
+  transactionStatus: normalizeTransactionStatusForApi(row.transaction_status),
 });
 
 const mapAttendanceRow = (row) => ({
@@ -656,7 +662,7 @@ export const createPackage = async (packageData) =>
         nextPackage.deliveryType ?? 'Reguler',
         nextPackage.description ?? null,
         nextPackage.itemStatus ?? 'Baik',
-        nextPackage.transactionStatus ?? 'Belum Bayar',
+        normalizeTransactionStatusForStorage(nextPackage.transactionStatus),
       ]
     );
 
@@ -737,7 +743,7 @@ export const updatePackage = async (id, packageData) =>
         nextPackage.deliveryType ?? 'Reguler',
         nextPackage.description ?? null,
         nextPackage.itemStatus ?? 'Baik',
-        nextPackage.transactionStatus ?? 'Belum Bayar',
+        normalizeTransactionStatusForStorage(nextPackage.transactionStatus),
       ]
     );
 

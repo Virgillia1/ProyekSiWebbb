@@ -1,7 +1,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router';
 import {
-  ClipboardCheck,
+  ClipboardList,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -48,8 +48,8 @@ function AdminPageSkeleton() {
 
 const navItems = [
   { name: 'Beranda', path: '/admin/dashboard', icon: LayoutDashboard },
+  { name: 'Daftar Pengiriman', path: '/admin/shipments', icon: ClipboardList },
   { name: 'Manajemen Karyawan', path: '/admin/employees', icon: UserRoundCog },
-  { name: 'Presensi Karyawan', path: '/admin/attendance', icon: ClipboardCheck },
   { name: 'Data Customer', path: '/admin/customers', icon: Users },
   { name: 'Data Kendaraan', path: '/admin/vehicles', icon: Truck },
   { name: 'Profil Manager', path: '/admin/profile', icon: User },
@@ -72,7 +72,7 @@ function AdminLayoutShell() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const { loading, error, notice, isUsingFallback } = useAdminData();
+  const { loading } = useAdminData();
 
   const isActive = (path: string) => location.pathname.startsWith(path);
 
@@ -246,18 +246,6 @@ function AdminLayoutShell() {
                 <Menu className="mr-2 h-4 w-4" />
                 Buka Menu
               </Button>
-            </div>
-          )}
-          {(notice || error) && (
-            <div
-              className={`mb-6 rounded-3xl border bg-white p-6 shadow-sm ${
-                isUsingFallback ? 'border-amber-200/80' : 'border-destructive/20'
-              }`}
-            >
-              <h2 className="text-lg font-semibold">
-                {isUsingFallback ? 'Mode data cadangan aktif' : 'Data admin belum bisa dimuat'}
-              </h2>
-              <p className="mt-2 text-sm text-muted-foreground">{notice ?? error}</p>
             </div>
           )}
           {loading ? (
