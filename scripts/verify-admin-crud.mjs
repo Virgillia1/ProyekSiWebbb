@@ -117,16 +117,23 @@ const run = async () => {
     ensure(createdCustomer.id === customerId, 'Create customer gagal.');
     console.log(`Customer create OK -> ${createdCustomer.id}`);
 
-    const updatedCustomer = await requestJson(`/api/admin/customers/${customerId}`, {
-      method: 'PUT',
-      body: JSON.stringify({
-        ...customerPayload,
-        name: `Tester Customer Update ${suffix}`,
-        totalReceived: 3,
-      }),
-    });
-    ensure(updatedCustomer.name.includes('Update'), 'Update customer gagal.');
-    console.log(`Customer update OK -> ${updatedCustomer.name}`);
+    try {
+      await requestJson(`/api/admin/customers/${customerId}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          ...customerPayload,
+          name: `Tester Customer Update ${suffix}`,
+          totalReceived: 3,
+        }),
+      });
+      ensure(false, 'Update customer should have failed.');
+    } catch (error) {
+      ensure(
+        error.message.includes('tidak bisa diedit setelah dibuat') || error.message.includes('409'),
+        `Update customer did not fail as expected: ${error.message}`
+      );
+      console.log('Customer update forbidden OK (expected behavior)');
+    }
 
     const deletedCustomer = await requestJson(`/api/admin/customers/${customerId}`, {
       method: 'DELETE',

@@ -10,7 +10,7 @@ import {
   Truck,
 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { Bar, BarChart, CartesianGrid, XAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, XAxis, Line, LineChart } from 'recharts';
 import { toast } from 'sonner';
 import { AdminTablePagination } from '../../components/admin/AdminTablePagination';
 import { AdminTableToolbar } from '../../components/admin/AdminTableToolbar';
@@ -80,6 +80,13 @@ const chartConfig = {
   diproses: {
     label: 'Lagi Dikirim',
     color: '#0f766e',
+  },
+};
+
+const incomeChartConfig = {
+  penghasilan: {
+    label: 'Penghasilan',
+    color: '#10b981',
   },
 };
 
@@ -275,6 +282,18 @@ export function AdminDashboard() {
       diproses: 0,
     }));
   }, [isHistoricalMonth, monthPackages]);
+
+  const incomeChartData = useMemo(() => {
+    return ['M1', 'M2', 'M3', 'M4'].map((week) => {
+      const weekPackages = monthPackages.filter((item) => item.week === week);
+      const totalIncome = weekPackages.reduce((sum, item) => sum + (item.shippingCost ?? 0), 0);
+
+      return {
+        week,
+        penghasilan: totalIncome,
+      };
+    });
+  }, [monthPackages]);
 
   const tablePackages = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -593,25 +612,58 @@ export function AdminDashboard() {
         })}
       </div>
 
-      <Card className="border-border/80 bg-white/90 shadow-sm">
-        <CardHeader className="pb-2">
-          <CardTitle>Grafik Pengiriman Bulanan</CardTitle>
-          <CardDescription>
-            Perbandingan paket sudah dikirim dan lagi dikirim setiap minggu di {currentMonthLabel}.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ChartContainer config={chartConfig} className="aspect-auto h-[220px] w-full">
-            <BarChart data={chartData}>
-              <CartesianGrid vertical={false} />
-              <XAxis dataKey="week" tickLine={false} axisLine={false} />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <Bar dataKey="terkirim" fill="var(--color-terkirim)" radius={[8, 8, 0, 0]} />
-              <Bar dataKey="diproses" fill="var(--color-diproses)" radius={[8, 8, 0, 0]} />
-            </BarChart>
-          </ChartContainer>
-        </CardContent>
-      </Card>
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card className="border-border/80 bg-white/90 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle>Grafik Pengiriman Bulanan</CardTitle>
+            <CardDescription>
+              Perbandingan paket sudah dikirim dan lagi dikirim setiap minggu di {currentMonthLabel}.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={chartConfig} className="aspect-auto h-[220px] w-full">
+              <BarChart data={chartData}>
+                <CartesianGrid vertical={false} />
+                <XAxis dataKey="week" tickLine={false} axisLine={false} />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Bar dataKey="terkirim" fill="var(--color-terkirim)" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="diproses" fill="var(--color-diproses)" radius={[8, 8, 0, 0]} />
+              </BarChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/80 bg-white/90 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle>Grafik Penghasilan Bulanan</CardTitle>
+            <CardDescription>
+              Akumulasi penghasilan tarif pengiriman setiap minggu di {currentMonthLabel}.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={incomeChartConfig} className="aspect-auto h-[220px] w-full">
+              <LineChart data={incomeChartData} margin={{ top: 20, right: 20, left: 20, bottom: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="week" tickLine={false} axisLine={false} />
+                <ChartTooltip
+                  content={
+                    <ChartTooltipContent
+                      formatter={(value) => formatCurrency(Number(value))}
+                    />
+                  }
+                />
+                <Line
+                  type="monotone"
+                  dataKey="penghasilan"
+                  stroke="var(--color-penghasilan)"
+                  strokeWidth={3}
+                  activeDot={{ r: 8 }}
+                />
+              </LineChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+      </div>
 
       <Card className="border-border/80 bg-white/90 shadow-sm">
         <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">

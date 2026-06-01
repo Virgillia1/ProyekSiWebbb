@@ -787,40 +787,9 @@ export const createCustomer = async (customer) =>
     return getCustomerById(customer.id, client);
   });
 
-export const updateCustomer = async (id, customer) =>
-  withTransaction(async (client) => {
-    const result = await client.query(
-      `
-        UPDATE customers
-        SET
-          name = $2,
-          address = $3,
-          email = $4,
-          phone = $5,
-          total_sent = $6,
-          total_received = $7,
-          last_activity = $8
-        WHERE id = $1
-      `,
-      [
-        id,
-        customer.name,
-        customer.address,
-        customer.email,
-        customer.phone,
-        customer.totalSent,
-        customer.totalReceived,
-        toDateString(customer.lastActivity),
-      ]
-    );
-
-    if (!result.rowCount) {
-      throw new NotFoundError('Data customer tidak ditemukan.');
-    }
-
-    await syncCustomerPackageNames(client, id, customer.name);
-    return getCustomerById(id, client);
-  });
+export const updateCustomer = async (id, customer) => {
+  throw new ConflictError('Data customer tidak bisa diedit setelah dibuat.');
+};
 
 export const deleteCustomer = async (id) =>
   withTransaction(async (client) => {

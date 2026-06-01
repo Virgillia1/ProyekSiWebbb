@@ -259,7 +259,9 @@ export const employees: Employee[] = [
 
 const employeeDirectory = new Map(employees.map((employee) => [employee.id, employee]));
 
-type PackagePlan = Omit<AdminPackage, 'id' | 'monthKey' | 'week' | 'resi' | 'courierName'>;
+type PackagePlan = Omit<AdminPackage, 'id' | 'monthKey' | 'week' | 'resi' | 'courierName' | 'status'> & {
+  status: 'Sudah Dikirim' | 'Lagi Dikirim' | PackageStatus;
+};
 
 const packagePlans: Record<string, PackagePlan[]> = {
   '2026-01': [
@@ -794,8 +796,8 @@ export const deliveryChartByMonth = monthOptions.reduce<Record<string, DeliveryC
 
       return {
         week,
-        terkirim: weekPackages.filter((item) => item.status === 'Sudah Dikirim').length,
-        diproses: weekPackages.filter((item) => item.status === 'Lagi Dikirim').length,
+        terkirim: weekPackages.filter((item) => item.status === 'Selesai' || item.status === 'Sampai Tujuan').length,
+        diproses: weekPackages.filter((item) => item.status !== 'Selesai' && item.status !== 'Sampai Tujuan').length,
       };
     });
 

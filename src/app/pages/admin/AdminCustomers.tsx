@@ -402,13 +402,6 @@ export function AdminCustomers() {
                   <Trash2 className="h-4 w-4" />
                   Hapus
                 </Button>
-                <Button
-                  type="button"
-                  onClick={() => openUpdate(selectedCustomer.id)}
-                >
-                  <PencilLine className="h-4 w-4" />
-                  Update
-                </Button>
                 <DialogClose asChild>
                   <Button type="button" variant="outline">
                     Tutup
