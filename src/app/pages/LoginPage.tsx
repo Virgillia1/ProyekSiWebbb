@@ -242,33 +242,6 @@ export function LoginPage() {
             </Button>
           </div>
 
-          <div className="mt-6 border-t border-border pt-6">
-            <p className="mb-3 text-center text-xs text-muted-foreground">Demo Login:</p>
-            <div className="space-y-2 text-xs">
-              <div className="rounded-xl bg-secondary/50 p-4">
-                <div className="mb-1 font-medium text-foreground">Customer:</div>
-                <div className="text-muted-foreground">
-                  Username: <span className="font-mono text-foreground">andi</span> atau{' '}
-                  <span className="font-mono text-foreground">siti</span>
-                </div>
-                <div className="text-muted-foreground">
-                  Password: <span className="font-mono text-foreground">andi123</span> atau{' '}
-                  <span className="font-mono text-foreground">siti123</span>
-                </div>
-              </div>
-              <div className="rounded-xl bg-secondary/50 p-4">
-                <div className="mb-1 font-medium text-foreground">Admin:</div>
-                <div className="text-muted-foreground">
-                  Username: <span className="font-mono text-foreground">admin_maya</span> atau{' '}
-                  <span className="font-mono text-foreground">admin_raka</span>
-                </div>
-                <div className="text-muted-foreground">
-                  Password: <span className="font-mono text-foreground">maya123</span> atau{' '}
-                  <span className="font-mono text-foreground">raka123</span>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </motion.div>
 

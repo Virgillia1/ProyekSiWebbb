@@ -185,13 +185,13 @@ export const loginWithAccount = async (username, password) => {
   const account = await getAccountByUsername(pool, normalizedUsername);
 
   if (!account) {
-    throw new BadRequestError('Username atau password salah.');
+    throw new BadRequestError('Username atau Password yang anda masukan salah!');
   }
 
   const passwordMatches = await verifyPasswordHash(normalizedPassword, account.password_hash);
 
   if (!passwordMatches) {
-    throw new BadRequestError('Username atau password salah.');
+    throw new BadRequestError('Username atau Password yang anda masukan salah!');
   }
 
   return mapAuthUserRow(account);

@@ -4,7 +4,7 @@ export type PresenceStatus = 'Hadir' | 'Izin' | 'Sakit' | 'Alpha';
 export type ShipmentHistoryType = 'Mengirim' | 'Menerima';
 export type VehicleStatus = 'Tersedia' | 'Sedang Jalan' | 'Servis';
 export type ItemStatus = 'Baik' | 'Rusak' | 'Dalam Pemeriksaan';
-export type TransactionStatus = 'Belum Bayar' | 'Lunas' | 'Pending';
+export type TransactionStatus = 'Belum Bayar' | 'Bayar' | 'Lunas';
 
 export interface Vehicle {
   id: string;
@@ -119,7 +119,7 @@ export const monthOptions = [
 
 export const packageStatusOptions: PackageStatus[] = ['Diproses', 'Dalam Pengiriman', 'Sampai Tujuan', 'Pending', 'Selesai'];
 export const itemStatusOptions: ItemStatus[] = ['Baik', 'Rusak', 'Dalam Pemeriksaan'];
-export const transactionStatusOptions: TransactionStatus[] = ['Belum Bayar', 'Lunas', 'Pending'];
+export const transactionStatusOptions: TransactionStatus[] = ['Belum Bayar', 'Bayar'];
 export const presenceStatusOptions: PresenceStatus[] = ['Hadir', 'Izin', 'Sakit', 'Alpha'];
 
 const padValue = (value: number, length = 4) => String(value).padStart(length, '0');
@@ -732,7 +732,7 @@ export const adminPackages: AdminPackage[] = monthOptions.flatMap(({ value: mont
       description: 'Harap hubungi penerima sebelum pengantaran barang.',
       status: plan.status === 'Sudah Dikirim' ? 'Selesai' : plan.status === 'Lagi Dikirim' ? 'Dalam Pengiriman' : plan.status as PackageStatus,
       itemStatus: 'Baik' as ItemStatus,
-      transactionStatus: plan.status === 'Sudah Dikirim' ? 'Lunas' as TransactionStatus : 'Belum Bayar' as TransactionStatus,
+      transactionStatus: plan.status === 'Sudah Dikirim' ? 'Bayar' as TransactionStatus : 'Belum Bayar' as TransactionStatus,
     };
   })
 );

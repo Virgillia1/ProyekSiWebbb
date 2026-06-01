@@ -12,12 +12,12 @@ import { StaffPage } from './pages/StaffPage';
 import { TrackingPage } from './pages/TrackingPage';
 import { lazy } from 'react';
 
-const AdminAttendance = lazy(() => import('./pages/admin/AdminAttendance').then(module => ({ default: module.AdminAttendance })));
 const AdminCustomers = lazy(() => import('./pages/admin/AdminCustomers').then(module => ({ default: module.AdminCustomers })));
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard').then(module => ({ default: module.AdminDashboard })));
 const AdminEmployees = lazy(() => import('./pages/admin/AdminEmployees').then(module => ({ default: module.AdminEmployees })));
 const AdminProfile = lazy(() => import('./pages/admin/AdminProfile').then(module => ({ default: module.AdminProfile })));
 const AdminSettings = lazy(() => import('./pages/admin/AdminSettings').then(module => ({ default: module.AdminSettings })));
+const AdminShipments = lazy(() => import('./pages/admin/AdminShipments').then(module => ({ default: module.AdminShipments })));
 const AdminVehicles = lazy(() => import('./pages/admin/AdminVehicles').then(module => ({ default: module.AdminVehicles })));
 
 export const router = createBrowserRouter([
@@ -34,12 +34,12 @@ export const router = createBrowserRouter([
         Component: AdminDashboard,
       },
       {
-        path: 'employees',
-        Component: AdminEmployees,
+        path: 'shipments',
+        Component: AdminShipments,
       },
       {
-        path: 'attendance',
-        Component: AdminAttendance,
+        path: 'employees',
+        Component: AdminEmployees,
       },
       {
         path: 'customers',

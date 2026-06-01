@@ -198,7 +198,7 @@ export function AdminProfile() {
                 Mengawasi arus pengiriman dan performa kurir lintas area.
               </div>
               <div className="rounded-2xl bg-secondary/40 p-4">
-                Meninjau presensi dan tindak lanjut karyawan dengan absen tinggi.
+                Meninjau performa operasional dan tindak lanjut paket yang membutuhkan perhatian.
               </div>
               <div className="rounded-2xl bg-secondary/40 p-4">
                 Menjaga kualitas data customer dan keamanan backup operasional.
