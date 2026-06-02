@@ -66,14 +66,13 @@ const buildPackageTrackingDescription = (packageData) =>
 const mapEmployeeRow = (row) => ({
   id: row.id,
   name: row.name,
-  origin: row.origin,
-  age: Number(row.age),
-  yearsWorking: Number(row.years_working),
-  salary: Number(row.salary),
-  status: row.status,
-  division: row.division,
-  position: row.position,
+  baseArea: row.base_area,
+  coverageArea: row.coverage_area,
+  vehicleType: row.vehicle_type,
+  vehiclePlate: row.vehicle_plate ?? '',
   phone: row.phone,
+  status: row.status,
+  completedDeliveries: Number(row.completed_deliveries ?? 0),
   performanceScore: Number(row.performance_score),
 });
 
@@ -278,7 +277,7 @@ const getTrackingEvents = async (client = pool) => {
 };
 
 const getEmployees = async (client = pool) => {
-  const { rows } = await client.query('SELECT * FROM employees ORDER BY id');
+  const { rows } = await client.query('SELECT * FROM couriers ORDER BY id');
   return rows.map(mapEmployeeRow);
 };
 
@@ -320,8 +319,8 @@ const getManagerProfile = async (client = pool) => {
 };
 
 const getEmployeeById = async (id, client = pool) => {
-  const { rows } = await client.query('SELECT * FROM employees WHERE id = $1 LIMIT 1', [id]);
-  if (!rows[0]) throw new NotFoundError('Data karyawan tidak ditemukan.');
+  const { rows } = await client.query('SELECT * FROM couriers WHERE id = $1 LIMIT 1', [id]);
+  if (!rows[0]) throw new NotFoundError('Data kurir tidak ditemukan.');
   return mapEmployeeRow(rows[0]);
 };
 
@@ -391,7 +390,7 @@ const ensureEmployeeCanBeDeleted = async (client, employeeId) => {
 
   if (rowCount) {
     throw new ConflictError(
-      'Karyawan masih dipakai sebagai kurir pada data pengiriman. Ganti kurir paket terkait terlebih dahulu sebelum menghapus karyawan ini.'
+      'Kurir masih dipakai pada data pengiriman. Ganti kurir paket terkait terlebih dahulu sebelum menghapus data ini.'
     );
   }
 };
@@ -488,24 +487,23 @@ export const createEmployee = async (employee) =>
   withTransaction(async (client) => {
     await client.query(
       `
-        INSERT INTO employees (
-          id, name, origin, age, years_working, salary, status, division, position, phone, performance_score
+        INSERT INTO couriers (
+          id, name, base_area, coverage_area, vehicle_type, vehicle_plate, phone, status, completed_deliveries, performance_score
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
         )
       `,
       [
         employee.id,
         employee.name,
-        employee.origin,
-        employee.age,
-        employee.yearsWorking,
-        employee.salary,
-        employee.status,
-        employee.division,
-        employee.position,
+        employee.baseArea,
+        employee.coverageArea,
+        employee.vehicleType,
+        employee.vehiclePlate ?? null,
         employee.phone,
-        employee.performanceScore,
+        employee.status,
+        Number(employee.completedDeliveries ?? 0),
+        Number(employee.performanceScore ?? 80),
       ]
     );
 
@@ -516,37 +514,35 @@ export const updateEmployee = async (id, employee) =>
   withTransaction(async (client) => {
     const result = await client.query(
       `
-        UPDATE employees
+        UPDATE couriers
         SET
           name = $2,
-          origin = $3,
-          age = $4,
-          years_working = $5,
-          salary = $6,
-          status = $7,
-          division = $8,
-          position = $9,
-          phone = $10,
-          performance_score = $11
+          base_area = $3,
+          coverage_area = $4,
+          vehicle_type = $5,
+          vehicle_plate = $6,
+          phone = $7,
+          status = $8,
+          completed_deliveries = $9,
+          performance_score = $10
         WHERE id = $1
       `,
       [
         id,
         employee.name,
-        employee.origin,
-        employee.age,
-        employee.yearsWorking,
-        employee.salary,
-        employee.status,
-        employee.division,
-        employee.position,
+        employee.baseArea,
+        employee.coverageArea,
+        employee.vehicleType,
+        employee.vehiclePlate ?? null,
         employee.phone,
-        employee.performanceScore,
+        employee.status,
+        Number(employee.completedDeliveries ?? 0),
+        Number(employee.performanceScore ?? 80),
       ]
     );
 
     if (!result.rowCount) {
-      throw new NotFoundError('Data karyawan tidak ditemukan.');
+      throw new NotFoundError('Data kurir tidak ditemukan.');
     }
 
     await client.query('UPDATE packages SET courier_name = $1 WHERE courier_id = $2', [
@@ -555,7 +551,7 @@ export const updateEmployee = async (id, employee) =>
     ]);
     await client.query(
       'UPDATE attendance_records SET employee_name = $1, division = $2 WHERE employee_id = $3',
-      [employee.name, employee.division, id]
+      [employee.name, employee.coverageArea, id]
     );
 
     return getEmployeeById(id, client);
@@ -565,13 +561,13 @@ export const deleteEmployee = async (id) =>
   withTransaction(async (client) => {
     const existingEmployee = await getEmployeeById(id, client);
     await ensureEmployeeCanBeDeleted(client, id);
-    await client.query('DELETE FROM employees WHERE id = $1', [id]);
+    await client.query('DELETE FROM couriers WHERE id = $1', [id]);
     return existingEmployee;
   });
 
 export const createPackage = async (packageData) =>
   withTransaction(async (client) => {
-    const courierRows = await client.query('SELECT name FROM employees WHERE id = $1 LIMIT 1', [
+    const courierRows = await client.query('SELECT name FROM couriers WHERE id = $1 LIMIT 1', [
       packageData.courierId,
     ]);
     const courierName = courierRows.rows[0]?.name ?? packageData.courierName ?? 'Kurir Belum Diatur';
@@ -634,7 +630,7 @@ export const createPackage = async (packageData) =>
 export const updatePackage = async (id, packageData) =>
   withTransaction(async (client) => {
     const existingPackage = await getPackageById(id, client);
-    const courierRows = await client.query('SELECT name FROM employees WHERE id = $1 LIMIT 1', [
+    const courierRows = await client.query('SELECT name FROM couriers WHERE id = $1 LIMIT 1', [
       packageData.courierId,
     ]);
     const courierName = courierRows.rows[0]?.name ?? packageData.courierName ?? 'Kurir Belum Diatur';

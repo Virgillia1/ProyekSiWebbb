@@ -1,6 +1,27 @@
 const port = process.env.PORT ?? '3001';
 const baseUrl = process.env.ADMIN_API_URL ?? `http://localhost:${port}`;
 
+const startEmbeddedApi = async () => {
+  const { default: app } = await import('../server/app.mjs');
+
+  return new Promise((resolve, reject) => {
+    const server = app.listen(Number(port), () => resolve(server));
+    server.once('error', reject);
+  });
+};
+
+const stopEmbeddedApi = (server) =>
+  new Promise((resolve, reject) => {
+    server.close((error) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+
+      resolve();
+    });
+  });
+
 const requestJson = async (path, init = {}) => {
   const response = await fetch(`${baseUrl}${path}`, {
     headers: {
@@ -36,7 +57,7 @@ const ensure = (condition, message) => {
 
 const run = async () => {
   const suffix = String(Date.now()).slice(-6);
-  const employeeId = `EMP-T${suffix}`;
+  const employeeId = `CUR-T${suffix}`;
   const customerId = `CUS-T${suffix}`;
   const packageId = `PKT-T${suffix}`;
   const resi = `CKL209912${suffix.slice(-4)}`;
@@ -45,10 +66,22 @@ const run = async () => {
   let cleanupEmployeeId = null;
   let originalManagerProfile = null;
   let managerProfileUpdated = false;
+  let embeddedServer = null;
 
   try {
-    await requestJson('/api/health');
-    console.log(`API aktif di ${baseUrl}`);
+    try {
+      await requestJson('/api/health');
+    } catch (error) {
+      if (process.env.ADMIN_API_URL) {
+        throw error;
+      }
+
+      console.log(`API belum aktif di ${baseUrl}. Menyalakan API sementara untuk verifikasi...`);
+      embeddedServer = await startEmbeddedApi();
+      await requestJson('/api/health');
+    }
+
+    console.log(`API aktif di ${baseUrl}${embeddedServer ? ' (sementara)' : ''}`);
 
     const bootstrap = await requestJson('/api/admin/bootstrap');
     ensure(Array.isArray(bootstrap.employees) && bootstrap.employees.length > 0, 'Data bootstrap admin kosong.');
@@ -59,43 +92,42 @@ const run = async () => {
 
     const employeePayload = {
       id: employeeId,
-      name: `Tester Karyawan ${suffix}`,
-      origin: 'Jakarta',
-      age: 27,
-      yearsWorking: 1,
-      salary: 5100000,
-      status: 'Aktif',
-      division: 'Operasional',
-      position: 'Kurir Verifikasi',
+      name: `Tester Kurir ${suffix}`,
+      baseArea: 'Hub Jakarta',
+      coverageArea: 'Jakarta Selatan',
+      vehicleType: 'Motor',
+      vehiclePlate: `B ${suffix.slice(-4)} TST`,
       phone: `0812${suffix}`,
+      status: 'Aktif',
+      completedDeliveries: 12,
       performanceScore: 84,
     };
 
-    const createdEmployee = await requestJson('/api/admin/employees', {
+    const createdEmployee = await requestJson('/api/admin/couriers', {
       method: 'POST',
       body: JSON.stringify(employeePayload),
     });
     cleanupEmployeeId = createdEmployee.id;
-    ensure(createdEmployee.id === employeeId, 'Create employee gagal.');
-    console.log(`Employee create OK -> ${createdEmployee.id}`);
+    ensure(createdEmployee.id === employeeId, 'Create courier gagal.');
+    console.log(`Courier create OK -> ${createdEmployee.id}`);
 
-    const updatedEmployee = await requestJson(`/api/admin/employees/${employeeId}`, {
+    const updatedEmployee = await requestJson(`/api/admin/couriers/${employeeId}`, {
       method: 'PUT',
       body: JSON.stringify({
         ...employeePayload,
-        name: `Tester Karyawan Update ${suffix}`,
+        name: `Tester Kurir Update ${suffix}`,
         performanceScore: 91,
       }),
     });
-    ensure(updatedEmployee.name.includes('Update'), 'Update employee gagal.');
-    console.log(`Employee update OK -> ${updatedEmployee.name}`);
+    ensure(updatedEmployee.name.includes('Update'), 'Update courier gagal.');
+    console.log(`Courier update OK -> ${updatedEmployee.name}`);
 
-    const deletedEmployee = await requestJson(`/api/admin/employees/${employeeId}`, {
+    const deletedEmployee = await requestJson(`/api/admin/couriers/${employeeId}`, {
       method: 'DELETE',
     });
-    ensure(deletedEmployee.id === employeeId, 'Delete employee gagal.');
+    ensure(deletedEmployee.id === employeeId, 'Delete courier gagal.');
     cleanupEmployeeId = null;
-    console.log(`Employee delete OK -> ${deletedEmployee.id}`);
+    console.log(`Courier delete OK -> ${deletedEmployee.id}`);
 
     const customerPayload = {
       id: customerId,
@@ -272,11 +304,19 @@ const run = async () => {
 
     if (cleanupEmployeeId) {
       try {
-        await requestJson(`/api/admin/employees/${cleanupEmployeeId}`, {
+        await requestJson(`/api/admin/couriers/${cleanupEmployeeId}`, {
           method: 'DELETE',
         });
       } catch {
         // Ignore cleanup failure.
+      }
+    }
+
+    if (embeddedServer) {
+      try {
+        await stopEmbeddedApi(embeddedServer);
+      } catch {
+        // Ignore shutdown failure.
       }
     }
   }

@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router';
+import { createBrowserRouter, Navigate } from 'react-router';
 import { AdminLayout } from './components/AdminLayout';
 import { Layout } from './components/Layout';
 import { AboutPage } from './pages/AboutPage';
@@ -38,8 +38,12 @@ export const router = createBrowserRouter([
         Component: AdminShipments,
       },
       {
-        path: 'employees',
+        path: 'couriers',
         Component: AdminEmployees,
+      },
+      {
+        path: 'employees',
+        element: <Navigate to="/admin/couriers" replace />,
       },
       {
         path: 'customers',

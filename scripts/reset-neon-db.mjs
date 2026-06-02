@@ -25,7 +25,7 @@ await pool.query(seedSql);
 
 const summaryQuery = `
   SELECT
-    (SELECT COUNT(*) FROM employees) AS employees_count,
+    (SELECT COUNT(*) FROM couriers) AS couriers_count,
     (SELECT COUNT(*) FROM packages) AS packages_count,
     (SELECT COUNT(*) FROM package_tracking_events) AS tracking_events_count,
     (SELECT COUNT(*) FROM attendance_records) AS attendance_count,
@@ -40,7 +40,7 @@ const [summary] = rows;
 
 console.log(
   [
-    `employees=${summary.employees_count}`,
+    `couriers=${summary.couriers_count}`,
     `packages=${summary.packages_count}`,
     `package_tracking_events=${summary.tracking_events_count}`,
     `attendance_records=${summary.attendance_count}`,

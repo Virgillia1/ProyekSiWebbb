@@ -49,7 +49,7 @@ function AdminPageSkeleton() {
 const navItems = [
   { name: 'Beranda', path: '/admin/dashboard', icon: LayoutDashboard },
   { name: 'Daftar Pengiriman', path: '/admin/shipments', icon: ClipboardList },
-  { name: 'Manajemen Karyawan', path: '/admin/employees', icon: UserRoundCog },
+  { name: 'Manajemen Kurir', path: '/admin/couriers', icon: UserRoundCog },
   { name: 'Data Customer', path: '/admin/customers', icon: Users },
   { name: 'Data Kendaraan', path: '/admin/vehicles', icon: Truck },
   { name: 'Profil Manager', path: '/admin/profile', icon: User },

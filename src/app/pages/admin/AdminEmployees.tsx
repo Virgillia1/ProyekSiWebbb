@@ -1,13 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { PencilLine, Save, Trash2, Wallet, UserPlus } from 'lucide-react';
+import { PencilLine, Save, Trash2, Truck } from 'lucide-react';
 import { toast } from 'sonner';
 import { AdminTablePagination } from '../../components/admin/AdminTablePagination';
 import { AdminTableToolbar } from '../../components/admin/AdminTableToolbar';
 import { useAdminData } from '../../contexts/AdminDataContext';
-import {
-  createCourierAccountRequest,
-  type CourierAccountPayload,
-} from '../../lib/adminApi';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,110 +43,97 @@ import {
   TableHeader,
   TableRow,
 } from '../../components/ui/table';
-import type { Employee, EmployeeStatus } from '../../data/adminData';
+import type { Courier, CourierStatus } from '../../data/adminData';
 
 const ITEMS_PER_PAGE = 5;
-const employeeStatusOptions: EmployeeStatus[] = ['Aktif', 'Nonaktif'];
-
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    maximumFractionDigits: 0,
-  }).format(value);
+const courierStatusOptions: CourierStatus[] = ['Aktif', 'Nonaktif'];
+const fallbackVehicleTypeOptions = ['Motor', 'Mobil Box', 'Van', 'Truck Ringan'];
 
 const padValue = (value: number, length = 3) => String(value).padStart(length, '0');
 
-const getEmployeeSearchText = (employee: Employee) =>
+const getCourierSearchText = (courier: Courier) =>
   [
-    employee.id,
-    employee.name,
-    employee.origin,
-    employee.division,
-    employee.position,
-    employee.phone,
-    employee.status,
+    courier.id,
+    courier.name,
+    courier.baseArea,
+    courier.coverageArea,
+    courier.vehicleType,
+    courier.vehiclePlate,
+    courier.phone,
+    courier.status,
   ]
     .join(' ')
     .toLowerCase();
 
-const buildNewEmployeeDraft = (employees: Employee[], defaultDivision: string): Employee => {
+const buildNewCourierDraft = (couriers: Courier[]): Courier => {
   const nextSequence =
-    Math.max(0, ...employees.map((employee) => Number(employee.id.replace(/\D/g, '')) || 0)) + 1;
+    Math.max(0, ...couriers.map((courier) => Number(courier.id.replace(/\D/g, '')) || 0)) + 1;
 
   return {
-    id: `EMP-${padValue(nextSequence)}`,
+    id: `CUR-${padValue(nextSequence)}`,
     name: '',
-    origin: '',
-    age: 25,
-    yearsWorking: 0,
-    salary: 4500000,
-    status: 'Aktif',
-    division: defaultDivision,
-    position: '',
+    baseArea: '',
+    coverageArea: '',
+    vehicleType: fallbackVehicleTypeOptions[0],
+    vehiclePlate: '',
     phone: '',
+    status: 'Aktif',
+    completedDeliveries: 0,
     performanceScore: 80,
   };
 };
 
 export function AdminEmployees() {
   const {
-    employees,
-    createEmployee,
-    updateEmployee,
-    deleteEmployee: deleteEmployeeRequest,
+    employees: couriers,
+    createEmployee: createCourier,
+    updateEmployee: updateCourier,
+    deleteEmployee: deleteCourierRequest,
   } = useAdminData();
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [dialogMode, setDialogMode] = useState<'view' | 'edit' | 'create' | null>(null);
-  const [activeEmployeeId, setActiveEmployeeId] = useState<string | null>(null);
-  const [draftEmployee, setDraftEmployee] = useState<Employee | null>(null);
-  const [isNotesOpen, setIsNotesOpen] = useState(false);
-  const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(null);
+  const [activeCourierId, setActiveCourierId] = useState<string | null>(null);
+  const [draftCourier, setDraftCourier] = useState<Courier | null>(null);
+  const [courierToDelete, setCourierToDelete] = useState<Courier | null>(null);
 
-  // State untuk dialog buat akun kurir
-  const [courierAccountEmployee, setCourierAccountEmployee] = useState<Employee | null>(null);
-  const [courierAccountForm, setCourierAccountForm] = useState<CourierAccountPayload>({
-    username: '',
-    email: '',
-    phone: '',
-    password: '',
-  });
-  const [isCreatingCourierAccount, setIsCreatingCourierAccount] = useState(false);
-
-  const divisionOptions = useMemo(
-    () => Array.from(new Set(employees.map((employee) => employee.division))),
-    [employees]
+  const vehicleTypeOptions = useMemo(
+    () =>
+      Array.from(
+        new Set([
+          ...fallbackVehicleTypeOptions,
+          ...couriers.map((courier) => courier.vehicleType).filter(Boolean),
+        ])
+      ),
+    [couriers]
   );
 
-  const filteredEmployees = useMemo(() => {
+  const filteredCouriers = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
 
     if (!normalizedQuery) {
-      return employees;
+      return couriers;
     }
 
-    return employees.filter((employee) =>
-      getEmployeeSearchText(employee).includes(normalizedQuery)
-    );
-  }, [employees, searchQuery]);
+    return couriers.filter((courier) => getCourierSearchText(courier).includes(normalizedQuery));
+  }, [couriers, searchQuery]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredEmployees.length / ITEMS_PER_PAGE));
-  const paginatedEmployees = filteredEmployees.slice(
+  const totalPages = Math.max(1, Math.ceil(filteredCouriers.length / ITEMS_PER_PAGE));
+  const paginatedCouriers = filteredCouriers.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
   );
 
-  const activeCount = employees.filter((item) => item.status === 'Aktif').length;
-  const payrollTotal = employees.reduce((sum, item) => sum + item.salary, 0);
-  const averageTenure = useMemo(() => {
-    if (!employees.length) return 0;
+  const activeCount = couriers.filter((item) => item.status === 'Aktif').length;
+  const totalDeliveries = couriers.reduce((sum, item) => sum + item.completedDeliveries, 0);
+  const averagePerformance = useMemo(() => {
+    if (!couriers.length) return 0;
     return (
-      employees.reduce((sum, item) => sum + item.yearsWorking, 0) / employees.length
+      couriers.reduce((sum, item) => sum + item.performanceScore, 0) / couriers.length
     ).toFixed(1);
-  }, [employees]);
+  }, [couriers]);
 
-  const selectedEmployee = employees.find((employee) => employee.id === activeEmployeeId) ?? null;
+  const selectedCourier = couriers.find((courier) => courier.id === activeCourierId) ?? null;
 
   useEffect(() => {
     setCurrentPage((previousPage) => Math.min(previousPage, totalPages));
@@ -161,47 +144,45 @@ export function AdminEmployees() {
       return;
     }
 
-    if (activeEmployeeId && !employees.some((employee) => employee.id === activeEmployeeId)) {
+    if (activeCourierId && !couriers.some((courier) => courier.id === activeCourierId)) {
       setDialogMode(null);
-      setActiveEmployeeId(null);
-      setDraftEmployee(null);
+      setActiveCourierId(null);
+      setDraftCourier(null);
     }
-  }, [activeEmployeeId, dialogMode, employees]);
+  }, [activeCourierId, dialogMode, couriers]);
 
   const resetDialog = () => {
     setDialogMode(null);
-    setActiveEmployeeId(null);
-    setDraftEmployee(null);
+    setActiveCourierId(null);
+    setDraftCourier(null);
   };
 
-  const openEmployeeDetail = (employeeId: string) => {
-    setActiveEmployeeId(employeeId);
-    setDraftEmployee(null);
+  const openCourierDetail = (courierId: string) => {
+    setActiveCourierId(courierId);
+    setDraftCourier(null);
     setDialogMode('view');
   };
 
-  const openEmployeeUpdate = (employeeId: string) => {
-    const targetEmployee = employees.find((employee) => employee.id === employeeId);
+  const openCourierUpdate = (courierId: string) => {
+    const targetCourier = couriers.find((courier) => courier.id === courierId);
 
-    if (!targetEmployee) {
+    if (!targetCourier) {
       return;
     }
 
-    setActiveEmployeeId(employeeId);
-    setDraftEmployee({ ...targetEmployee });
+    setActiveCourierId(courierId);
+    setDraftCourier({ ...targetCourier });
     setDialogMode('edit');
   };
 
-  const openCreateEmployee = () => {
-    const defaultDivision = divisionOptions[0] ?? 'Operasional';
-
-    setActiveEmployeeId(null);
-    setDraftEmployee(buildNewEmployeeDraft(employees, defaultDivision));
+  const openCreateCourier = () => {
+    setActiveCourierId(null);
+    setDraftCourier(buildNewCourierDraft(couriers));
     setDialogMode('create');
   };
 
-  const updateDraftEmployee = <Key extends keyof Employee>(key: Key, value: Employee[Key]) => {
-    setDraftEmployee((previousDraft) =>
+  const updateDraftCourier = <Key extends keyof Courier>(key: Key, value: Courier[Key]) => {
+    setDraftCourier((previousDraft) =>
       previousDraft
         ? {
             ...previousDraft,
@@ -211,122 +192,96 @@ export function AdminEmployees() {
     );
   };
 
-  const handleSaveEmployee = async () => {
-    if (!draftEmployee) {
+  const handleSaveCourier = async () => {
+    if (!draftCourier) {
+      return;
+    }
+
+    if (!draftCourier.name || !draftCourier.baseArea || !draftCourier.coverageArea || !draftCourier.phone) {
+      toast.error('Lengkapi data kurir terlebih dahulu.', {
+        description: 'Nama, area basis, area tugas, dan nomor telepon wajib diisi.',
+      });
       return;
     }
 
     try {
       if (dialogMode === 'create') {
-        await createEmployee(draftEmployee);
-        toast.success('Karyawan baru ditambahkan', {
-          description: `${draftEmployee.name || draftEmployee.id} masuk ke daftar tim.`,
+        await createCourier(draftCourier);
+        toast.success('Kurir baru ditambahkan', {
+          description: `${draftCourier.name || draftCourier.id} masuk ke daftar kurir.`,
         });
       } else {
-        await updateEmployee(draftEmployee);
-        toast.success('Data karyawan diperbarui', {
-          description: `Perubahan untuk ${draftEmployee.name} berhasil disimpan.`,
+        await updateCourier(draftCourier);
+        toast.success('Data kurir diperbarui', {
+          description: `Perubahan untuk ${draftCourier.name} berhasil disimpan.`,
         });
       }
 
       resetDialog();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Gagal menyimpan data karyawan.');
+      toast.error(error instanceof Error ? error.message : 'Gagal menyimpan data kurir.');
     }
   };
 
-  const deleteEmployee = async () => {
-    if (!employeeToDelete) return;
+  const deleteCourier = async () => {
+    if (!courierToDelete) return;
 
     try {
-      await deleteEmployeeRequest(employeeToDelete.id);
-      toast.success('Data karyawan dihapus', {
-        description: `${employeeToDelete.name} berhasil dihapus dari daftar karyawan.`,
+      await deleteCourierRequest(courierToDelete.id);
+      toast.success('Data kurir dihapus', {
+        description: `${courierToDelete.name} berhasil dihapus dari daftar kurir.`,
       });
 
-      if (activeEmployeeId === employeeToDelete.id) {
+      if (activeCourierId === courierToDelete.id) {
         resetDialog();
       }
 
-      setEmployeeToDelete(null);
+      setCourierToDelete(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Gagal menghapus data karyawan.');
-    }
-  };
-
-  const openCourierAccountDialog = (employee: Employee) => {
-    setCourierAccountEmployee(employee);
-    // Pre-fill username dari nama karyawan (tanpa spasi, lowercase)
-    const suggestedUsername = employee.name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
-    setCourierAccountForm({
-      username: `kurir_${suggestedUsername}`,
-      email: '',
-      phone: employee.phone,
-      password: '',
-    });
-  };
-
-  const handleCreateCourierAccount = async () => {
-    if (!courierAccountEmployee) return;
-    setIsCreatingCourierAccount(true);
-    try {
-      await createCourierAccountRequest(courierAccountEmployee.id, courierAccountForm);
-      toast.success('Akun kurir berhasil dibuat!', {
-        description: `${courierAccountEmployee.name} sekarang bisa login sebagai kurir dengan username "${courierAccountForm.username}".`,
-      });
-      setCourierAccountEmployee(null);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Gagal membuat akun kurir.');
-    } finally {
-      setIsCreatingCourierAccount(false);
+      toast.error(error instanceof Error ? error.message : 'Gagal menghapus data kurir.');
     }
   };
 
   return (
     <div className="space-y-6">
       <Card className="border-[#63D25F]/25 bg-white/95 shadow-sm">
-        <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <CardTitle>Payroll Snapshot</CardTitle>
-            <CardDescription>Total gaji dan struktur tim untuk bulan berjalan.</CardDescription>
-          </div>
-          <Button variant="outline" onClick={() => setIsNotesOpen(true)}>
-            Catatan Admin
-          </Button>
+        <CardHeader>
+          <CardTitle>Operasional Kurir</CardTitle>
+          <CardDescription>Ringkasan performa, area tugas, dan kesiapan armada kurir.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 xl:grid-cols-[1.2fr_repeat(3,minmax(0,1fr))]">
             <div className="rounded-2xl bg-[#63D25F] p-5 text-white">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-sm text-white/80">Total Payroll</p>
-                  <p className="mt-2 text-3xl font-semibold">{formatCurrency(payrollTotal)}</p>
+                  <p className="text-sm text-white/80">Total Pengiriman Kurir</p>
+                  <p className="mt-2 text-3xl font-semibold">{totalDeliveries}</p>
                 </div>
-                <Wallet className="h-9 w-9 text-white/90" />
+                <Truck className="h-9 w-9 text-white/90" />
               </div>
               <p className="mt-4 text-sm text-white/85">
-                Snapshot gaji seluruh tim aktif dan nonaktif untuk evaluasi bulan berjalan.
+                Akumulasi pengiriman dari seluruh kurir yang terdaftar di sistem admin.
               </p>
             </div>
 
-            {employees.slice(0, 3).map((employee) => (
+            {couriers.slice(0, 3).map((courier) => (
               <div
-                key={employee.id}
+                key={courier.id}
                 className="flex h-full flex-col justify-between rounded-2xl border border-border bg-secondary/30 p-4"
               >
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="font-semibold">{employee.name}</p>
-                    <p className="text-sm text-muted-foreground">{employee.position}</p>
+                    <p className="font-semibold">{courier.name}</p>
+                    <p className="text-sm text-muted-foreground">{courier.coverageArea}</p>
                   </div>
                   <Badge className="bg-primary/10 text-primary hover:bg-primary/10">
-                    {employee.performanceScore}/100
+                    {courier.performanceScore}/100
                   </Badge>
                 </div>
                 <p className="mt-4 text-sm text-muted-foreground">
-                  Gaji:{' '}
+                  Kendaraan:{' '}
                   <span className="font-medium text-foreground">
-                    {formatCurrency(employee.salary)}
+                    {courier.vehicleType} - {courier.vehiclePlate || 'Belum diisi'}
                   </span>
                 </p>
               </div>
@@ -338,20 +293,20 @@ export function AdminEmployees() {
       <div className="grid gap-3 md:grid-cols-3">
         <Card className="border-border/70 bg-secondary/30">
           <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Total Karyawan</p>
-            <p className="mt-2 text-2xl font-semibold">{employees.length}</p>
+            <p className="text-sm text-muted-foreground">Total Kurir</p>
+            <p className="mt-2 text-2xl font-semibold">{couriers.length}</p>
           </CardContent>
         </Card>
         <Card className="border-border/70 bg-secondary/30">
           <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Status Aktif</p>
+            <p className="text-sm text-muted-foreground">Kurir Aktif</p>
             <p className="mt-2 text-2xl font-semibold">{activeCount}</p>
           </CardContent>
         </Card>
         <Card className="border-border/70 bg-secondary/30">
           <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Rata-rata Masa Kerja</p>
-            <p className="mt-2 text-2xl font-semibold">{averageTenure} th</p>
+            <p className="text-sm text-muted-foreground">Rata-rata Performa</p>
+            <p className="mt-2 text-2xl font-semibold">{averagePerformance}/100</p>
           </CardContent>
         </Card>
       </div>
@@ -359,28 +314,22 @@ export function AdminEmployees() {
       <Card className="border-border/80 bg-white/90 shadow-sm">
         <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <CardTitle>Daftar Karyawan</CardTitle>
+            <CardTitle>Daftar Kurir</CardTitle>
             <CardDescription>
-              Cari data tim lebih cepat, tambah anggota baru, lalu buka detail karyawan dan update
-              datanya dari pop-up tanpa pindah halaman.
+              Kelola data kurir, area tugas, kendaraan, nomor kontak, dan performa dari satu tempat.
             </CardDescription>
           </div>
 
           <div className="flex w-full flex-col gap-3 lg:w-auto lg:items-end">
-            <div className="flex justify-end">
-              <Button variant="outline" onClick={() => setIsNotesOpen(true)}>
-                Catatan Admin
-              </Button>
-            </div>
             <AdminTableToolbar
-              addLabel="Tambah Karyawan"
-              searchPlaceholder="Cari ID, nama, divisi, posisi, status..."
+              addLabel="Tambah Kurir"
+              searchPlaceholder="Cari ID, nama, area, kendaraan, status..."
               searchValue={searchQuery}
               onSearchChange={(value) => {
                 setSearchQuery(value);
                 setCurrentPage(1);
               }}
-              onAdd={openCreateEmployee}
+              onAdd={openCreateCourier}
             />
           </div>
         </CardHeader>
@@ -390,35 +339,41 @@ export function AdminEmployees() {
               <TableRow>
                 <TableHead>ID</TableHead>
                 <TableHead>Nama</TableHead>
-                <TableHead>Asal</TableHead>
-                <TableHead>Divisi</TableHead>
-                <TableHead>Umur</TableHead>
-                <TableHead>Lama Bekerja</TableHead>
-                <TableHead>Gaji</TableHead>
+                <TableHead>Area Tugas</TableHead>
+                <TableHead>Kendaraan</TableHead>
+                <TableHead>No. Telepon</TableHead>
+                <TableHead>Total Kirim</TableHead>
+                <TableHead>Performa</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedEmployees.length > 0 ? (
-                paginatedEmployees.map((employee) => (
-                  <TableRow key={employee.id}>
-                    <TableCell className="font-medium">{employee.id}</TableCell>
-                    <TableCell>{employee.name}</TableCell>
-                    <TableCell>{employee.origin}</TableCell>
-                    <TableCell>{employee.division}</TableCell>
-                    <TableCell>{employee.age} tahun</TableCell>
-                    <TableCell>{employee.yearsWorking} tahun</TableCell>
-                    <TableCell>{formatCurrency(employee.salary)}</TableCell>
+              {paginatedCouriers.length > 0 ? (
+                paginatedCouriers.map((courier) => (
+                  <TableRow key={courier.id}>
+                    <TableCell className="font-medium">{courier.id}</TableCell>
+                    <TableCell>{courier.name}</TableCell>
+                    <TableCell>
+                      <div className="font-medium">{courier.coverageArea}</div>
+                      <div className="text-xs text-muted-foreground">{courier.baseArea}</div>
+                    </TableCell>
+                    <TableCell>
+                      <div>{courier.vehicleType}</div>
+                      <div className="text-xs text-muted-foreground">{courier.vehiclePlate || '-'}</div>
+                    </TableCell>
+                    <TableCell>{courier.phone}</TableCell>
+                    <TableCell>{courier.completedDeliveries}</TableCell>
+                    <TableCell>{courier.performanceScore}/100</TableCell>
                     <TableCell>
                       <Badge
                         className={
-                          employee.status === 'Aktif'
+                          courier.status === 'Aktif'
                             ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100'
                             : 'bg-slate-200 text-slate-700 hover:bg-slate-200'
                         }
                       >
-                        {employee.status}
+                        {courier.status}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
@@ -426,25 +381,15 @@ export function AdminEmployees() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => openEmployeeDetail(employee.id)}
+                          onClick={() => openCourierDetail(courier.id)}
                         >
                           Detail
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
-                          className="border-[#63D25F]/40 text-[#2F8A2E] hover:bg-[#63D25F]/10"
-                          onClick={() => openCourierAccountDialog(employee)}
-                          title="Buat Akun Kurir"
-                        >
-                          <UserPlus className="h-3 w-3" />
-                          Akun Kurir
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
                           className="border-destructive/30 text-destructive hover:bg-destructive/10"
-                          onClick={() => setEmployeeToDelete(employee)}
+                          onClick={() => setCourierToDelete(courier)}
                         >
                           Hapus
                         </Button>
@@ -455,7 +400,7 @@ export function AdminEmployees() {
               ) : (
                 <TableRow>
                   <TableCell colSpan={9} className="py-8 text-center text-sm text-muted-foreground">
-                    Tidak ada data karyawan yang cocok dengan pencarian saat ini.
+                    Tidak ada data kurir yang cocok dengan pencarian saat ini.
                   </TableCell>
                 </TableRow>
               )}
@@ -470,140 +415,36 @@ export function AdminEmployees() {
         </CardContent>
       </Card>
 
-      <Dialog open={isNotesOpen} onOpenChange={setIsNotesOpen}>
-        <DialogContent className="max-w-xl">
-          <DialogHeader>
-            <DialogTitle>Catatan Admin</DialogTitle>
-            <DialogDescription>Ringkasan aksi cepat untuk manajemen tim.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 text-sm text-muted-foreground">
-            <div className="rounded-2xl border border-[#63D25F]/30 bg-[#63D25F]/10 p-4 font-medium text-foreground">
-              KODE VERIFIKASI ADMIN: ADMCARGOLITE
-            </div>
-            <div className="rounded-2xl bg-secondary/40 p-4">
-              Gunakan tombol detail lalu lanjutkan update dari pop-up untuk merapikan data
-              karyawan.
-            </div>
-            <div className="rounded-2xl bg-secondary/40 p-4">
-              Search baru membantu admin menemukan nama, posisi, atau divisi dengan animasi yang
-              tetap ringan.
-            </div>
-            <div className="rounded-2xl bg-secondary/40 p-4">
-              Penghapusan data karyawan tetap meminta konfirmasi agar tidak salah hapus.
-            </div>
-          </div>
-          <DialogFooter>
-            <Button onClick={() => setIsNotesOpen(false)}>Tutup</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog Buat Akun Kurir */}
-      <Dialog open={courierAccountEmployee !== null} onOpenChange={(open) => !open && setCourierAccountEmployee(null)}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Buat Akun Kurir</DialogTitle>
-            <DialogDescription>
-              Membuat akun login untuk <span className="font-semibold text-foreground">{courierAccountEmployee?.name}</span> ({courierAccountEmployee?.id}) sebagai kurir. Kurir dapat login dan mengakses dashboard kurir.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="rounded-xl border border-[#63D25F]/30 bg-[#63D25F]/8 p-4 text-sm text-muted-foreground">
-            <p className="font-semibold text-foreground mb-1">ℹ️ Info Penting</p>
-            <p>Akun kurir dihubungkan ke data karyawan ini secara otomatis. Kurir bisa langsung login setelah akun dibuat.</p>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="courier-username">Username <span className="text-red-500">*</span></Label>
-              <Input
-                id="courier-username"
-                value={courierAccountForm.username}
-                onChange={(e) => setCourierAccountForm(prev => ({ ...prev, username: e.target.value }))}
-                placeholder="contoh: kurir_budi"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="courier-email">Email <span className="text-red-500">*</span></Label>
-              <Input
-                id="courier-email"
-                type="email"
-                value={courierAccountForm.email}
-                onChange={(e) => setCourierAccountForm(prev => ({ ...prev, email: e.target.value }))}
-                placeholder="email@example.com"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="courier-phone">No. Telepon</Label>
-              <Input
-                id="courier-phone"
-                value={courierAccountForm.phone}
-                onChange={(e) => setCourierAccountForm(prev => ({ ...prev, phone: e.target.value }))}
-                placeholder="08xxxxxxxxxx"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="courier-password">Password <span className="text-red-500">*</span></Label>
-              <Input
-                id="courier-password"
-                type="password"
-                value={courierAccountForm.password}
-                onChange={(e) => setCourierAccountForm(prev => ({ ...prev, password: e.target.value }))}
-                placeholder="Minimal 6 karakter"
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button
-              onClick={handleCreateCourierAccount}
-              disabled={isCreatingCourierAccount}
-              className="bg-[#63D25F] hover:bg-[#52c14e] text-white"
-            >
-              <UserPlus className="h-4 w-4" />
-              {isCreatingCourierAccount ? 'Membuat...' : 'Buat Akun Kurir'}
-            </Button>
-            <Button variant="outline" onClick={() => setCourierAccountEmployee(null)}>
-              Batal
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       <Dialog open={dialogMode !== null} onOpenChange={(open) => !open && resetDialog()}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>
               {dialogMode === 'create'
-                ? 'Tambah Data Karyawan'
+                ? 'Tambah Data Kurir'
                 : dialogMode === 'edit'
-                  ? 'Update Data Karyawan'
-                  : 'Detail Karyawan'}
+                  ? 'Update Data Kurir'
+                  : 'Detail Kurir'}
             </DialogTitle>
             <DialogDescription>
               {dialogMode === 'view'
-                ? 'Data lengkap karyawan dan ringkasan status keaktifannya.'
-                : 'Sesuaikan data karyawan yang ditampilkan pada tabel agar selalu sinkron dengan manajemen admin.'}
+                ? 'Data lengkap kurir, area operasional, kendaraan, dan performanya.'
+                : 'Isi data operasional kurir agar penugasan paket tetap akurat.'}
             </DialogDescription>
           </DialogHeader>
 
-          {dialogMode === 'view' && selectedEmployee && (
+          {dialogMode === 'view' && selectedCourier && (
             <>
               <div className="grid gap-4 md:grid-cols-2">
                 {[
-                  ['ID Karyawan', selectedEmployee.id],
-                  ['Nama', selectedEmployee.name],
-                  ['Asal', selectedEmployee.origin],
-                  ['Divisi', selectedEmployee.division],
-                  ['Umur', `${selectedEmployee.age} tahun`],
-                  ['Lama Bekerja', `${selectedEmployee.yearsWorking} tahun`],
-                  ['Posisi', selectedEmployee.position],
-                  ['No. Telepon', selectedEmployee.phone],
-                  ['Jumlah Gaji', formatCurrency(selectedEmployee.salary)],
-                  ['Performa', `${selectedEmployee.performanceScore}/100`],
+                  ['ID Kurir', selectedCourier.id],
+                  ['Nama Kurir', selectedCourier.name],
+                  ['Area Basis', selectedCourier.baseArea],
+                  ['Area Tugas', selectedCourier.coverageArea],
+                  ['Tipe Kendaraan', selectedCourier.vehicleType],
+                  ['Nomor Kendaraan', selectedCourier.vehiclePlate || '-'],
+                  ['No. Telepon', selectedCourier.phone],
+                  ['Total Pengiriman', `${selectedCourier.completedDeliveries} paket`],
+                  ['Skor Performa', `${selectedCourier.performanceScore}/100`],
                 ].map(([label, value]) => (
                   <div key={label} className="rounded-2xl border border-border bg-secondary/20 p-4">
                     <p className="text-sm text-muted-foreground">{label}</p>
@@ -615,12 +456,12 @@ export function AdminEmployees() {
                   <p className="text-sm text-muted-foreground">Status</p>
                   <Badge
                     className={
-                      selectedEmployee.status === 'Aktif'
+                      selectedCourier.status === 'Aktif'
                         ? 'mt-2 bg-emerald-100 text-emerald-700 hover:bg-emerald-100'
                         : 'mt-2 bg-slate-200 text-slate-700 hover:bg-slate-200'
                     }
                   >
-                    {selectedEmployee.status}
+                    {selectedCourier.status}
                   </Badge>
                 </div>
               </div>
@@ -630,15 +471,12 @@ export function AdminEmployees() {
                   type="button"
                   variant="outline"
                   className="border-destructive/30 text-destructive hover:bg-destructive/10"
-                  onClick={() => setEmployeeToDelete(selectedEmployee)}
+                  onClick={() => setCourierToDelete(selectedCourier)}
                 >
                   <Trash2 className="h-4 w-4" />
                   Hapus Data
                 </Button>
-                <Button
-                  type="button"
-                  onClick={() => openEmployeeUpdate(selectedEmployee.id)}
-                >
+                <Button type="button" onClick={() => openCourierUpdate(selectedCourier.id)}>
                   <PencilLine className="h-4 w-4" />
                   Update
                 </Button>
@@ -651,47 +489,57 @@ export function AdminEmployees() {
             </>
           )}
 
-          {(dialogMode === 'edit' || dialogMode === 'create') && draftEmployee && (
+          {(dialogMode === 'edit' || dialogMode === 'create') && draftCourier && (
             <>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="employee-id">ID Karyawan</Label>
-                  <Input id="employee-id" value={draftEmployee.id} readOnly className="bg-muted/40" />
+                  <Label htmlFor="courier-id">ID Kurir</Label>
+                  <Input id="courier-id" value={draftCourier.id} readOnly className="bg-muted/40" />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="employee-name">Nama</Label>
+                  <Label htmlFor="courier-name">Nama Kurir</Label>
                   <Input
-                    id="employee-name"
-                    value={draftEmployee.name}
-                    onChange={(event) => updateDraftEmployee('name', event.target.value)}
-                    placeholder="Tulis nama karyawan"
+                    id="courier-name"
+                    value={draftCourier.name}
+                    onChange={(event) => updateDraftCourier('name', event.target.value)}
+                    placeholder="Tulis nama kurir"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="employee-origin">Asal</Label>
+                  <Label htmlFor="courier-base-area">Area Basis</Label>
                   <Input
-                    id="employee-origin"
-                    value={draftEmployee.origin}
-                    onChange={(event) => updateDraftEmployee('origin', event.target.value)}
-                    placeholder="Kota asal"
+                    id="courier-base-area"
+                    value={draftCourier.baseArea}
+                    onChange={(event) => updateDraftCourier('baseArea', event.target.value)}
+                    placeholder="Contoh: Hub Bandung"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="employee-division">Divisi</Label>
+                  <Label htmlFor="courier-coverage-area">Area Tugas</Label>
+                  <Input
+                    id="courier-coverage-area"
+                    value={draftCourier.coverageArea}
+                    onChange={(event) => updateDraftCourier('coverageArea', event.target.value)}
+                    placeholder="Contoh: Bandung Raya"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="courier-vehicle-type">Tipe Kendaraan</Label>
                   <Select
-                    value={draftEmployee.division}
-                    onValueChange={(value) => updateDraftEmployee('division', value)}
+                    value={draftCourier.vehicleType}
+                    onValueChange={(value) => updateDraftCourier('vehicleType', value)}
                   >
-                    <SelectTrigger id="employee-division">
-                      <SelectValue placeholder="Pilih divisi" />
+                    <SelectTrigger id="courier-vehicle-type">
+                      <SelectValue placeholder="Pilih kendaraan" />
                     </SelectTrigger>
                     <SelectContent>
-                      {divisionOptions.map((division) => (
-                        <SelectItem key={division} value={division}>
-                          {division}
+                      {vehicleTypeOptions.map((vehicleType) => (
+                        <SelectItem key={vehicleType} value={vehicleType}>
+                          {vehicleType}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -699,26 +547,36 @@ export function AdminEmployees() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="employee-position">Posisi</Label>
+                  <Label htmlFor="courier-vehicle-plate">Nomor Kendaraan</Label>
                   <Input
-                    id="employee-position"
-                    value={draftEmployee.position}
-                    onChange={(event) => updateDraftEmployee('position', event.target.value)}
-                    placeholder="Posisi pekerjaan"
+                    id="courier-vehicle-plate"
+                    value={draftCourier.vehiclePlate}
+                    onChange={(event) => updateDraftCourier('vehiclePlate', event.target.value)}
+                    placeholder="Contoh: D 4210 BDS"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="employee-status">Status</Label>
+                  <Label htmlFor="courier-phone">No. Telepon</Label>
+                  <Input
+                    id="courier-phone"
+                    value={draftCourier.phone}
+                    onChange={(event) => updateDraftCourier('phone', event.target.value)}
+                    placeholder="08xxxxxxxxxx"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="courier-status">Status</Label>
                   <Select
-                    value={draftEmployee.status}
-                    onValueChange={(value: EmployeeStatus) => updateDraftEmployee('status', value)}
+                    value={draftCourier.status}
+                    onValueChange={(value: CourierStatus) => updateDraftCourier('status', value)}
                   >
-                    <SelectTrigger id="employee-status">
+                    <SelectTrigger id="courier-status">
                       <SelectValue placeholder="Pilih status" />
                     </SelectTrigger>
                     <SelectContent>
-                      {employeeStatusOptions.map((status) => (
+                      {courierStatusOptions.map((status) => (
                         <SelectItem key={status} value={status}>
                           {status}
                         </SelectItem>
@@ -728,68 +586,35 @@ export function AdminEmployees() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="employee-age">Umur</Label>
+                  <Label htmlFor="courier-completed-deliveries">Total Pengiriman</Label>
                   <Input
-                    id="employee-age"
-                    type="number"
-                    min="18"
-                    value={draftEmployee.age}
-                    onChange={(event) => updateDraftEmployee('age', Number(event.target.value))}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="employee-tenure">Lama Bekerja</Label>
-                  <Input
-                    id="employee-tenure"
+                    id="courier-completed-deliveries"
                     type="number"
                     min="0"
-                    value={draftEmployee.yearsWorking}
+                    value={draftCourier.completedDeliveries}
                     onChange={(event) =>
-                      updateDraftEmployee('yearsWorking', Number(event.target.value))
+                      updateDraftCourier('completedDeliveries', Number(event.target.value))
                     }
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="employee-salary">Gaji</Label>
+                  <Label htmlFor="courier-performance">Skor Performa</Label>
                   <Input
-                    id="employee-salary"
-                    type="number"
-                    min="0"
-                    step="100000"
-                    value={draftEmployee.salary}
-                    onChange={(event) => updateDraftEmployee('salary', Number(event.target.value))}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="employee-phone">No. Telepon</Label>
-                  <Input
-                    id="employee-phone"
-                    value={draftEmployee.phone}
-                    onChange={(event) => updateDraftEmployee('phone', event.target.value)}
-                    placeholder="08xxxxxxxxxx"
-                  />
-                </div>
-
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="employee-performance">Skor Performa</Label>
-                  <Input
-                    id="employee-performance"
+                    id="courier-performance"
                     type="number"
                     min="0"
                     max="100"
-                    value={draftEmployee.performanceScore}
+                    value={draftCourier.performanceScore}
                     onChange={(event) =>
-                      updateDraftEmployee('performanceScore', Number(event.target.value))
+                      updateDraftCourier('performanceScore', Number(event.target.value))
                     }
                   />
                 </div>
               </div>
 
               <DialogFooter>
-                <Button type="button" onClick={handleSaveEmployee}>
+                <Button type="button" onClick={handleSaveCourier}>
                   <Save className="h-4 w-4" />
                   Simpan Perubahan
                 </Button>
@@ -802,19 +627,22 @@ export function AdminEmployees() {
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={!!employeeToDelete} onOpenChange={(open) => !open && setEmployeeToDelete(null)}>
+      <AlertDialog
+        open={!!courierToDelete}
+        onOpenChange={(open) => !open && setCourierToDelete(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Hapus data karyawan?</AlertDialogTitle>
+            <AlertDialogTitle>Hapus data kurir?</AlertDialogTitle>
             <AlertDialogDescription>
-              Data {employeeToDelete?.name} akan dihapus langsung dari Neon. Jika karyawan ini
-              masih dipakai sebagai kurir pada data pengiriman, hapus akan ditolak sampai paket
-              terkait dipindahkan ke kurir lain.
+              Data {courierToDelete?.name} akan dihapus langsung dari Neon. Jika kurir ini masih
+              dipakai pada data pengiriman, hapus akan ditolak sampai paket terkait dipindahkan ke
+              kurir lain.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={deleteEmployee}>
+            <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={deleteCourier}>
               Hapus
             </AlertDialogAction>
           </AlertDialogFooter>

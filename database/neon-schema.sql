@@ -1,9 +1,11 @@
 DROP TABLE IF EXISTS customer_histories;
+DROP TABLE IF EXISTS courier_accounts;
 DROP TABLE IF EXISTS user_accounts;
 DROP TABLE IF EXISTS package_tracking_events;
 DROP TABLE IF EXISTS attendance_records;
 DROP TABLE IF EXISTS packages;
 DROP TABLE IF EXISTS customers;
+DROP TABLE IF EXISTS couriers;
 DROP TABLE IF EXISTS employees;
 DROP TABLE IF EXISTS manager_profiles;
 DROP TABLE IF EXISTS vehicles;
@@ -28,17 +30,16 @@ CREATE TABLE manager_profiles (
   bio TEXT NOT NULL
 );
 
-CREATE TABLE employees (
+CREATE TABLE couriers (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
-  origin TEXT NOT NULL,
-  age INTEGER NOT NULL CHECK (age >= 0),
-  years_working INTEGER NOT NULL CHECK (years_working >= 0),
-  salary BIGINT NOT NULL CHECK (salary >= 0),
-  status TEXT NOT NULL CHECK (status IN ('Aktif', 'Nonaktif')),
-  division TEXT NOT NULL,
-  position TEXT NOT NULL,
+  base_area TEXT NOT NULL,
+  coverage_area TEXT NOT NULL,
+  vehicle_type TEXT NOT NULL,
+  vehicle_plate TEXT NULL,
   phone TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('Aktif', 'Nonaktif')),
+  completed_deliveries INTEGER NOT NULL DEFAULT 0 CHECK (completed_deliveries >= 0),
   performance_score INTEGER NOT NULL CHECK (performance_score BETWEEN 0 AND 100)
 );
 
@@ -121,6 +122,19 @@ CREATE TABLE user_accounts (
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE courier_accounts (
+  id TEXT PRIMARY KEY,
+  username TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'courier' CHECK (role = 'courier'),
+  courier_id TEXT NOT NULL UNIQUE REFERENCES couriers(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT NULL,
+  avatar_url TEXT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE customer_histories (
   id TEXT PRIMARY KEY,
   customer_id TEXT NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
@@ -138,7 +152,9 @@ CREATE INDEX idx_package_tracking_events_package_id ON package_tracking_events(p
 CREATE INDEX idx_package_tracking_events_resi ON package_tracking_events(resi);
 CREATE INDEX idx_attendance_records_month_key ON attendance_records(month_key);
 CREATE INDEX idx_attendance_records_employee_id ON attendance_records(employee_id);
+CREATE INDEX idx_couriers_status ON couriers(status);
 CREATE INDEX idx_user_accounts_role ON user_accounts(role);
 CREATE INDEX idx_user_accounts_customer_id ON user_accounts(customer_id);
+CREATE INDEX idx_courier_accounts_courier_id ON courier_accounts(courier_id);
 CREATE INDEX idx_customer_histories_customer_id ON customer_histories(customer_id);
 CREATE INDEX idx_customer_histories_resi ON customer_histories(resi);

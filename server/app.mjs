@@ -77,23 +77,29 @@ app.post('/api/courier/packages/:id/tracking-events', async (request, response) 
   response.status(201).json(delivery);
 });
 
-app.post('/api/admin/employees', async (request, response) => {
+const createCourierHandler = async (request, response) => {
   const employee = await createEmployee(request.body);
   response.status(201).json(employee);
-});
+};
 
-app.post('/api/admin/employees/:id/courier-account', async (request, response) => {
+app.post('/api/admin/couriers', createCourierHandler);
+app.post('/api/admin/employees', createCourierHandler);
+
+const createCourierAccountHandler = async (request, response) => {
   const account = await registerCourierAccount({
-    employeeId: request.params.id,
+    courierId: request.params.id,
     ...request.body,
   });
   response.status(201).json(account);
-});
+};
 
-app.get('/api/admin/employees/:id/courier-account', async (request, response) => {
+app.post('/api/admin/couriers/:id/courier-account', createCourierAccountHandler);
+app.post('/api/admin/employees/:id/courier-account', createCourierAccountHandler);
+
+const getCourierAccountHandler = async (request, response) => {
   const { pool: dbPool } = await import('./db.mjs');
   const { rows } = await dbPool.query(
-    'SELECT id, username, email, phone, created_at FROM courier_accounts WHERE employee_id = $1 LIMIT 1',
+    'SELECT id, username, email, phone, created_at FROM courier_accounts WHERE courier_id = $1 LIMIT 1',
     [request.params.id]
   );
   if (!rows[0]) {
@@ -101,17 +107,26 @@ app.get('/api/admin/employees/:id/courier-account', async (request, response) =>
     return;
   }
   response.json({ hasCourierAccount: true, ...rows[0] });
-});
+};
 
-app.put('/api/admin/employees/:id', async (request, response) => {
+app.get('/api/admin/couriers/:id/courier-account', getCourierAccountHandler);
+app.get('/api/admin/employees/:id/courier-account', getCourierAccountHandler);
+
+const updateCourierHandler = async (request, response) => {
   const employee = await updateEmployee(request.params.id, request.body);
   response.json(employee);
-});
+};
 
-app.delete('/api/admin/employees/:id', async (request, response) => {
+app.put('/api/admin/couriers/:id', updateCourierHandler);
+app.put('/api/admin/employees/:id', updateCourierHandler);
+
+const deleteCourierHandler = async (request, response) => {
   const employee = await deleteEmployee(request.params.id);
   response.json(employee);
-});
+};
+
+app.delete('/api/admin/couriers/:id', deleteCourierHandler);
+app.delete('/api/admin/employees/:id', deleteCourierHandler);
 
 app.post('/api/admin/packages', async (request, response) => {
   const packageData = await createPackage(request.body);

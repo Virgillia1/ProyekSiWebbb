@@ -1,5 +1,6 @@
 export type PackageStatus = 'Diproses' | 'Dalam Pengiriman' | 'Sampai Tujuan' | 'Pending' | 'Selesai';
-export type EmployeeStatus = 'Aktif' | 'Nonaktif';
+export type CourierStatus = 'Aktif' | 'Nonaktif';
+export type EmployeeStatus = CourierStatus;
 export type PresenceStatus = 'Hadir' | 'Izin' | 'Sakit' | 'Alpha';
 export type ShipmentHistoryType = 'Mengirim' | 'Menerima';
 export type VehicleStatus = 'Tersedia' | 'Sedang Jalan' | 'Servis';
@@ -43,19 +44,20 @@ export interface AdminPackage {
   transactionStatus?: TransactionStatus;
 }
 
-export interface Employee {
+export interface Courier {
   id: string;
   name: string;
-  origin: string;
-  age: number;
-  yearsWorking: number;
-  salary: number;
-  status: EmployeeStatus;
-  division: string;
-  position: string;
+  baseArea: string;
+  coverageArea: string;
+  vehicleType: string;
+  vehiclePlate: string;
   phone: string;
+  status: CourierStatus;
+  completedDeliveries: number;
   performanceScore: number;
 }
+
+export type Employee = Courier;
 
 export interface AttendanceRecord {
   id: string;
@@ -124,135 +126,125 @@ export const presenceStatusOptions: PresenceStatus[] = ['Hadir', 'Izin', 'Sakit'
 
 const padValue = (value: number, length = 4) => String(value).padStart(length, '0');
 
-export const employees: Employee[] = [
+export const employees: Courier[] = [
   {
-    id: 'EMP-001',
+    id: 'CUR-001',
     name: 'Budi Santoso',
-    origin: 'Bandung',
-    age: 31,
-    yearsWorking: 4,
-    salary: 6500000,
-    status: 'Aktif',
-    division: 'Operasional',
-    position: 'Senior Kurir',
+    baseArea: 'Hub Bandung',
+    coverageArea: 'Bandung Raya',
+    vehicleType: 'Motor',
+    vehiclePlate: 'D 4210 BDS',
     phone: '08234567890',
+    status: 'Aktif',
+    completedDeliveries: 428,
     performanceScore: 96,
   },
   {
-    id: 'EMP-002',
+    id: 'CUR-002',
     name: 'Joko Widodo',
-    origin: 'Surabaya',
-    age: 34,
-    yearsWorking: 6,
-    salary: 7200000,
-    status: 'Aktif',
-    division: 'Operasional',
-    position: 'Koordinator Kurir',
+    baseArea: 'Hub Surabaya',
+    coverageArea: 'Surabaya - Sidoarjo',
+    vehicleType: 'Mobil Box',
+    vehiclePlate: 'L 8831 CKL',
     phone: '08345678901',
+    status: 'Aktif',
+    completedDeliveries: 512,
     performanceScore: 94,
   },
   {
-    id: 'EMP-003',
+    id: 'CUR-003',
     name: 'Arif Maulana',
-    origin: 'Tasikmalaya',
-    age: 28,
-    yearsWorking: 3,
-    salary: 5900000,
-    status: 'Aktif',
-    division: 'Operasional',
-    position: 'Kurir Area Barat',
+    baseArea: 'Hub Tasikmalaya',
+    coverageArea: 'Priangan Timur',
+    vehicleType: 'Motor',
+    vehiclePlate: 'Z 3190 ARM',
     phone: '081278909876',
+    status: 'Aktif',
+    completedDeliveries: 363,
     performanceScore: 89,
   },
   {
-    id: 'EMP-004',
+    id: 'CUR-004',
     name: 'Rina Permata',
-    origin: 'Yogyakarta',
-    age: 29,
-    yearsWorking: 5,
-    salary: 6700000,
-    status: 'Aktif',
-    division: 'Operasional',
-    position: 'Kurir Area Tengah',
+    baseArea: 'Hub Yogyakarta',
+    coverageArea: 'Yogyakarta - Klaten',
+    vehicleType: 'Motor',
+    vehiclePlate: 'AB 5124 RNP',
     phone: '08456789012',
+    status: 'Aktif',
+    completedDeliveries: 447,
     performanceScore: 93,
   },
   {
-    id: 'EMP-005',
+    id: 'CUR-005',
     name: 'Fikri Aditya',
-    origin: 'Cirebon',
-    age: 26,
-    yearsWorking: 2,
-    salary: 5200000,
-    status: 'Nonaktif',
-    division: 'Operasional',
-    position: 'Kurir Cadangan',
+    baseArea: 'Hub Cirebon',
+    coverageArea: 'Cirebon - Kuningan',
+    vehicleType: 'Motor',
+    vehiclePlate: 'E 2109 FKR',
     phone: '081376543219',
+    status: 'Nonaktif',
+    completedDeliveries: 196,
     performanceScore: 76,
   },
   {
-    id: 'EMP-006',
+    id: 'CUR-006',
     name: 'Devi Nirmala',
-    origin: 'Bogor',
-    age: 30,
-    yearsWorking: 4,
-    salary: 6100000,
-    status: 'Aktif',
-    division: 'Operasional',
-    position: 'Kurir Area Timur',
+    baseArea: 'Hub Bogor',
+    coverageArea: 'Bogor - Depok',
+    vehicleType: 'Motor',
+    vehiclePlate: 'F 6732 DVN',
     phone: '081390998877',
+    status: 'Aktif',
+    completedDeliveries: 389,
     performanceScore: 91,
   },
   {
-    id: 'EMP-007',
+    id: 'CUR-007',
     name: 'Sari Puspitasari',
-    origin: 'Depok',
-    age: 27,
-    yearsWorking: 3,
-    salary: 5600000,
-    status: 'Aktif',
-    division: 'Gudang',
-    position: 'Admin Gudang',
+    baseArea: 'Hub Depok',
+    coverageArea: 'Depok - Cinere',
+    vehicleType: 'Motor',
+    vehiclePlate: 'B 6041 SRP',
     phone: '081344556677',
+    status: 'Aktif',
+    completedDeliveries: 321,
     performanceScore: 88,
   },
   {
-    id: 'EMP-008',
+    id: 'CUR-008',
     name: 'Reza Mahendra',
-    origin: 'Semarang',
-    age: 33,
-    yearsWorking: 5,
-    salary: 7050000,
-    status: 'Aktif',
-    division: 'Distribusi',
-    position: 'Supervisor Hub',
+    baseArea: 'Hub Semarang',
+    coverageArea: 'Semarang - Solo',
+    vehicleType: 'Mobil Box',
+    vehiclePlate: 'H 7782 RZM',
     phone: '081355667788',
+    status: 'Aktif',
+    completedDeliveries: 476,
     performanceScore: 92,
   },
   {
-    id: 'EMP-009',
+    id: 'CUR-009',
     name: 'Nanda Prakoso',
-    origin: 'Malang',
-    age: 29,
-    yearsWorking: 4,
-    salary: 5750000,
-    status: 'Aktif',
-    division: 'Layanan Pelanggan',
-    position: 'Staff Customer Care',
+    baseArea: 'Hub Malang',
+    coverageArea: 'Malang Raya',
+    vehicleType: 'Motor',
+    vehiclePlate: 'N 3405 NDP',
     phone: '081366778899',
+    status: 'Aktif',
+    completedDeliveries: 334,
     performanceScore: 87,
   },
   {
-    id: 'EMP-010',
+    id: 'CUR-010',
     name: 'Wulan Safitri',
-    origin: 'Solo',
-    age: 32,
-    yearsWorking: 5,
-    salary: 6950000,
-    status: 'Aktif',
-    division: 'Distribusi',
-    position: 'Dispatcher Nasional',
+    baseArea: 'Hub Solo',
+    coverageArea: 'Solo - Karanganyar',
+    vehicleType: 'Mobil Box',
+    vehiclePlate: 'AD 9032 WSF',
     phone: '081377889900',
+    status: 'Aktif',
+    completedDeliveries: 458,
     performanceScore: 90,
   },
 ];
@@ -268,7 +260,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
     {
       senderName: 'PT Nusantara Ritel',
       recipientName: 'Bunga Citra',
-      courierId: 'EMP-001',
+      courierId: 'CUR-001',
       origin: 'Jakarta Selatan',
       destination: 'Bandung',
       currentLocation: 'Bandung',
@@ -282,7 +274,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
     {
       senderName: 'CV Sinar Jaya',
       recipientName: 'Aldi Saputra',
-      courierId: 'EMP-004',
+      courierId: 'CUR-004',
       origin: 'Depok',
       destination: 'Yogyakarta',
       currentLocation: 'Yogyakarta',
@@ -296,7 +288,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
     {
       senderName: 'Toko Mebel Abadi',
       recipientName: 'Dina Larasati',
-      courierId: 'EMP-010',
+      courierId: 'CUR-010',
       origin: 'Bekasi',
       destination: 'Semarang',
       currentLocation: 'Gerbang Tol Kalikangkung',
@@ -309,7 +301,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
     {
       senderName: 'PT Maju Digital',
       recipientName: 'Siska Melati',
-      courierId: 'EMP-002',
+      courierId: 'CUR-002',
       origin: 'Jakarta Barat',
       destination: 'Surabaya',
       currentLocation: 'Surabaya Barat',
@@ -323,7 +315,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
     {
       senderName: 'Toko Kertas Sentosa',
       recipientName: 'Riko Maulana',
-      courierId: 'EMP-006',
+      courierId: 'CUR-006',
       origin: 'Bogor',
       destination: 'Malang',
       currentLocation: 'Hub Malang',
@@ -337,7 +329,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
     {
       senderName: 'PT Agrilog',
       recipientName: 'Hendra Wijaya',
-      courierId: 'EMP-008',
+      courierId: 'CUR-008',
       origin: 'Tangerang',
       destination: 'Solo',
       currentLocation: 'Rest Area Salatiga',
@@ -350,7 +342,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
     {
       senderName: 'PT Lestari Pangan',
       recipientName: 'Mega Puspita',
-      courierId: 'EMP-003',
+      courierId: 'CUR-003',
       origin: 'Jakarta Utara',
       destination: 'Cirebon',
       currentLocation: 'Cirebon',
@@ -364,7 +356,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
     {
       senderName: 'Toko Buku Bina Ilmu',
       recipientName: 'Anita Yuliana',
-      courierId: 'EMP-001',
+      courierId: 'CUR-001',
       origin: 'Bandung',
       destination: 'Tasikmalaya',
       currentLocation: 'Tasikmalaya',
@@ -380,7 +372,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
     {
       senderName: 'CV Borneo Teknik',
       recipientName: 'Reza Pratama',
-      courierId: 'EMP-004',
+      courierId: 'CUR-004',
       origin: 'Karawang',
       destination: 'Purwokerto',
       currentLocation: 'Purwokerto',
@@ -394,7 +386,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
     {
       senderName: 'PT Cipta Kemasan',
       recipientName: 'Rafli Kurniawan',
-      courierId: 'EMP-003',
+      courierId: 'CUR-003',
       origin: 'Tangerang',
       destination: 'Semarang',
       currentLocation: 'Kendal',
@@ -407,7 +399,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
     {
       senderName: 'CV Pangan Prima',
       recipientName: 'Wulan Safitri',
-      courierId: 'EMP-006',
+      courierId: 'CUR-006',
       origin: 'Bogor',
       destination: 'Cirebon',
       currentLocation: 'Cirebon',
@@ -421,7 +413,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
     {
       senderName: 'Toko Bunga Mawar',
       recipientName: 'Siti Rahayu',
-      courierId: 'EMP-001',
+      courierId: 'CUR-001',
       origin: 'Jakarta Selatan',
       destination: 'Bandung',
       currentLocation: 'Gudang Bandung',
@@ -435,7 +427,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
     {
       senderName: 'UD Maju Jaya',
       recipientName: 'Budi Santoso',
-      courierId: 'EMP-002',
+      courierId: 'CUR-002',
       origin: 'Surabaya',
       destination: 'Malang',
       currentLocation: 'Malang',
@@ -449,7 +441,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
     {
       senderName: 'Toko Elektronik Jaya',
       recipientName: 'Linda Kusuma',
-      courierId: 'EMP-010',
+      courierId: 'CUR-010',
       origin: 'Jakarta Barat',
       destination: 'Bekasi',
       currentLocation: 'Cawang',
@@ -462,7 +454,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
     {
       senderName: 'PT Sumber Tekstil',
       recipientName: 'Nadia Putri',
-      courierId: 'EMP-008',
+      courierId: 'CUR-008',
       origin: 'Bandung',
       destination: 'Cirebon',
       currentLocation: 'Cirebon',
@@ -476,7 +468,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
     {
       senderName: 'CV Mebel Sentra',
       recipientName: 'Yusuf Hamdan',
-      courierId: 'EMP-003',
+      courierId: 'CUR-003',
       origin: 'Semarang',
       destination: 'Solo',
       currentLocation: 'Solo',
@@ -492,7 +484,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
     {
       senderName: 'PT Prima Medika',
       recipientName: 'Dewi Lestari',
-      courierId: 'EMP-001',
+      courierId: 'CUR-001',
       origin: 'Jakarta Selatan',
       destination: 'Bandung',
       currentLocation: 'Bandung',
@@ -506,7 +498,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
     {
       senderName: 'CV Berkah Pangan',
       recipientName: 'Rama Saputra',
-      courierId: 'EMP-006',
+      courierId: 'CUR-006',
       origin: 'Bogor',
       destination: 'Yogyakarta',
       currentLocation: 'Klaten',
@@ -519,7 +511,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
     {
       senderName: 'Toko Furnika',
       recipientName: 'Tia Maharani',
-      courierId: 'EMP-004',
+      courierId: 'CUR-004',
       origin: 'Bekasi',
       destination: 'Semarang',
       currentLocation: 'Hub Semarang',
@@ -533,7 +525,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
     {
       senderName: 'PT Kreasi Digital',
       recipientName: 'Galih Pramana',
-      courierId: 'EMP-002',
+      courierId: 'CUR-002',
       origin: 'Jakarta Barat',
       destination: 'Surabaya',
       currentLocation: 'Nganjuk',
@@ -546,7 +538,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
     {
       senderName: 'Toko Bahan Kue Sari',
       recipientName: 'Mira Anggraini',
-      courierId: 'EMP-003',
+      courierId: 'CUR-003',
       origin: 'Bandung',
       destination: 'Tasikmalaya',
       currentLocation: 'Tasikmalaya',
@@ -560,7 +552,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
     {
       senderName: 'PT Mandala Farm',
       recipientName: 'Haris Setiawan',
-      courierId: 'EMP-008',
+      courierId: 'CUR-008',
       origin: 'Tangerang',
       destination: 'Solo',
       currentLocation: 'Boyolali',
@@ -573,7 +565,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
     {
       senderName: 'CV Sinar Kulit',
       recipientName: 'Aulia Putri',
-      courierId: 'EMP-010',
+      courierId: 'CUR-010',
       origin: 'Karawang',
       destination: 'Cirebon',
       currentLocation: 'Cirebon',
@@ -587,7 +579,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
     {
       senderName: 'PT Pertiwi Office',
       recipientName: 'Nina Rahma',
-      courierId: 'EMP-001',
+      courierId: 'CUR-001',
       origin: 'Depok',
       destination: 'Bekasi',
       currentLocation: 'Bekasi',
@@ -603,7 +595,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
     {
       senderName: 'Toko Roti Melati',
       recipientName: 'Sinta Aulia',
-      courierId: 'EMP-001',
+      courierId: 'CUR-001',
       origin: 'Jakarta Selatan',
       destination: 'Bandung',
       currentLocation: 'Cikampek',
@@ -616,7 +608,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
     {
       senderName: 'UD Maju Jaya',
       recipientName: 'Budi Santoso',
-      courierId: 'EMP-002',
+      courierId: 'CUR-002',
       origin: 'Surabaya',
       destination: 'Malang',
       currentLocation: 'Malang',
@@ -630,7 +622,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
     {
       senderName: 'Toko Elektronik Jaya',
       recipientName: 'Linda Kusuma',
-      courierId: 'EMP-004',
+      courierId: 'CUR-004',
       origin: 'Jakarta Barat',
       destination: 'Bekasi',
       currentLocation: 'Jakarta Barat',
@@ -643,7 +635,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
     {
       senderName: 'PT Cipta Kemasan',
       recipientName: 'Rafli Kurniawan',
-      courierId: 'EMP-003',
+      courierId: 'CUR-003',
       origin: 'Tangerang',
       destination: 'Semarang',
       currentLocation: 'Hub Semarang',
@@ -657,7 +649,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
     {
       senderName: 'CV Pangan Prima',
       recipientName: 'Wulan Safitri',
-      courierId: 'EMP-006',
+      courierId: 'CUR-006',
       origin: 'Bogor',
       destination: 'Cirebon',
       currentLocation: 'Tol Cipali KM 112',
@@ -670,7 +662,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
     {
       senderName: 'PT Graha Mode',
       recipientName: 'Nadia Putri',
-      courierId: 'EMP-008',
+      courierId: 'CUR-008',
       origin: 'Bandung',
       destination: 'Yogyakarta',
       currentLocation: 'Yogyakarta',
@@ -684,7 +676,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
     {
       senderName: 'Toko Herbal Nusantara',
       recipientName: 'Andi Wijaya',
-      courierId: 'EMP-010',
+      courierId: 'CUR-010',
       origin: 'Tasikmalaya',
       destination: 'Jakarta Barat',
       currentLocation: 'Cipularang KM 88',
@@ -697,7 +689,7 @@ const packagePlans: Record<string, PackagePlan[]> = {
     {
       senderName: 'CV Sentra Plastik',
       recipientName: 'Maya Pratama',
-      courierId: 'EMP-001',
+      courierId: 'CUR-001',
       origin: 'Depok',
       destination: 'Cirebon',
       currentLocation: 'Cirebon',
@@ -814,7 +806,7 @@ type AttendanceProfile = Omit<
 const attendanceProfiles: Record<string, AttendanceProfile[]> = {
   '2026-01': [
     {
-      employeeId: 'EMP-001',
+      employeeId: 'CUR-001',
       presentDays: 21,
       absentDays: 1,
       sickDays: 0,
@@ -824,7 +816,7 @@ const attendanceProfiles: Record<string, AttendanceProfile[]> = {
       lastAbsentDate: '2026-01-10',
     },
     {
-      employeeId: 'EMP-002',
+      employeeId: 'CUR-002',
       presentDays: 20,
       absentDays: 1,
       sickDays: 1,
@@ -834,7 +826,7 @@ const attendanceProfiles: Record<string, AttendanceProfile[]> = {
       lastAbsentDate: '2026-01-16',
     },
     {
-      employeeId: 'EMP-003',
+      employeeId: 'CUR-003',
       presentDays: 17,
       absentDays: 3,
       sickDays: 1,
@@ -844,7 +836,7 @@ const attendanceProfiles: Record<string, AttendanceProfile[]> = {
       lastAbsentDate: '2026-01-27',
     },
     {
-      employeeId: 'EMP-004',
+      employeeId: 'CUR-004',
       presentDays: 20,
       absentDays: 1,
       sickDays: 0,
@@ -854,7 +846,7 @@ const attendanceProfiles: Record<string, AttendanceProfile[]> = {
       lastAbsentDate: '2026-01-13',
     },
     {
-      employeeId: 'EMP-005',
+      employeeId: 'CUR-005',
       presentDays: 15,
       absentDays: 4,
       sickDays: 1,
@@ -864,7 +856,7 @@ const attendanceProfiles: Record<string, AttendanceProfile[]> = {
       lastAbsentDate: '2026-01-29',
     },
     {
-      employeeId: 'EMP-006',
+      employeeId: 'CUR-006',
       presentDays: 19,
       absentDays: 2,
       sickDays: 0,
@@ -874,7 +866,7 @@ const attendanceProfiles: Record<string, AttendanceProfile[]> = {
       lastAbsentDate: '2026-01-18',
     },
     {
-      employeeId: 'EMP-007',
+      employeeId: 'CUR-007',
       presentDays: 20,
       absentDays: 1,
       sickDays: 0,
@@ -884,7 +876,7 @@ const attendanceProfiles: Record<string, AttendanceProfile[]> = {
       lastAbsentDate: '2026-01-22',
     },
     {
-      employeeId: 'EMP-008',
+      employeeId: 'CUR-008',
       presentDays: 18,
       absentDays: 2,
       sickDays: 0,
@@ -894,7 +886,7 @@ const attendanceProfiles: Record<string, AttendanceProfile[]> = {
       lastAbsentDate: '2026-01-11',
     },
     {
-      employeeId: 'EMP-009',
+      employeeId: 'CUR-009',
       presentDays: 19,
       absentDays: 1,
       sickDays: 1,
@@ -904,7 +896,7 @@ const attendanceProfiles: Record<string, AttendanceProfile[]> = {
       lastAbsentDate: '2026-01-20',
     },
     {
-      employeeId: 'EMP-010',
+      employeeId: 'CUR-010',
       presentDays: 21,
       absentDays: 0,
       sickDays: 0,
@@ -916,7 +908,7 @@ const attendanceProfiles: Record<string, AttendanceProfile[]> = {
   ],
   '2026-02': [
     {
-      employeeId: 'EMP-001',
+      employeeId: 'CUR-001',
       presentDays: 19,
       absentDays: 1,
       sickDays: 1,
@@ -926,7 +918,7 @@ const attendanceProfiles: Record<string, AttendanceProfile[]> = {
       lastAbsentDate: '2026-02-08',
     },
     {
-      employeeId: 'EMP-002',
+      employeeId: 'CUR-002',
       presentDays: 18,
       absentDays: 2,
       sickDays: 0,
@@ -936,7 +928,7 @@ const attendanceProfiles: Record<string, AttendanceProfile[]> = {
       lastAbsentDate: '2026-02-21',
     },
     {
-      employeeId: 'EMP-003',
+      employeeId: 'CUR-003',
       presentDays: 14,
       absentDays: 5,
       sickDays: 1,
@@ -946,7 +938,7 @@ const attendanceProfiles: Record<string, AttendanceProfile[]> = {
       lastAbsentDate: '2026-02-24',
     },
     {
-      employeeId: 'EMP-004',
+      employeeId: 'CUR-004',
       presentDays: 19,
       absentDays: 1,
       sickDays: 0,
@@ -956,7 +948,7 @@ const attendanceProfiles: Record<string, AttendanceProfile[]> = {
       lastAbsentDate: '2026-02-14',
     },
     {
-      employeeId: 'EMP-005',
+      employeeId: 'CUR-005',
       presentDays: 13,
       absentDays: 5,
       sickDays: 1,
@@ -966,7 +958,7 @@ const attendanceProfiles: Record<string, AttendanceProfile[]> = {
       lastAbsentDate: '2026-02-25',
     },
     {
-      employeeId: 'EMP-006',
+      employeeId: 'CUR-006',
       presentDays: 18,
       absentDays: 1,
       sickDays: 0,
@@ -976,7 +968,7 @@ const attendanceProfiles: Record<string, AttendanceProfile[]> = {
       lastAbsentDate: '2026-02-11',
     },
     {
-      employeeId: 'EMP-007',
+      employeeId: 'CUR-007',
       presentDays: 19,
       absentDays: 0,
       sickDays: 1,
@@ -986,7 +978,7 @@ const attendanceProfiles: Record<string, AttendanceProfile[]> = {
       lastAbsentDate: '2026-02-06',
     },
     {
-      employeeId: 'EMP-008',
+      employeeId: 'CUR-008',
       presentDays: 17,
       absentDays: 3,
       sickDays: 0,
@@ -996,7 +988,7 @@ const attendanceProfiles: Record<string, AttendanceProfile[]> = {
       lastAbsentDate: '2026-02-18',
     },
     {
-      employeeId: 'EMP-009',
+      employeeId: 'CUR-009',
       presentDays: 18,
       absentDays: 2,
       sickDays: 0,
@@ -1006,7 +998,7 @@ const attendanceProfiles: Record<string, AttendanceProfile[]> = {
       lastAbsentDate: '2026-02-09',
     },
     {
-      employeeId: 'EMP-010',
+      employeeId: 'CUR-010',
       presentDays: 20,
       absentDays: 0,
       sickDays: 0,
@@ -1018,7 +1010,7 @@ const attendanceProfiles: Record<string, AttendanceProfile[]> = {
   ],
   '2026-03': [
     {
-      employeeId: 'EMP-001',
+      employeeId: 'CUR-001',
       presentDays: 20,
       absentDays: 0,
       sickDays: 1,
@@ -1028,7 +1020,7 @@ const attendanceProfiles: Record<string, AttendanceProfile[]> = {
       lastAbsentDate: '2026-03-04',
     },
     {
-      employeeId: 'EMP-002',
+      employeeId: 'CUR-002',
       presentDays: 19,
       absentDays: 1,
       sickDays: 0,
@@ -1038,7 +1030,7 @@ const attendanceProfiles: Record<string, AttendanceProfile[]> = {
       lastAbsentDate: '2026-03-19',
     },
     {
-      employeeId: 'EMP-003',
+      employeeId: 'CUR-003',
       presentDays: 16,
       absentDays: 4,
       sickDays: 1,
@@ -1048,7 +1040,7 @@ const attendanceProfiles: Record<string, AttendanceProfile[]> = {
       lastAbsentDate: '2026-03-26',
     },
     {
-      employeeId: 'EMP-004',
+      employeeId: 'CUR-004',
       presentDays: 18,
       absentDays: 2,
       sickDays: 0,
@@ -1058,7 +1050,7 @@ const attendanceProfiles: Record<string, AttendanceProfile[]> = {
       lastAbsentDate: '2026-03-15',
     },
     {
-      employeeId: 'EMP-005',
+      employeeId: 'CUR-005',
       presentDays: 12,
       absentDays: 6,
       sickDays: 1,
@@ -1068,7 +1060,7 @@ const attendanceProfiles: Record<string, AttendanceProfile[]> = {
       lastAbsentDate: '2026-03-28',
     },
     {
-      employeeId: 'EMP-006',
+      employeeId: 'CUR-006',
       presentDays: 19,
       absentDays: 1,
       sickDays: 0,
@@ -1078,7 +1070,7 @@ const attendanceProfiles: Record<string, AttendanceProfile[]> = {
       lastAbsentDate: '2026-03-12',
     },
     {
-      employeeId: 'EMP-007',
+      employeeId: 'CUR-007',
       presentDays: 20,
       absentDays: 0,
       sickDays: 0,
@@ -1088,7 +1080,7 @@ const attendanceProfiles: Record<string, AttendanceProfile[]> = {
       lastAbsentDate: '2026-03-08',
     },
     {
-      employeeId: 'EMP-008',
+      employeeId: 'CUR-008',
       presentDays: 17,
       absentDays: 2,
       sickDays: 1,
@@ -1098,7 +1090,7 @@ const attendanceProfiles: Record<string, AttendanceProfile[]> = {
       lastAbsentDate: '2026-03-17',
     },
     {
-      employeeId: 'EMP-009',
+      employeeId: 'CUR-009',
       presentDays: 18,
       absentDays: 1,
       sickDays: 0,
@@ -1108,7 +1100,7 @@ const attendanceProfiles: Record<string, AttendanceProfile[]> = {
       lastAbsentDate: '2026-03-10',
     },
     {
-      employeeId: 'EMP-010',
+      employeeId: 'CUR-010',
       presentDays: 19,
       absentDays: 1,
       sickDays: 0,
@@ -1120,7 +1112,7 @@ const attendanceProfiles: Record<string, AttendanceProfile[]> = {
   ],
   '2026-04': [
     {
-      employeeId: 'EMP-001',
+      employeeId: 'CUR-001',
       presentDays: 19,
       absentDays: 1,
       sickDays: 0,
@@ -1130,7 +1122,7 @@ const attendanceProfiles: Record<string, AttendanceProfile[]> = {
       lastAbsentDate: '2026-04-04',
     },
     {
-      employeeId: 'EMP-002',
+      employeeId: 'CUR-002',
       presentDays: 18,
       absentDays: 0,
       sickDays: 1,
@@ -1140,7 +1132,7 @@ const attendanceProfiles: Record<string, AttendanceProfile[]> = {
       lastAbsentDate: '2026-04-08',
     },
     {
-      employeeId: 'EMP-003',
+      employeeId: 'CUR-003',
       presentDays: 15,
       absentDays: 4,
       sickDays: 1,
@@ -1150,7 +1142,7 @@ const attendanceProfiles: Record<string, AttendanceProfile[]> = {
       lastAbsentDate: '2026-04-19',
     },
     {
-      employeeId: 'EMP-004',
+      employeeId: 'CUR-004',
       presentDays: 16,
       absentDays: 2,
       sickDays: 0,
@@ -1160,7 +1152,7 @@ const attendanceProfiles: Record<string, AttendanceProfile[]> = {
       lastAbsentDate: '2026-04-11',
     },
     {
-      employeeId: 'EMP-005',
+      employeeId: 'CUR-005',
       presentDays: 11,
       absentDays: 6,
       sickDays: 1,
@@ -1170,7 +1162,7 @@ const attendanceProfiles: Record<string, AttendanceProfile[]> = {
       lastAbsentDate: '2026-04-18',
     },
     {
-      employeeId: 'EMP-006',
+      employeeId: 'CUR-006',
       presentDays: 18,
       absentDays: 1,
       sickDays: 0,
@@ -1180,7 +1172,7 @@ const attendanceProfiles: Record<string, AttendanceProfile[]> = {
       lastAbsentDate: '2026-04-05',
     },
     {
-      employeeId: 'EMP-007',
+      employeeId: 'CUR-007',
       presentDays: 19,
       absentDays: 0,
       sickDays: 0,
@@ -1190,7 +1182,7 @@ const attendanceProfiles: Record<string, AttendanceProfile[]> = {
       lastAbsentDate: '2026-04-09',
     },
     {
-      employeeId: 'EMP-008',
+      employeeId: 'CUR-008',
       presentDays: 16,
       absentDays: 3,
       sickDays: 0,
@@ -1200,7 +1192,7 @@ const attendanceProfiles: Record<string, AttendanceProfile[]> = {
       lastAbsentDate: '2026-04-16',
     },
     {
-      employeeId: 'EMP-009',
+      employeeId: 'CUR-009',
       presentDays: 17,
       absentDays: 2,
       sickDays: 0,
@@ -1210,7 +1202,7 @@ const attendanceProfiles: Record<string, AttendanceProfile[]> = {
       lastAbsentDate: '2026-04-12',
     },
     {
-      employeeId: 'EMP-010',
+      employeeId: 'CUR-010',
       presentDays: 18,
       absentDays: 1,
       sickDays: 0,
@@ -1230,8 +1222,8 @@ export const attendanceRecords: AttendanceRecord[] = monthOptions.flatMap(({ val
       id: `ATT-${padValue(index + 1, 3)}-${monthKey.slice(-2)}`,
       monthKey,
       employeeId: profile.employeeId,
-      employeeName: employee?.name ?? 'Karyawan',
-      division: employee?.division ?? 'Operasional',
+      employeeName: employee?.name ?? 'Kurir',
+      division: employee?.coverageArea ?? 'Operasional Kurir',
       presentDays: profile.presentDays,
       absentDays: profile.absentDays,
       sickDays: profile.sickDays,
@@ -1435,3 +1427,4 @@ export const managerProfile: ManagerProfile = {
   startDate: '2022-05-14',
   bio: 'Manager operasional yang fokus pada kestabilan SLA pengiriman, peningkatan keamanan data, dan pembinaan tim kurir lintas area.',
 };
+

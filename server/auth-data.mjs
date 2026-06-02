@@ -53,6 +53,8 @@ const mapAuthUserRow = (row) => ({
   role: row.role,
   phone: row.phone ?? undefined,
   avatar: row.avatar_url ?? undefined,
+  employeeId: row.employee_id ?? row.courier_id ?? undefined,
+  courierId: row.courier_id ?? row.employee_id ?? undefined,
 });
 
 const getNextCustomerId = async (client) => {
@@ -79,10 +81,26 @@ const getAccountByUsername = async (client, username) => {
         COALESCE(c.name, ua.name) AS name,
         COALESCE(c.email, ua.email) AS email,
         COALESCE(c.phone, ua.phone) AS phone,
-        ua.avatar_url
+        ua.avatar_url,
+        NULL AS courier_id,
+        NULL AS employee_id
       FROM user_accounts ua
       LEFT JOIN customers c ON c.id = ua.customer_id
       WHERE ua.username = $1
+      UNION ALL
+      SELECT
+        ca.id,
+        ca.username,
+        ca.password_hash,
+        ca.role,
+        ca.name,
+        ca.email,
+        ca.phone,
+        ca.avatar_url,
+        ca.courier_id,
+        ca.courier_id AS employee_id
+      FROM courier_accounts ca
+      WHERE ca.username = $1
       LIMIT 1
     `,
     [username]
@@ -98,6 +116,15 @@ const ensureUsernameAvailable = async (client, username) => {
   );
 
   if (rowCount) {
+    throw new ConflictError('Username sudah digunakan oleh akun lain.');
+  }
+
+  const { rowCount: courierAccountCount } = await client.query(
+    'SELECT 1 FROM courier_accounts WHERE username = $1 LIMIT 1',
+    [username]
+  );
+
+  if (courierAccountCount) {
     throw new ConflictError('Username sudah digunakan oleh akun lain.');
   }
 };
@@ -161,6 +188,25 @@ const createAuthInfrastructure = async () => {
   await pool.query('CREATE INDEX IF NOT EXISTS idx_user_accounts_role ON user_accounts(role)');
   await pool.query(
     'CREATE INDEX IF NOT EXISTS idx_user_accounts_customer_id ON user_accounts(customer_id)'
+  );
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS courier_accounts (
+      id TEXT PRIMARY KEY,
+      username TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      role TEXT NOT NULL DEFAULT 'courier' CHECK (role = 'courier'),
+      courier_id TEXT NOT NULL UNIQUE REFERENCES couriers(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL,
+      phone TEXT NULL,
+      avatar_url TEXT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  await pool.query(
+    'CREATE INDEX IF NOT EXISTS idx_courier_accounts_courier_id ON courier_accounts(courier_id)'
   );
 };
 
@@ -287,34 +333,32 @@ export const registerCourierAccount = async (payload) => {
   await ensureAuthInfrastructure();
 
   return withTransaction(async (client) => {
-    const employeeId = normalizeText(payload.employeeId);
+    const courierId = normalizeText(payload.courierId ?? payload.employeeId);
     const username = normalizeUsername(payload.username);
     const email = normalizeEmail(payload.email);
     const phone = normalizeText(payload.phone);
     const password = String(payload.password ?? '');
 
-    validateRequired(employeeId, 'ID karyawan wajib diisi.');
+    validateRequired(courierId, 'ID kurir wajib diisi.');
     validateRequired(email, 'Email kurir wajib diisi.');
     validateUsername(username);
     validatePassword(password);
 
-    // Pastikan employee ada
-    const { rows: empRows } = await client.query(
-      'SELECT id, name, phone FROM employees WHERE id = $1 LIMIT 1',
-      [employeeId]
+    const { rows: courierRows } = await client.query(
+      'SELECT id, name, phone FROM couriers WHERE id = $1 LIMIT 1',
+      [courierId]
     );
-    if (!empRows[0]) {
-      throw new BadRequestError('Data karyawan tidak ditemukan.');
+    if (!courierRows[0]) {
+      throw new BadRequestError('Data kurir tidak ditemukan.');
     }
-    const employee = empRows[0];
+    const courier = courierRows[0];
 
-    // Cek apakah employee sudah punya akun kurir
     const { rowCount: existingCourierCount } = await client.query(
-      'SELECT 1 FROM courier_accounts WHERE employee_id = $1 LIMIT 1',
-      [employeeId]
+      'SELECT 1 FROM courier_accounts WHERE courier_id = $1 LIMIT 1',
+      [courierId]
     );
     if (existingCourierCount) {
-      throw new ConflictError('Karyawan ini sudah memiliki akun kurir.');
+      throw new ConflictError('Kurir ini sudah memiliki akun login.');
     }
 
     // Cek username tidak bentrok di user_accounts maupun courier_accounts
@@ -339,7 +383,7 @@ export const registerCourierAccount = async (payload) => {
     await client.query(
       `
         INSERT INTO courier_accounts (
-          id, username, password_hash, role, employee_id, name, email, phone, avatar_url
+          id, username, password_hash, role, courier_id, name, email, phone, avatar_url
         ) VALUES (
           $1, $2, $3, 'courier', $4, $5, $6, $7, NULL
         )
@@ -348,20 +392,21 @@ export const registerCourierAccount = async (payload) => {
         accountId,
         username,
         passwordHash,
-        employeeId,
-        employee.name,
+        courierId,
+        courier.name,
         email,
-        phone || employee.phone || null,
+        phone || courier.phone || null,
       ]
     );
 
     return {
       id: accountId,
-      name: employee.name,
+      name: courier.name,
       email,
       role: 'courier',
-      phone: phone || employee.phone || undefined,
-      employeeId,
+      phone: phone || courier.phone || undefined,
+      courierId,
+      employeeId: courierId,
     };
   });
 };

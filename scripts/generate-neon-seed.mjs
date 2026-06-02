@@ -220,7 +220,7 @@ const sqlSections = [
   '-- Generated from src/app/data/adminData.ts',
   '-- Safe for local/dev dummy data refresh in Neon',
   'BEGIN;',
-  'TRUNCATE TABLE user_accounts, customer_histories, package_tracking_events, attendance_records, packages, customers, employees, manager_profiles, vehicles RESTART IDENTITY CASCADE;',
+  'TRUNCATE TABLE courier_accounts, user_accounts, customer_histories, package_tracking_events, attendance_records, packages, customers, couriers, manager_profiles, vehicles RESTART IDENTITY CASCADE;',
   buildInsert(
     'vehicles',
     ['id', 'name', 'type', 'plate_number', 'capacity', 'status'],
@@ -234,31 +234,29 @@ const sqlSections = [
     }))
   ),
   buildInsert(
-    'employees',
+    'couriers',
     [
       'id',
       'name',
-      'origin',
-      'age',
-      'years_working',
-      'salary',
-      'status',
-      'division',
-      'position',
+      'base_area',
+      'coverage_area',
+      'vehicle_type',
+      'vehicle_plate',
       'phone',
+      'status',
+      'completed_deliveries',
       'performance_score',
     ],
     employees.map((employee) => ({
       id: employee.id,
       name: employee.name,
-      origin: employee.origin,
-      age: employee.age,
-      years_working: employee.yearsWorking,
-      salary: employee.salary,
-      status: employee.status,
-      division: employee.division,
-      position: employee.position,
+      base_area: employee.baseArea,
+      coverage_area: employee.coverageArea,
+      vehicle_type: employee.vehicleType,
+      vehicle_plate: employee.vehiclePlate || null,
       phone: employee.phone,
+      status: employee.status,
+      completed_deliveries: employee.completedDeliveries,
       performance_score: employee.performanceScore,
     }))
   ),
@@ -424,7 +422,7 @@ await fs.writeFile(outputPath, `${sqlSections.join('\n\n')}\n`, 'utf8');
 console.log(`Seed SQL written to ${path.relative(rootDir, outputPath)}`);
 console.log(
   [
-    `employees=${employees.length}`,
+    `couriers=${employees.length}`,
     `packages=${adminPackages.length}`,
     `package_tracking_events=${trackingEvents.length}`,
     `attendance_records=${attendanceRecords.length}`,

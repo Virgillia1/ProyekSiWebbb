@@ -44,19 +44,19 @@ export const fetchAdminBootstrap = () =>
   requestJson<AdminBootstrapData>('/api/admin/bootstrap');
 
 export const createEmployeeRequest = (employee: Employee) =>
-  requestJson<Employee>('/api/admin/employees', {
+  requestJson<Employee>('/api/admin/couriers', {
     method: 'POST',
     body: JSON.stringify(employee),
   });
 
 export const updateEmployeeRequest = (employee: Employee) =>
-  requestJson<Employee>(`/api/admin/employees/${employee.id}`, {
+  requestJson<Employee>(`/api/admin/couriers/${employee.id}`, {
     method: 'PUT',
     body: JSON.stringify(employee),
   });
 
 export const deleteEmployeeRequest = (employeeId: string) =>
-  requestJson<Employee>(`/api/admin/employees/${employeeId}`, {
+  requestJson<Employee>(`/api/admin/couriers/${employeeId}`, {
     method: 'DELETE',
   });
 
@@ -133,12 +133,12 @@ export interface CourierAccountInfo {
   created_at?: string;
 }
 
-export const createCourierAccountRequest = (employeeId: string, payload: CourierAccountPayload) =>
-  requestJson<CourierAccountInfo>(`/api/admin/employees/${employeeId}/courier-account`, {
+export const createCourierAccountRequest = (courierId: string, payload: CourierAccountPayload) =>
+  requestJson<CourierAccountInfo>(`/api/admin/couriers/${courierId}/courier-account`, {
     method: 'POST',
     body: JSON.stringify(payload),
   });
 
-export const getCourierAccountInfoRequest = (employeeId: string) =>
-  requestJson<CourierAccountInfo>(`/api/admin/employees/${employeeId}/courier-account`);
+export const getCourierAccountInfoRequest = (courierId: string) =>
+  requestJson<CourierAccountInfo>(`/api/admin/couriers/${courierId}/courier-account`);
 

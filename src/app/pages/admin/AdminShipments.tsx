@@ -227,13 +227,7 @@ export function AdminShipments() {
 
   const isHistoricalMonth = selectedMonth < '2026-04';
   const activeCouriers = useMemo(
-    () =>
-      employees.filter(
-        (employee) =>
-          employee.status === 'Aktif' &&
-          (employee.division === 'Operasional' ||
-            employee.position.toLowerCase().includes('kurir'))
-      ),
+    () => employees.filter((employee) => employee.status === 'Aktif'),
     [employees]
   );
 
