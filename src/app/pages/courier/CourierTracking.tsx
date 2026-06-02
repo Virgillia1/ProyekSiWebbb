@@ -181,13 +181,22 @@ export function CourierTracking() {
 
             {/* Action Buttons */}
             <div className="flex gap-2">
-              <Button 
-                className="flex-1" 
-                size="sm"
-                onClick={() => handleUpdateStatus(delivery)}
-              >
-                Update Status
-              </Button>
+              {(() => {
+                const isCompleted =
+                  delivery.status === 'Selesai' ||
+                  delivery.status.includes('Terkirim') ||
+                  delivery.status === 'Sampai Tujuan';
+                return (
+                  <Button
+                    className="flex-1"
+                    size="sm"
+                    onClick={() => handleUpdateStatus(delivery)}
+                    disabled={isCompleted}
+                  >
+                    {isCompleted ? 'Selesai' : 'Update Status'}
+                  </Button>
+                );
+              })()}
               <Button 
                 variant="outline" 
                 size="sm"

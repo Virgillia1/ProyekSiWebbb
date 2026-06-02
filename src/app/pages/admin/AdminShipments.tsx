@@ -655,6 +655,15 @@ export function AdminShipments() {
             <>
               <div className="grid gap-5 lg:grid-cols-[minmax(0,1.05fr)_320px]">
                 <div className="space-y-4">
+                  {selectedPackage.status === 'Selesai' && (
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-xs text-amber-800 flex items-center gap-2.5">
+                      <span className="relative flex h-2 w-2 shrink-0">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                      </span>
+                      <span>Paket ini telah selesai dan diterima pelanggan. Untuk menjaga integritas data pengiriman, paket yang sudah selesai tidak dapat diubah atau dihapus.</span>
+                    </div>
+                  )}
                   <div className="rounded-2xl border border-border bg-secondary/20 p-4">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
@@ -773,6 +782,7 @@ export function AdminShipments() {
                   variant="outline"
                   className="border-destructive/30 text-destructive hover:bg-destructive/10"
                   onClick={() => setPackageToDelete(selectedPackage)}
+                  disabled={selectedPackage.status === 'Selesai'}
                 >
                   <Trash2 className="h-4 w-4" />
                   Hapus
@@ -780,6 +790,7 @@ export function AdminShipments() {
                 <Button
                   type="button"
                   onClick={() => openPackageUpdate(selectedPackage.id)}
+                  disabled={selectedPackage.status === 'Selesai'}
                 >
                   <PencilLine className="h-4 w-4" />
                   Update

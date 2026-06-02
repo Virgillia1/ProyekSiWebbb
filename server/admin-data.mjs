@@ -1,5 +1,5 @@
 import { pool, withTransaction } from './db.mjs';
-import { ConflictError, NotFoundError } from './errors.mjs';
+import { ConflictError, NotFoundError, BadRequestError } from './errors.mjs';
 
 const pad = (value) => String(value).padStart(2, '0');
 
@@ -653,6 +653,9 @@ export const createPackage = async (packageData) =>
 export const updatePackage = async (id, packageData) =>
   withTransaction(async (client) => {
     const existingPackage = await getPackageById(id, client);
+    if (existingPackage.status === 'Selesai') {
+      throw new BadRequestError('Paket yang sudah selesai tidak dapat diubah.');
+    }
     const courierRows = await client.query('SELECT name FROM couriers WHERE id = $1 LIMIT 1', [
       packageData.courierId,
     ]);
@@ -753,6 +756,9 @@ export const updatePackage = async (id, packageData) =>
 export const appendTrackingEvent = async (packageId, trackingEvent) =>
   withTransaction(async (client) => {
     const packageData = await getPackageById(packageId, client);
+    if (packageData.status === 'Selesai') {
+      throw new BadRequestError('Paket yang sudah selesai tidak dapat diperbarui lagi.');
+    }
     const eventId = `EVT-${packageId}-${Date.now()}`;
     const timestamp = trackingEvent.timestamp ?? new Date();
     const nextPackageStatus =
@@ -810,6 +816,9 @@ export const appendTrackingEvent = async (packageId, trackingEvent) =>
 export const deletePackage = async (id) =>
   withTransaction(async (client) => {
     const existingPackage = await getPackageById(id, client);
+    if (existingPackage.status === 'Selesai') {
+      throw new BadRequestError('Paket yang sudah selesai tidak dapat dihapus.');
+    }
     await client.query('DELETE FROM customer_histories WHERE resi = $1', [existingPackage.resi]);
     await client.query('DELETE FROM packages WHERE id = $1', [id]);
     return existingPackage;
