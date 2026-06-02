@@ -30,6 +30,7 @@ import {
   TableRow,
 } from '../../components/ui/table';
 import { monthOptions } from '../../data/adminData';
+import { useMetadata } from '../../lib/useMetadata';
 
 const ITEMS_PER_PAGE = 5;
 const statusBadgeClass: Record<string, string> = {
@@ -59,6 +60,11 @@ const getAttendanceSearchText = (record: {
     .toLowerCase();
 
 export function AdminAttendance() {
+  useMetadata(
+    'Rekap Presensi Karyawan (Admin)',
+    'Pantau status kehadiran karyawan, total sakit, izin, alpha, keterlambatan, dan detail absensi tinggi di CargoLite.'
+  );
+
   const { attendanceRecords } = useAdminData();
   const [selectedMonth, setSelectedMonth] = useState('2026-04');
   const [searchQuery, setSearchQuery] = useState('');

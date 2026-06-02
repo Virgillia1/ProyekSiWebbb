@@ -1,8 +1,14 @@
 import { Link } from 'react-router';
 import { Home, ArrowLeft } from 'lucide-react';
 import { Button } from '../components/ui/button';
+import { useMetadata } from '../lib/useMetadata';
 
 export function NotFound() {
+  useMetadata(
+    'Halaman Tidak Ditemukan',
+    'Halaman yang Anda cari tidak dapat ditemukan. Kembali ke beranda CargoLite.'
+  );
+
   return (
     <div className="min-h-[calc(100vh-73px)] flex items-center justify-center bg-background">
       <div className="text-center px-6">

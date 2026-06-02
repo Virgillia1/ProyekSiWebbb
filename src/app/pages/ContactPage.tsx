@@ -3,8 +3,14 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
 import { motion } from 'motion/react';
+import { useMetadata } from '../lib/useMetadata';
 
 export function ContactPage() {
+  useMetadata(
+    'Hubungi Kami',
+    'Ada pertanyaan atau keluhan mengenai pengiriman kargo Anda? Hubungi tim support CargoLite melalui form kontak ini.'
+  );
+
   return (
     <div>
       {/* Header */}

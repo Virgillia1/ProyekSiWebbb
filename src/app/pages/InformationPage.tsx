@@ -3,6 +3,7 @@ import { faqs, dangerousGoods, shippingRequirements } from '../data/mockData';
 import { MessageCircle, Phone, Mail, Flame, AlertTriangle, Droplets, Wind } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { motion } from 'motion/react';
+import { useMetadata } from '../lib/useMetadata';
 
 const dangerousGoodsIcons = {
   flame: Flame,
@@ -12,6 +13,11 @@ const dangerousGoodsIcons = {
 };
 
 export function InformationPage() {
+  useMetadata(
+    'Informasi & Ketentuan',
+    'Pelajari panduan lengkap pengiriman, syarat & ketentuan, serta cara melakukan klaim barang bersama CargoLite.'
+  );
+
   return (
     <div>
       {/* Header */}

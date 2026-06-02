@@ -20,8 +20,14 @@ import { fetchTrackingByResi } from '../lib/trackingApi';
 import { Delivery } from '../types';
 import { toast } from 'sonner';
 import { motion } from 'motion/react';
+import { useMetadata } from '../lib/useMetadata';
 
 export function TrackingPage() {
+  useMetadata(
+    'Pelacakan Resi',
+    'Masukkan nomor resi CargoLite Anda di sini untuk melacak status dan lokasi pengiriman paket Anda secara real-time.'
+  );
+
   const [resiNumber, setResiNumber] = useState('');
   const [delivery, setDelivery] = useState<Delivery | null>(null);
   const [notFound, setNotFound] = useState(false);

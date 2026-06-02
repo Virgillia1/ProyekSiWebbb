@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { AdminTablePagination } from '../../components/admin/AdminTablePagination';
 import { AdminTableToolbar } from '../../components/admin/AdminTableToolbar';
 import { useAdminData } from '../../contexts/AdminDataContext';
+import { useMetadata } from '../../lib/useMetadata';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -136,6 +137,8 @@ const getPackageSearchText = (item: AdminPackage) =>
     item.currentLocation,
     item.service,
     item.status,
+    item.itemType ?? '',
+    item.description ?? '',
   ]
     .join(' ')
     .toLowerCase();
@@ -204,6 +207,11 @@ const normalizePackageDraft = (draftPackage: AdminPackage, isHistoricalMonth: bo
 };
 
 export function AdminShipments() {
+  useMetadata(
+    'Kelola Pengiriman (Admin)',
+    'Kelola data kargo, edit status pengiriman, buat resi baru, dan atur penugasan kurir di panel admin CargoLite.'
+  );
+
   const [searchParams, setSearchParams] = useSearchParams();
   const {
     packages,
@@ -391,6 +399,49 @@ export function AdminShipments() {
     if (packageDialogMode === 'create' && !draftPackage.courierId) {
       toast.error('Pilih kurir terlebih dahulu', {
         description: 'Admin wajib memilih kurir yang bertugas untuk paket ini sebelum menyimpan.',
+      });
+      return;
+    }
+
+    // Validasi: field kosong
+    if (!draftPackage.senderName.trim()) {
+      toast.error('Nama pengirim wajib diisi', {
+        description: 'Tuliskan nama pengirim sebelum menyimpan data kargo.',
+      });
+      return;
+    }
+    if (!draftPackage.recipientName.trim()) {
+      toast.error('Nama penerima wajib diisi', {
+        description: 'Tuliskan nama penerima sebelum menyimpan data kargo.',
+      });
+      return;
+    }
+
+    // Validasi: nomor telepon
+    const phoneClean = draftPackage.recipientPhone?.replace(/\D/g, '') ?? '';
+    if (!draftPackage.recipientPhone?.trim()) {
+      toast.error('Nomor telepon penerima wajib diisi', {
+        description: 'Masukkan nomor telepon penerima sebelum menyimpan data kargo.',
+      });
+      return;
+    }
+    if (phoneClean.length < 9 || phoneClean.length > 15) {
+      toast.error('Format nomor telepon tidak valid', {
+        description: 'Nomor telepon penerima harus berupa angka dengan panjang 9-15 digit.',
+      });
+      return;
+    }
+
+    // Validasi: input angka (berat & harga barang)
+    if (Number(draftPackage.weightKg) <= 0) {
+      toast.error('Berat barang tidak valid', {
+        description: 'Berat barang harus lebih besar dari 0 kg.',
+      });
+      return;
+    }
+    if (Number(draftPackage.declaredValue) < 0) {
+      toast.error('Nilai barang tidak valid', {
+        description: 'Nilai barang yang dideklarasikan tidak boleh negatif.',
       });
       return;
     }

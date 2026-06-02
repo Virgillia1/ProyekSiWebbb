@@ -88,7 +88,14 @@ const buildNewCourierDraft = (couriers: Courier[]): Courier => {
   };
 };
 
+import { useMetadata } from '../../lib/useMetadata';
+
 export function AdminEmployees() {
+  useMetadata(
+    'Kelola Karyawan (Admin)',
+    'Kelola database karyawan dan kurir aktif, daftarkan akun baru, serta pantau status penugasan mereka di CargoLite.'
+  );
+
   const {
     employees: couriers,
     createEmployee: createCourier,

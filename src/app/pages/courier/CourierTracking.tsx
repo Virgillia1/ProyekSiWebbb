@@ -13,7 +13,14 @@ import { motion } from 'motion/react';
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
 
+import { useMetadata } from '../../lib/useMetadata';
+
 export function CourierTracking() {
+  useMetadata(
+    'Daftar Pengantaran Kurir',
+    'Lihat dan kelola pengiriman paket aktif, update status pelacakan real-time, dan unggah foto bukti pengiriman.'
+  );
+
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDelivery, setSelectedDelivery] = useState<CourierDelivery | null>(null);

@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Link, useLocation, Outlet, useNavigate } from 'react-router';
 import { TruckIcon, Package, Map, User, LogOut } from 'lucide-react';
 import { Button } from './ui/button';
@@ -14,6 +15,14 @@ export function CourierLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+
+  useEffect(() => {
+    if (!user) {
+      navigate('/login', { replace: true });
+    } else if (user.role !== 'courier') {
+      navigate('/login', { replace: true });
+    }
+  }, [user, navigate]);
 
   const isActive = (path: string) => location.pathname === path;
 

@@ -10,7 +10,14 @@ import { useAdminData } from '../../contexts/AdminDataContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { managerProfile } from '../../data/adminData';
 
+import { useMetadata } from '../../lib/useMetadata';
+
 export function AdminProfile() {
+  useMetadata(
+    'Profil Admin',
+    'Informasi profil dan pengaturan biodata diri admin CargoLite.'
+  );
+
   const { user, updateUser } = useAuth();
   const {
     managerProfile: managerProfileData,

@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from '../../components/ui/select';
 import { monthOptions, type PackageStatus } from '../../data/adminData';
+import { useMetadata } from '../../lib/useMetadata';
 
 const chartConfig = {
   terkirim: {
@@ -48,6 +49,11 @@ const isDeliveredStatus = (status: PackageStatus) =>
   status === 'Selesai' || status === 'Sampai Tujuan';
 
 export function AdminDashboard() {
+  useMetadata(
+    'Dashboard Admin',
+    'Panel kontrol utama admin CargoLite untuk memantau performa, kehadiran karyawan, status armada, dan ringkasan bulanan.'
+  );
+
   const navigate = useNavigate();
   const { packages } = useAdminData();
   const [selectedMonth, setSelectedMonth] = useState('2026-04');

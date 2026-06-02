@@ -5,7 +5,14 @@ import { useAuth } from '../../contexts/AuthContext';
 import { fetchCourierPackages, createCourierTrackingEvent, type CourierDelivery } from '../../lib/trackingApi';
 import { toast } from 'sonner';
 
+import { useMetadata } from '../../lib/useMetadata';
+
 export function CourierDashboard() {
+  useMetadata(
+    'Dashboard Kurir',
+    'Pantau sisa tugas pengiriman paket Anda hari ini, statistik penyelesaian, dan klaim tugas baru di CargoLite.'
+  );
+
   const { user } = useAuth();
   const [deliveries, setDeliveries] = useState<CourierDelivery[]>([]);
   const [unclaimedDeliveries, setUnclaimedDeliveries] = useState<CourierDelivery[]>([]);

@@ -74,6 +74,14 @@ function AdminLayoutShell() {
   const { user, logout } = useAuth();
   const { loading } = useAdminData();
 
+  useEffect(() => {
+    if (!user) {
+      navigate('/login', { replace: true });
+    } else if (user.role !== 'admin') {
+      navigate('/login', { replace: true });
+    }
+  }, [user, navigate]);
+
   const isActive = (path: string) => location.pathname.startsWith(path);
 
   useEffect(() => {

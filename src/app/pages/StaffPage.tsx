@@ -5,8 +5,14 @@ import { StaffCard } from '../components/StaffCard';
 import { StaffDetailModal } from '../components/StaffDetailModal';
 import { staff, Staff } from '../data/mockData';
 import { motion } from 'motion/react';
+import { useMetadata } from '../lib/useMetadata';
 
 export function StaffPage() {
+  useMetadata(
+    'Tim & Staff Kami',
+    'Kenali para profesional logistik, kurir terpercaya, dan tim operasional CargoLite yang siap mengantarkan paket Anda dengan selamat.'
+  );
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
   const [modalOpen, setModalOpen] = useState(false);

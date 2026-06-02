@@ -76,7 +76,14 @@ const buildNewVehicleDraft = (vehicles: Vehicle[]): Vehicle => {
   };
 };
 
+import { useMetadata } from '../../lib/useMetadata';
+
 export function AdminVehicles() {
+  useMetadata(
+    'Kelola Armada Kendaraan (Admin)',
+    'Pantau ketersediaan armada kendaraan pengiriman CargoLite, kelola plat nomor, jenis kendaraan, dan kapasitas angkut.'
+  );
+
   const {
     vehicles = [],
     createVehicle,

@@ -6,7 +6,14 @@ import { Label } from '../../components/ui/label';
 import { useAuth } from '../../contexts/AuthContext';
 import { motion } from 'motion/react';
 
+import { useMetadata } from '../../lib/useMetadata';
+
 export function CourierProfile() {
+  useMetadata(
+    'Profil Kurir',
+    'Informasi detail akun kurir CargoLite, data performa kerja, dan statistik penugasan Anda.'
+  );
+
   const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({

@@ -2,8 +2,14 @@ import { Link } from 'react-router';
 import { ArrowRight, Package, Shield, Clock, TrendingUp } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { motion } from 'motion/react';
+import { useMetadata } from '../lib/useMetadata';
 
 export function HomePage() {
+  useMetadata(
+    'CargoLite - Layanan Pengiriman Kargo & Paket Terpercaya',
+    'CargoLite menyediakan layanan pengiriman paket dan kargo terbaik, cepat, aman, dan murah dengan sistem pelacakan resi real-time.'
+  );
+
   return (
     <div>
       {/* Hero Section - Full Bleed */}

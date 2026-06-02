@@ -22,6 +22,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
 import cargoLiteLogo from '../../imports/cargolite-logo.png';
+import { useMetadata } from '../lib/useMetadata';
 
 const ADMIN_VERIFICATION_CODE = 'ADMCARGOLITE';
 
@@ -46,6 +47,11 @@ const buildInitialAdminForm = (): RegisterAdminPayload => ({
 });
 
 export function LoginPage() {
+  useMetadata(
+    'Login Akun',
+    'Masuk ke akun CargoLite Anda untuk mengelola pengiriman, memantau riwayat paket, dan mengedit profil Anda.'
+  );
+
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);

@@ -63,7 +63,14 @@ const buildNewCustomerDraft = (customerList: CustomerAccount[]): CustomerAccount
   };
 };
 
+import { useMetadata } from '../../lib/useMetadata';
+
 export function AdminCustomers() {
+  useMetadata(
+    'Kelola Pelanggan (Admin)',
+    'Tinjau daftar pelanggan, riwayat pengiriman, dan kelola informasi akun customer CargoLite.'
+  );
+
   const {
     customers: customerList,
     createCustomer,

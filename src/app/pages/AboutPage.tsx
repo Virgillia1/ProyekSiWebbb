@@ -1,7 +1,13 @@
 import { Target, Eye, Award, Users } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useMetadata } from '../lib/useMetadata';
 
 export function AboutPage() {
+  useMetadata(
+    'Tentang Kami',
+    'Profil lengkap CargoLite, visi misi perusahaan, keunggulan kami, dan sejarah tim logistik kami dalam melayani Indonesia.'
+  );
+
   return (
     <div>
       {/* Header */}

@@ -5,7 +5,14 @@ import { useAuth } from '../../contexts/AuthContext';
 import { fetchCourierPackages, type CourierDelivery } from '../../lib/trackingApi';
 import { toast } from 'sonner';
 
+import { useMetadata } from '../../lib/useMetadata';
+
 export function CourierHistory() {
+  useMetadata(
+    'Riwayat Pengiriman Kurir',
+    'Lihat semua riwayat pengiriman paket yang telah Anda selesaikan sebelumnya beserta bukti foto penerimaan.'
+  );
+
   const { user } = useAuth();
   const [selectedPeriod, setSelectedPeriod] = useState('week');
   const [deliveries, setDeliveries] = useState<CourierDelivery[]>([]);

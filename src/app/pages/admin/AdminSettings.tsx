@@ -5,7 +5,14 @@ import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Switch } from '../../components/ui/switch';
 
+import { useMetadata } from '../../lib/useMetadata';
+
 export function AdminSettings() {
+  useMetadata(
+    'Pengaturan Sistem (Admin)',
+    'Konfigurasi preferensi sistem CargoLite, batasan unggahan, keamanan akun, dan server API.'
+  );
+
   const [settings, setSettings] = useState({
     automaticBackup: true,
     encryption: true,

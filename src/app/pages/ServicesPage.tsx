@@ -1,8 +1,14 @@
 import { ServiceCard } from '../components/ServiceCard';
 import { services } from '../data/mockData';
 import { motion } from 'motion/react';
+import { useMetadata } from '../lib/useMetadata';
 
 export function ServicesPage() {
+  useMetadata(
+    'Layanan Pengiriman',
+    'Temukan berbagai jenis opsi layanan pengiriman dari CargoLite, mulai dari reguler, express, cargo hingga pengiriman same-day.'
+  );
+
   return (
     <div>
       {/* Header */}

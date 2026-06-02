@@ -7,6 +7,8 @@ export interface AuthUser {
   role: UserRole;
   phone?: string;
   avatar?: string;
+  employeeId?: string;
+  courierId?: string;
 }
 
 export interface RegisterCustomerPayload {
