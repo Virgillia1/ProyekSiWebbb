@@ -435,7 +435,7 @@ export const getTrackingDeliveryByResi = async (resi, client = pool) => {
       [packageItem.id]
     ),
     packageItem.courierId
-      ? client.query('SELECT * FROM employees WHERE id = $1 LIMIT 1', [packageItem.courierId])
+      ? client.query('SELECT * FROM couriers WHERE id = $1 LIMIT 1', [packageItem.courierId])
       : Promise.resolve({ rows: [] }),
     client.query(
       'SELECT phone FROM customers WHERE LOWER(name) = LOWER($1) LIMIT 1',

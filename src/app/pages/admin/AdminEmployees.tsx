@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { PencilLine, Save, Trash2, Truck } from 'lucide-react';
+import { PencilLine, Save, Trash2, Truck, User, Lock } from 'lucide-react';
+import {
+  getCourierAccountInfoRequest,
+  createCourierAccountRequest,
+  type CourierAccountInfo,
+} from '../../lib/adminApi';
 import { toast } from 'sonner';
 import { AdminTablePagination } from '../../components/admin/AdminTablePagination';
 import { AdminTableToolbar } from '../../components/admin/AdminTableToolbar';
@@ -97,6 +102,14 @@ export function AdminEmployees() {
   const [draftCourier, setDraftCourier] = useState<Courier | null>(null);
   const [courierToDelete, setCourierToDelete] = useState<Courier | null>(null);
 
+  const [courierAccount, setCourierAccount] = useState<CourierAccountInfo | null>(null);
+  const [isLoadingAccount, setIsLoadingAccount] = useState(false);
+  const [accountUsername, setAccountUsername] = useState('');
+  const [accountEmail, setAccountEmail] = useState('');
+  const [accountPhone, setAccountPhone] = useState('');
+  const [accountPassword, setAccountPassword] = useState('');
+  const [isCreatingAccount, setIsCreatingAccount] = useState(false);
+
   const vehicleTypeOptions = useMemo(
     () =>
       Array.from(
@@ -155,12 +168,59 @@ export function AdminEmployees() {
     setDialogMode(null);
     setActiveCourierId(null);
     setDraftCourier(null);
+    setCourierAccount(null);
+    setAccountUsername('');
+    setAccountEmail('');
+    setAccountPhone('');
+    setAccountPassword('');
+  };
+
+  const fetchCourierAccount = async (id: string) => {
+    setIsLoadingAccount(true);
+    try {
+      const info = await getCourierAccountInfoRequest(id);
+      setCourierAccount(info);
+    } catch (err) {
+      setCourierAccount(null);
+    } finally {
+      setIsLoadingAccount(false);
+    }
   };
 
   const openCourierDetail = (courierId: string) => {
     setActiveCourierId(courierId);
     setDraftCourier(null);
     setDialogMode('view');
+    setAccountUsername('kurir_');
+    void fetchCourierAccount(courierId);
+  };
+
+  const handleCreateCourierAccount = async () => {
+    if (!activeCourierId) return;
+    if (!accountUsername || !accountEmail || !accountPassword) {
+      toast.error('Lengkapi data akun terlebih dahulu.', {
+        description: 'Username, Email, dan Password wajib diisi.',
+      });
+      return;
+    }
+    
+    setIsCreatingAccount(true);
+    try {
+      await createCourierAccountRequest(activeCourierId, {
+        username: accountUsername,
+        email: accountEmail,
+        phone: accountPhone,
+        password: accountPassword,
+      });
+      toast.success('Akun login kurir berhasil dibuat!', {
+        description: `Akun dengan username ${accountUsername} siap digunakan.`,
+      });
+      await fetchCourierAccount(activeCourierId);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Gagal membuat akun login kurir.');
+    } finally {
+      setIsCreatingAccount(false);
+    }
   };
 
   const openCourierUpdate = (courierId: string) => {
@@ -463,6 +523,115 @@ export function AdminEmployees() {
                   >
                     {selectedCourier.status}
                   </Badge>
+                </div>
+
+                {/* Login Account Section */}
+                <div className="rounded-2xl border border-border bg-white p-6 md:col-span-2 space-y-4 shadow-sm">
+                  <div className="flex items-center gap-2 border-b pb-3">
+                    <User className="h-5 w-5 text-primary" />
+                    <h3 className="font-bold text-lg text-foreground">Akun Login Kurir</h3>
+                  </div>
+
+                  {isLoadingAccount ? (
+                    <div className="text-center py-6 text-sm text-muted-foreground">
+                      Memuat informasi akun login...
+                    </div>
+                  ) : courierAccount?.hasCourierAccount ? (
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="rounded-xl bg-emerald-50/50 border border-emerald-100 p-4">
+                        <p className="text-xs font-semibold text-emerald-800 uppercase tracking-wider">Status Akun</p>
+                        <div className="mt-1 flex items-center gap-1.5 text-sm font-medium text-emerald-700">
+                          <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white">Aktif & Siap Login</Badge>
+                        </div>
+                      </div>
+                      
+                      <div className="rounded-xl bg-secondary/10 border border-border p-4">
+                        <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Username</p>
+                        <p className="mt-1 font-semibold text-foreground text-sm">{courierAccount.username}</p>
+                      </div>
+
+                      <div className="rounded-xl bg-secondary/10 border border-border p-4">
+                        <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Email Akun</p>
+                        <p className="mt-1 font-semibold text-foreground text-sm">{courierAccount.email}</p>
+                      </div>
+
+                      <div className="rounded-xl bg-secondary/10 border border-border p-4">
+                        <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">No. Telepon</p>
+                        <p className="mt-1 font-semibold text-foreground text-sm">{courierAccount.phone || '-'}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="rounded-xl bg-amber-50/50 border border-amber-100 p-4 text-amber-800 text-xs sm:text-sm">
+                        Kurir ini belum memiliki akun untuk login ke aplikasi / page kurir. Gunakan form di bawah untuk membuatkannya akun.
+                      </div>
+                      
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="account-username">Username Login</Label>
+                          <div className="relative">
+                            <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                            <Input
+                              id="account-username"
+                              value={accountUsername}
+                              onChange={(e) => setAccountUsername(e.target.value)}
+                              placeholder="Masukkan username"
+                              className="pl-9 text-sm"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="account-email">Email Kurir</Label>
+                          <Input
+                            id="account-email"
+                            type="email"
+                            value={accountEmail}
+                            onChange={(e) => setAccountEmail(e.target.value)}
+                            placeholder="nama@cargolite.com"
+                            className="text-sm"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="account-phone">No. Telepon Akun (Opsional)</Label>
+                          <Input
+                            id="account-phone"
+                            value={accountPhone}
+                            onChange={(e) => setAccountPhone(e.target.value)}
+                            placeholder="08xxxxxxxxxx"
+                            className="text-sm"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="account-password">Password Login</Label>
+                          <div className="relative">
+                            <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                            <Input
+                              id="account-password"
+                              type="password"
+                              value={accountPassword}
+                              onChange={(e) => setAccountPassword(e.target.value)}
+                              placeholder="Minimal 6 karakter"
+                              className="pl-9 text-sm"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end pt-2">
+                        <Button
+                          type="button"
+                          onClick={handleCreateCourierAccount}
+                          disabled={isCreatingAccount}
+                          className="bg-primary hover:bg-primary/90 text-white font-semibold shadow-sm transition-all"
+                        >
+                          {isCreatingAccount ? 'Mendaftarkan Akun...' : 'Buat Akun Login Kurir'}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 

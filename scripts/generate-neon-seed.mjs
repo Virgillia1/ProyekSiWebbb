@@ -216,6 +216,36 @@ const userAccounts = await Promise.all(
   }))
 );
 
+const courierAccounts = await Promise.all(
+  [
+    {
+      id: 'CUR-ACC-001',
+      username: 'kurir_budi',
+      password: 'budi123',
+      role: 'courier',
+      courier_id: 'CUR-001',
+      name: 'Budi Santoso',
+      email: 'budi.santoso@cargolite.com',
+      phone: '08234567890',
+      avatar_url: null,
+    },
+    {
+      id: 'CUR-ACC-002',
+      username: 'kurir_joko',
+      password: 'joko123',
+      role: 'courier',
+      courier_id: 'CUR-002',
+      name: 'Joko Widodo',
+      email: 'joko.widodo@cargolite.com',
+      phone: '08345678901',
+      avatar_url: null,
+    },
+  ].map(async (account) => ({
+    ...account,
+    password_hash: await createPasswordHash(account.password),
+  }))
+);
+
 const sqlSections = [
   '-- Generated from src/app/data/adminData.ts',
   '-- Safe for local/dev dummy data refresh in Neon',
@@ -391,6 +421,21 @@ const sqlSections = [
       'customer_id',
     ],
     userAccounts
+  ),
+  buildInsert(
+    'courier_accounts',
+    [
+      'id',
+      'username',
+      'password_hash',
+      'role',
+      'courier_id',
+      'name',
+      'email',
+      'phone',
+      'avatar_url',
+    ],
+    courierAccounts
   ),
   buildInsert(
     'customer_histories',
