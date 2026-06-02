@@ -57,7 +57,18 @@ const requestJson = async <T>(input: RequestInfo | URL, init?: RequestInit): Pro
 export const fetchTrackingByResi = (resi: string) =>
   requestJson<Delivery>(`/api/tracking/${encodeURIComponent(resi)}`);
 
-export const fetchCourierPackages = () => requestJson<CourierDelivery[]>('/api/courier/packages');
+export const fetchCourierPackages = (employeeId?: string, status?: string) => {
+  const params = new URLSearchParams();
+  if (employeeId) {
+    params.append('employeeId', employeeId);
+  }
+  if (status) {
+    params.append('status', status);
+  }
+  const queryString = params.toString();
+  const url = queryString ? `/api/courier/packages?${queryString}` : '/api/courier/packages';
+  return requestJson<CourierDelivery[]>(url);
+};
 
 export const createCourierTrackingEvent = (
   packageId: string,

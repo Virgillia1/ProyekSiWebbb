@@ -67,8 +67,12 @@ app.get('/api/tracking/:resi', async (request, response) => {
   response.json(delivery);
 });
 
-app.get('/api/courier/packages', async (_request, response) => {
-  const deliveries = await getCourierDeliveries();
+app.get('/api/courier/packages', async (request, response) => {
+  const { employeeId, status } = request.query;
+  const deliveries = await getCourierDeliveries(
+    typeof employeeId === 'string' ? employeeId : undefined,
+    typeof status === 'string' ? status : undefined
+  );
   response.json(deliveries);
 });
 

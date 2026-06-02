@@ -189,25 +189,6 @@ const createAuthInfrastructure = async () => {
   await pool.query(
     'CREATE INDEX IF NOT EXISTS idx_user_accounts_customer_id ON user_accounts(customer_id)'
   );
-
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS courier_accounts (
-      id TEXT PRIMARY KEY,
-      username TEXT NOT NULL UNIQUE,
-      password_hash TEXT NOT NULL,
-      role TEXT NOT NULL DEFAULT 'courier' CHECK (role = 'courier'),
-      courier_id TEXT NOT NULL UNIQUE REFERENCES couriers(id) ON DELETE CASCADE,
-      name TEXT NOT NULL,
-      email TEXT NOT NULL,
-      phone TEXT NULL,
-      avatar_url TEXT NULL,
-      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-
-  await pool.query(
-    'CREATE INDEX IF NOT EXISTS idx_courier_accounts_courier_id ON courier_accounts(courier_id)'
-  );
 };
 
 export const ensureAuthInfrastructure = async () => {
@@ -228,19 +209,47 @@ export const loginWithAccount = async (username, password) => {
   validateRequired(normalizedUsername, 'Username wajib diisi.');
   validateRequired(normalizedPassword, 'Password wajib diisi.');
 
+  // Cari di user_accounts dulu (admin & customer)
   const account = await getAccountByUsername(pool, normalizedUsername);
 
-  if (!account) {
+  if (account) {
+    const passwordMatches = await verifyPasswordHash(normalizedPassword, account.password_hash);
+    if (!passwordMatches) {
+      throw new BadRequestError('Username atau Password yang anda masukan salah!');
+    }
+    return mapAuthUserRow(account);
+  }
+
+  // Jika tidak ditemukan, cari di courier_accounts
+  const { rows: courierRows } = await pool.query(
+    `
+      SELECT id, username, password_hash, role, employee_id, name, email, phone, avatar_url
+      FROM courier_accounts
+      WHERE username = $1
+      LIMIT 1
+    `,
+    [normalizedUsername]
+  );
+  const courierAccount = courierRows[0] ?? null;
+
+  if (!courierAccount) {
     throw new BadRequestError('Username atau Password yang anda masukan salah!');
   }
 
-  const passwordMatches = await verifyPasswordHash(normalizedPassword, account.password_hash);
-
-  if (!passwordMatches) {
+  const courierPasswordMatches = await verifyPasswordHash(normalizedPassword, courierAccount.password_hash);
+  if (!courierPasswordMatches) {
     throw new BadRequestError('Username atau Password yang anda masukan salah!');
   }
 
-  return mapAuthUserRow(account);
+  return {
+    id: courierAccount.id,
+    name: courierAccount.name,
+    email: courierAccount.email,
+    role: 'courier',
+    phone: courierAccount.phone ?? undefined,
+    avatar: courierAccount.avatar_url ?? undefined,
+    employeeId: courierAccount.employee_id,
+  };
 };
 
 export const registerCustomerAccount = async (payload) => {
