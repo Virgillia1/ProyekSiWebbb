@@ -76,9 +76,9 @@ function AdminLayoutShell() {
 
   useEffect(() => {
     if (!user) {
-      navigate('/login', { replace: true });
+      navigate('/404', { replace: true });
     } else if (user.role !== 'admin') {
-      navigate('/login', { replace: true });
+      navigate('/404', { replace: true });
     }
   }, [user, navigate]);
 
