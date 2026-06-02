@@ -69,6 +69,10 @@ export const router = createBrowserRouter([
         path: 'settings',
         Component: AdminSettings,
       },
+      {
+        path: '*',
+        Component: NotFound,
+      },
     ],
   },
   {
@@ -90,6 +94,10 @@ export const router = createBrowserRouter([
       {
         path: 'profile',
         Component: CourierProfile,
+      },
+      {
+        path: '*',
+        Component: NotFound,
       },
     ],
   },
