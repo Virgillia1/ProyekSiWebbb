@@ -78,3 +78,11 @@ export const createCourierTrackingEvent = (
     method: 'POST',
     body: JSON.stringify(payload),
   });
+
+export const fetchCustomerPackages = (username: string) => {
+  const params = new URLSearchParams();
+  if (username) {
+    params.append('username', username);
+  }
+  return requestJson<CourierDelivery[]>(`/api/customer/packages?${params.toString()}`);
+};

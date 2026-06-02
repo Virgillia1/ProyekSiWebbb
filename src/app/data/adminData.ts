@@ -42,6 +42,7 @@ export interface AdminPackage {
   description?: string;
   itemStatus?: ItemStatus;
   transactionStatus?: TransactionStatus;
+  senderUsername?: string | null;
 }
 
 export interface Courier {
@@ -93,6 +94,7 @@ export interface CustomerAccount {
   totalReceived: number;
   lastActivity: string;
   histories: ShipmentHistoryItem[];
+  username?: string | null;
 }
 
 export interface DeliveryChartPoint {

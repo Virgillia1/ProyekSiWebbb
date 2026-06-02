@@ -48,7 +48,9 @@ export function Layout() {
       ? '/admin/dashboard'
       : user?.role === 'courier'
         ? '/courier/dashboard'
-        : '#';
+        : user?.role === 'customer'
+          ? '/my-packages'
+          : '#';
   const roleLabel =
     user?.role === 'admin'
       ? 'Admin'
@@ -76,20 +78,26 @@ export function Layout() {
                   </Link>
                 </SheetTitle>
                 <nav className="flex flex-col gap-2">
-                  {navItems.map((item) => (
-                    <Link
-                      key={item.path}
-                      to={item.path}
-                      onClick={() => setIsOpen(false)}
-                      className={`px-4 py-2 rounded-lg transition-colors ${
-                        isActive(item.path)
-                          ? 'bg-primary text-white'
-                          : 'text-muted-foreground hover:bg-secondary'
-                      }`}
-                    >
-                      {item.name}
-                    </Link>
-                  ))}
+                  {(() => {
+                    const currentNavItems = [...navItems];
+                    if (user?.role === 'customer') {
+                      currentNavItems.push({ name: 'Paket Saya', path: '/my-packages' });
+                    }
+                    return currentNavItems.map((item) => (
+                      <Link
+                        key={item.path}
+                        to={item.path}
+                        onClick={() => setIsOpen(false)}
+                        className={`px-4 py-2 rounded-lg transition-colors ${
+                          isActive(item.path)
+                            ? 'bg-primary text-white'
+                            : 'text-muted-foreground hover:bg-secondary'
+                        }`}
+                      >
+                        {item.name}
+                      </Link>
+                    ));
+                  })()}
                 </nav>
               </SheetContent>
             </Sheet>

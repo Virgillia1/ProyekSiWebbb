@@ -18,6 +18,7 @@ import {
   updateManagerProfile,
   updatePackage,
   updateVehicle,
+  getCustomerPackages,
 } from './admin-data.mjs';
 import {
   loginWithAccount,
@@ -79,6 +80,14 @@ app.get('/api/courier/packages', async (request, response) => {
 app.post('/api/courier/packages/:id/tracking-events', async (request, response) => {
   const delivery = await appendTrackingEvent(request.params.id, request.body);
   response.status(201).json(delivery);
+});
+
+app.get('/api/customer/packages', async (request, response) => {
+  const { username } = request.query;
+  const deliveries = await getCustomerPackages(
+    typeof username === 'string' ? username : ''
+  );
+  response.json(deliveries);
 });
 
 const createCourierHandler = async (request, response) => {

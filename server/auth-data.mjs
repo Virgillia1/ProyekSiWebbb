@@ -48,6 +48,7 @@ const ensureAdminRequirements = (username, verificationCode) => {
 
 const mapAuthUserRow = (row) => ({
   id: row.id,
+  username: row.username,
   name: row.name,
   email: row.email,
   role: row.role,
@@ -188,6 +189,9 @@ const createAuthInfrastructure = async () => {
   await pool.query('CREATE INDEX IF NOT EXISTS idx_user_accounts_role ON user_accounts(role)');
   await pool.query(
     'CREATE INDEX IF NOT EXISTS idx_user_accounts_customer_id ON user_accounts(customer_id)'
+  );
+  await pool.query(
+    'ALTER TABLE packages ADD COLUMN IF NOT EXISTS sender_username TEXT NULL'
   );
 };
 

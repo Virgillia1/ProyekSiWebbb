@@ -65,6 +65,13 @@ import {
   type TransactionStatus,
 } from '../../data/adminData';
 
+const vehicleModels: Record<string, string[]> = {
+  'Motor': ['Honda Beat', 'Yamaha NMax', 'Suzuki Nex II', 'Honda Vario', 'Yamaha Aerox'],
+  'Pick Up': ['Suzuki Carry Pick Up', 'Daihatsu Gran Max PU', 'Mitsubishi L300'],
+  'Mobil Box (Truck)': ['Daihatsu Gran Max Box', 'Isuzu Elf Box', 'Hino Dutro Box'],
+  'Fuso Heavy Duty': ['Fuso Fighter', 'Hino Ranger', 'Mitsubishi Fuso FN'],
+};
+
 const ITEMS_PER_PAGE = 5;
 const DEFAULT_COURIER_ID = 'COURIER-POOL';
 const DEFAULT_COURIER_NAME = 'Semua Kurir';
@@ -177,7 +184,7 @@ const buildNewPackageDraft = (
     recipientPhone: '',
     itemType: '',
     shippingCost: calculateShippingCost(1),
-    vehicleType: 'Motor',
+    vehicleType: 'Motor (Honda Beat)',
     deliveryType: 'Reguler',
     description: '',
     itemStatus: 'Baik',
@@ -216,6 +223,7 @@ export function AdminShipments() {
   const {
     packages,
     employees,
+    customers,
     createPackage,
     updatePackage,
     deletePackage: deletePackageRequest,
@@ -238,6 +246,16 @@ export function AdminShipments() {
     () => employees.filter((employee) => employee.status === 'Aktif'),
     [employees]
   );
+
+  const customerUsernames = useMemo(() => {
+    return Array.from(
+      new Set(
+        customers
+          .map((c) => c.username?.trim())
+          .filter((u): u is string => typeof u === 'string' && u.length > 0)
+      )
+    ).sort();
+  }, [customers]);
 
   const handleCourierChange = (courierId: string) => {
     const courier = employees.find((employee) => employee.id === courierId);
@@ -407,6 +425,24 @@ export function AdminShipments() {
     if (!draftPackage.senderName.trim()) {
       toast.error('Nama pengirim wajib diisi', {
         description: 'Tuliskan nama pengirim sebelum menyimpan data kargo.',
+      });
+      return;
+    }
+    if (!draftPackage.origin.trim()) {
+      toast.error('Kota asal wajib diisi', {
+        description: 'Tuliskan kota asal pengiriman sebelum menyimpan data kargo.',
+      });
+      return;
+    }
+    if (!draftPackage.destination.trim()) {
+      toast.error('Kota tujuan wajib diisi', {
+        description: 'Tuliskan kota tujuan pengiriman sebelum menyimpan data kargo.',
+      });
+      return;
+    }
+    if (!draftPackage.currentLocation.trim()) {
+      toast.error('Lokasi pengiriman saat ini wajib diisi', {
+        description: 'Tuliskan lokasi pengiriman saat ini sebelum menyimpan data kargo.',
       });
       return;
     }
@@ -731,6 +767,11 @@ export function AdminShipments() {
                     <div className="rounded-2xl border border-border bg-white p-4">
                       <p className="text-xs uppercase tracking-wide text-muted-foreground">Pengirim</p>
                       <p className="mt-2 font-semibold">{selectedPackage.senderName}</p>
+                      {selectedPackage.senderUsername && (
+                        <p className="text-xs text-muted-foreground font-mono">
+                          Username: {selectedPackage.senderUsername}
+                        </p>
+                      )}
                       <p className="mt-1 text-sm text-muted-foreground">{selectedPackage.origin}</p>
                     </div>
                     <div className="rounded-2xl border border-border bg-white p-4">
@@ -857,290 +898,337 @@ export function AdminShipments() {
 
           {(packageDialogMode === 'edit' || packageDialogMode === 'create') && draftPackage && (
             <>
-              <div className="space-y-5">
-                {isHistoricalMonth && (
-                  <div className="rounded-2xl border border-[#63D25F]/25 bg-[#63D25F]/10 p-4 text-sm text-muted-foreground">
-                    Untuk bulan sebelum April 2026, status pengiriman dikunci sebagai{' '}
-                    <span className="font-medium text-foreground">Selesai</span> sesuai aturan dashboard.
-                  </div>
-                )}
+              {(() => {
+                const vehicleTypeRaw = draftPackage.vehicleType ?? 'Motor';
+                let currentType = 'Motor';
+                let currentModel = '';
 
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="package-resi">Nomor Resi</Label>
-                    <Input id="package-resi" value={draftPackage.resi} readOnly className="bg-muted/40" />
-                  </div>
+                if (vehicleTypeRaw.includes('(')) {
+                  const match = vehicleTypeRaw.match(/^(.*?)\s*\((.*?)\)$/);
+                  if (match) {
+                    currentType = match[1].trim();
+                    currentModel = match[2].trim();
+                  } else {
+                    currentType = vehicleTypeRaw;
+                  }
+                } else {
+                  if (vehicleModels[vehicleTypeRaw]) {
+                    currentType = vehicleTypeRaw;
+                    currentModel = vehicleModels[vehicleTypeRaw][0] || '';
+                  } else {
+                    currentType = 'Motor';
+                    currentModel = 'Honda Beat';
+                  }
+                }
 
-                  <div className="space-y-2">
-                    <Label htmlFor="package-service">Layanan</Label>
-                    <Select
-                      value={draftPackage.service}
-                      onValueChange={(value) => updateDraftPackage('service', value)}
-                    >
-                      <SelectTrigger id="package-service">
-                        <SelectValue placeholder="Pilih layanan" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {shippingServiceOptions.map((service) => (
-                          <SelectItem key={service} value={service}>
-                            {service}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                return (
+                  <div className="space-y-5">
+                    {isHistoricalMonth && (
+                      <div className="rounded-2xl border border-[#63D25F]/25 bg-[#63D25F]/10 p-4 text-sm text-muted-foreground">
+                        Untuk bulan sebelum April 2026, status pengiriman dikunci sebagai{' '}
+                        <span className="font-medium text-foreground">Selesai</span> sesuai aturan dashboard.
+                      </div>
+                    )}
 
-                  <div className="space-y-2">
-                    <Label htmlFor="package-sender">Nama Pengirim</Label>
-                    <Input
-                      id="package-sender"
-                      value={draftPackage.senderName}
-                      onChange={(event) => updateDraftPackage('senderName', event.target.value)}
-                      placeholder="Tulis nama pengirim"
-                    />
-                  </div>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="package-resi">Nomor Resi</Label>
+                        <Input id="package-resi" value={draftPackage.resi} readOnly className="bg-muted/40" />
+                      </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="package-recipient">Nama Penerima</Label>
-                    <Input
-                      id="package-recipient"
-                      value={draftPackage.recipientName}
-                      onChange={(event) => updateDraftPackage('recipientName', event.target.value)}
-                      placeholder="Tulis nama penerima"
-                    />
-                  </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="package-service">Layanan</Label>
+                        <Select
+                          value={draftPackage.service}
+                          onValueChange={(value) => updateDraftPackage('service', value)}
+                        >
+                          <SelectTrigger id="package-service">
+                            <SelectValue placeholder="Pilih layanan" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {shippingServiceOptions.map((service) => (
+                              <SelectItem key={service} value={service}>
+                                {service}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="package-recipient-phone">No Telepon Penerima</Label>
-                    <Input
-                      id="package-recipient-phone"
-                      value={draftPackage.recipientPhone ?? ''}
-                      onChange={(event) => updateDraftPackage('recipientPhone', event.target.value)}
-                      placeholder="Contoh: 081234567890"
-                    />
-                  </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="package-sender">Nama Pengirim</Label>
+                        <Input
+                          id="package-sender"
+                          value={draftPackage.senderName}
+                          onChange={(event) => updateDraftPackage('senderName', event.target.value)}
+                          placeholder="Tulis nama pengirim"
+                        />
+                      </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="package-courier">
-                      Kurir {packageDialogMode === 'create' && <span className="text-red-500">*</span>}
-                      {packageDialogMode === 'create' && (
-                        <span className="ml-2 text-xs text-amber-600 font-normal">
-                          (Wajib dipilih — paket akan dikirim ke halaman "Ambil Paket Baru" kurir)
-                        </span>
-                      )}
-                    </Label>
-                    <Select
-                      value={draftPackage.courierId}
-                      onValueChange={handleCourierChange}
-                    >
-                      <SelectTrigger
-                        id="package-courier"
-                        className={packageDialogMode === 'create' && !draftPackage.courierId ? 'border-amber-400 bg-amber-50' : ''}
-                      >
-                        <SelectValue placeholder="— Pilih Kurir (Wajib) —" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {activeCouriers.map((courier) => (
-                          <SelectItem key={courier.id} value={courier.id}>
-                            {courier.name} ({courier.id})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="package-item-type">Jenis Barang</Label>
-                    <Input
-                      id="package-item-type"
-                      value={draftPackage.itemType ?? ''}
-                      onChange={(event) => updateDraftPackage('itemType', event.target.value)}
-                      placeholder="Contoh: Pakaian, Alat Rumah Tangga, Kayu, dll."
-                    />
-                  </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="package-sender-username">Username Pengirim</Label>
+                        <Select
+                          value={draftPackage.senderUsername && customerUsernames.includes(draftPackage.senderUsername) ? draftPackage.senderUsername : 'NONE'}
+                          onValueChange={(value) => updateDraftPackage('senderUsername', value === 'NONE' ? '' : value)}
+                        >
+                          <SelectTrigger id="package-sender-username">
+                            <SelectValue placeholder="— Pilih Username Customer —" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="NONE">— Tanpa Akun / Input Manual —</SelectItem>
+                            {customerUsernames.map((uname) => (
+                              <SelectItem key={uname} value={uname}>
+                                {uname}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="package-status">Status Pengiriman</Label>
-                    <Select
-                      value={isHistoricalMonth ? 'Selesai' : draftPackage.status}
-                      onValueChange={(value: PackageStatus) => updateDraftPackage('status', value)}
-                      disabled={isHistoricalMonth}
-                    >
-                      <SelectTrigger id="package-status">
-                        <SelectValue placeholder="Pilih status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {packageStatusOptions.map((status) => (
-                          <SelectItem key={status} value={status}>
-                            {status}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="package-recipient">Nama Penerima</Label>
+                        <Input
+                          id="package-recipient"
+                          value={draftPackage.recipientName}
+                          onChange={(event) => updateDraftPackage('recipientName', event.target.value)}
+                          placeholder="Tulis nama penerima"
+                        />
+                      </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="package-item-status">Status Barang</Label>
-                    <Select
-                      value={draftPackage.itemStatus ?? 'Baik'}
-                      onValueChange={(value: ItemStatus) => updateDraftPackage('itemStatus', value)}
-                    >
-                      <SelectTrigger id="package-item-status">
-                        <SelectValue placeholder="Pilih status barang" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {itemStatusOptions.map((status) => (
-                          <SelectItem key={status} value={status}>
-                            {status}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="package-recipient-phone">No Telepon Penerima</Label>
+                        <Input
+                          id="package-recipient-phone"
+                          value={draftPackage.recipientPhone ?? ''}
+                          onChange={(event) => updateDraftPackage('recipientPhone', event.target.value)}
+                          placeholder="Contoh: 081234567890"
+                        />
+                      </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="package-transaction-status">Status Transaksi</Label>
-                    <Select
-                      value={normalizeTransactionStatusForUi(draftPackage.transactionStatus)}
-                      onValueChange={(value: TransactionStatus) => updateDraftPackage('transactionStatus', value)}
-                    >
-                      <SelectTrigger id="package-transaction-status">
-                        <SelectValue placeholder="Pilih status transaksi" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {transactionStatusOptions.map((status) => (
-                          <SelectItem key={status} value={status}>
-                            {status}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="package-courier">
+                          Kurir {packageDialogMode === 'create' && <span className="text-red-500">*</span>}
+                          {packageDialogMode === 'create' && (
+                            <span className="ml-2 text-xs text-amber-600 font-normal">
+                              (Wajib dipilih — paket akan dikirim ke halaman "Ambil Paket Baru" kurir)
+                            </span>
+                          )}
+                        </Label>
+                        <Select
+                          value={draftPackage.courierId}
+                          onValueChange={handleCourierChange}
+                        >
+                          <SelectTrigger
+                            id="package-courier"
+                            className={packageDialogMode === 'create' && !draftPackage.courierId ? 'border-amber-400 bg-amber-50' : ''}
+                          >
+                            <SelectValue placeholder="— Pilih Kurir (Wajib) —" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {activeCouriers.map((courier) => (
+                              <SelectItem key={courier.id} value={courier.id}>
+                                {courier.name} ({courier.id})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="package-item-type">Jenis Barang</Label>
+                        <Input
+                          id="package-item-type"
+                          value={draftPackage.itemType ?? ''}
+                          onChange={(event) => updateDraftPackage('itemType', event.target.value)}
+                          placeholder="Contoh: Pakaian, Alat Rumah Tangga, Kayu, dll."
+                        />
+                      </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="package-origin">Asal Pengiriman</Label>
-                    <Select
-                      value={draftPackage.origin}
-                      onValueChange={(value) => updateDraftPackage('origin', value)}
-                    >
-                      <SelectTrigger id="package-origin">
-                        <SelectValue placeholder="Pilih asal" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {shippingLocationOptions.map((location) => (
-                          <SelectItem key={location} value={location}>
-                            {location}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="package-status">Status Pengiriman</Label>
+                        <Select
+                          value={isHistoricalMonth ? 'Selesai' : draftPackage.status}
+                          onValueChange={(value: PackageStatus) => updateDraftPackage('status', value)}
+                          disabled={isHistoricalMonth}
+                        >
+                          <SelectTrigger id="package-status">
+                            <SelectValue placeholder="Pilih status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {packageStatusOptions.map((status) => (
+                              <SelectItem key={status} value={status}>
+                                {status}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="package-destination">Tujuan Pengiriman</Label>
-                    <Select
-                      value={draftPackage.destination}
-                      onValueChange={(value) => updateDraftPackage('destination', value)}
-                    >
-                      <SelectTrigger id="package-destination">
-                        <SelectValue placeholder="Pilih tujuan" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {shippingLocationOptions.map((location) => (
-                          <SelectItem key={location} value={location}>
-                            {location}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="package-item-status">Status Barang</Label>
+                        <Select
+                          value={draftPackage.itemStatus ?? 'Baik'}
+                          onValueChange={(value: ItemStatus) => updateDraftPackage('itemStatus', value)}
+                        >
+                          <SelectTrigger id="package-item-status">
+                            <SelectValue placeholder="Pilih status barang" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {itemStatusOptions.map((status) => (
+                              <SelectItem key={status} value={status}>
+                                {status}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="package-location">Lokasi Pengiriman</Label>
-                    <Select
-                      value={
-                        isHistoricalMonth || draftPackage.status === 'Selesai' || draftPackage.status === 'Sampai Tujuan'
-                          ? draftPackage.destination
-                          : draftPackage.currentLocation
-                      }
-                      onValueChange={(value) => updateDraftPackage('currentLocation', value)}
-                      disabled={isHistoricalMonth || draftPackage.status === 'Selesai' || draftPackage.status === 'Sampai Tujuan'}
-                    >
-                      <SelectTrigger id="package-location">
-                        <SelectValue placeholder="Pilih lokasi saat ini" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {shippingLocationOptions.map((location) => (
-                          <SelectItem key={location} value={location}>
-                            {location}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="package-transaction-status">Status Transaksi</Label>
+                        <Select
+                          value={normalizeTransactionStatusForUi(draftPackage.transactionStatus)}
+                          onValueChange={(value: TransactionStatus) => updateDraftPackage('transactionStatus', value)}
+                        >
+                          <SelectTrigger id="package-transaction-status">
+                            <SelectValue placeholder="Pilih status transaksi" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {transactionStatusOptions.map((status) => (
+                              <SelectItem key={status} value={status}>
+                                {status}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="package-weight">Berat (kg)</Label>
-                    <Input
-                      id="package-weight"
-                      type="number"
-                      min="0"
-                      step="0.1"
-                      value={draftPackage.weightKg}
-                      onChange={(event) => updateDraftPackage('weightKg', Number(event.target.value))}
-                    />
-                  </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="package-origin">Asal Pengiriman</Label>
+                        <Input
+                          id="package-origin"
+                          value={draftPackage.origin}
+                          onChange={(event) => updateDraftPackage('origin', event.target.value)}
+                          placeholder="Masukkan kota asal kargo"
+                        />
+                      </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="package-shipping-cost">Harga Pengiriman (Rp)</Label>
-                    <Input
-                      id="package-shipping-cost"
-                      type="number"
-                      min="0"
-                      step="1000"
-                      value={draftPackage.shippingCost ?? 0}
-                      readOnly
-                      disabled={isShippingCostLocked(draftPackage.status)}
-                      className="bg-muted/40"
-                      placeholder="Harga otomatis mengikuti berat"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Harga otomatis mengikuti berat paket.
-                    </p>
-                  </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="package-destination">Tujuan Pengiriman</Label>
+                        <Input
+                          id="package-destination"
+                          value={draftPackage.destination}
+                          onChange={(event) => updateDraftPackage('destination', event.target.value)}
+                          placeholder="Masukkan kota tujuan kargo"
+                        />
+                      </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="package-vehicle-type">Jenis Kendaraan</Label>
-                    <Select
-                      value={draftPackage.vehicleType ?? 'Motor'}
-                      onValueChange={(value) => updateDraftPackage('vehicleType', value)}
-                    >
-                      <SelectTrigger id="package-vehicle-type">
-                        <SelectValue placeholder="Pilih jenis kendaraan" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Motor">Motor</SelectItem>
-                        <SelectItem value="Pick Up">Pick Up</SelectItem>
-                        <SelectItem value="Mobil Box (Truck)">Mobil Box (Truck)</SelectItem>
-                        <SelectItem value="Fuso Heavy Duty">Fuso Heavy Duty</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="package-location">Lokasi Pengiriman</Label>
+                        <Input
+                          id="package-location"
+                          value={
+                            isHistoricalMonth || draftPackage.status === 'Selesai' || draftPackage.status === 'Sampai Tujuan'
+                              ? draftPackage.destination
+                              : draftPackage.currentLocation
+                          }
+                          onChange={(event) => updateDraftPackage('currentLocation', event.target.value)}
+                          disabled={isHistoricalMonth || draftPackage.status === 'Selesai' || draftPackage.status === 'Sampai Tujuan'}
+                          placeholder="Masukkan lokasi terkini kargo"
+                        />
+                      </div>
 
-                  <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="package-description">Deskripsi / Catatan Barang</Label>
-                    <Input
-                      id="package-description"
-                      value={draftPackage.description ?? ''}
-                      onChange={(event) => updateDraftPackage('description', event.target.value)}
-                      placeholder="Contoh: Barang pecah belah, harap ditaruh teras jika kosong."
-                    />
-                  </div>
-                </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="package-weight">Berat (kg)</Label>
+                        <Input
+                          id="package-weight"
+                          type="number"
+                          min="0"
+                          step="0.1"
+                          value={draftPackage.weightKg}
+                          onChange={(event) => updateDraftPackage('weightKg', Number(event.target.value))}
+                        />
+                      </div>
 
-                <div className="rounded-2xl border border-border bg-secondary/15 p-4 text-sm text-muted-foreground">
-                  Pengiriman baru akan otomatis mengikuti bulan aktif <span className="font-medium text-foreground">{currentMonthLabel}</span> dan nomor resi dibentuk dari pola <span className="font-medium text-foreground">CKL-YYYYMM-urutan</span>.
-                </div>
-              </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="package-shipping-cost">Harga Pengiriman (Rp)</Label>
+                        <Input
+                          id="package-shipping-cost"
+                          type="number"
+                          min="0"
+                          step="1000"
+                          value={draftPackage.shippingCost ?? 0}
+                          readOnly
+                          disabled={isShippingCostLocked(draftPackage.status)}
+                          className="bg-muted/40"
+                          placeholder="Harga otomatis mengikuti berat"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Harga otomatis mengikuti berat paket.
+                        </p>
+                      </div>
+
+                      <div className="grid gap-4 sm:grid-cols-2 md:col-span-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="package-vehicle-type">Jenis Kendaraan</Label>
+                          <Select
+                            value={currentType}
+                            onValueChange={(value) => {
+                              const defaultModel = vehicleModels[value]?.[0] || '';
+                              const combined = defaultModel ? `${value} (${defaultModel})` : value;
+                              updateDraftPackage('vehicleType', combined);
+                            }}
+                          >
+                            <SelectTrigger id="package-vehicle-type">
+                              <SelectValue placeholder="Pilih jenis kendaraan" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Motor">Motor</SelectItem>
+                              <SelectItem value="Pick Up">Pick Up</SelectItem>
+                              <SelectItem value="Mobil Box (Truck)">Mobil Box (Truck)</SelectItem>
+                              <SelectItem value="Fuso Heavy Duty">Fuso Heavy Duty</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="package-vehicle-model">Kategori/Nama Kendaraan</Label>
+                          <Select
+                            value={currentModel}
+                            onValueChange={(value) => {
+                              const combined = `${currentType} (${value})`;
+                              updateDraftPackage('vehicleType', combined);
+                            }}
+                          >
+                            <SelectTrigger id="package-vehicle-model">
+                              <SelectValue placeholder="Pilih kategori/nama kendaraan" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {(vehicleModels[currentType] || []).map((model) => (
+                                <SelectItem key={model} value={model}>
+                                  {model}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 md:col-span-2">
+                        <Label htmlFor="package-description">Deskripsi / Catatan Barang</Label>
+                        <Input
+                          id="package-description"
+                          value={draftPackage.description ?? ''}
+                          onChange={(event) => updateDraftPackage('description', event.target.value)}
+                          placeholder="Contoh: Barang pecah belah, harap ditaruh teras jika kosong."
+                        />
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-border bg-secondary/15 p-4 text-sm text-muted-foreground">
+                      Pengiriman baru akan otomatis mengikuti bulan aktif <span className="font-medium text-foreground">{currentMonthLabel}</span> dan nomor resi dibentuk dari pola <span className="font-medium text-foreground">CKL-YYYYMM-urutan</span>.
+                    </div>
+                  </div>
+                );
+              })()}
 
               <DialogFooter>
                 <Button type="button" onClick={handleSavePackage}>

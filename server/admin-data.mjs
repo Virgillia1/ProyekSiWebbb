@@ -102,6 +102,7 @@ const mapPackageRow = (row) => ({
   description: row.description,
   itemStatus: row.item_status,
   transactionStatus: normalizeTransactionStatusForApi(row.transaction_status),
+  senderUsername: row.sender_username,
 });
 
 const mapAttendanceRow = (row) => ({
@@ -148,6 +149,7 @@ const mapCustomerRow = (row, histories) => ({
   totalReceived: Number(row.total_received),
   lastActivity: toDateString(row.last_activity),
   histories,
+  username: row.username ?? null,
 });
 
 const mapManagerProfileRow = (row) => ({
@@ -294,9 +296,14 @@ const getAttendanceRecords = async (client = pool) => {
   return rows.map(mapAttendanceRow);
 };
 
-const getCustomers = async (client = pool) => {
+export const getCustomers = async (client = pool) => {
   const [{ rows: customerRows }, { rows: historyRows }] = await Promise.all([
-    client.query('SELECT * FROM customers ORDER BY id'),
+    client.query(`
+      SELECT c.*, ua.username 
+      FROM customers c 
+      LEFT JOIN user_accounts ua ON ua.customer_id = c.id 
+      ORDER BY c.id
+    `),
     client.query('SELECT * FROM customer_histories ORDER BY customer_id, id'),
   ]);
 
@@ -602,12 +609,12 @@ export const createPackage = async (packageData) =>
           id, month_key, week, resi, sender_name, recipient_name, courier_id, courier_name,
           origin, destination, current_location, service, weight_kg, declared_value, shipped_at, delivered_at, status,
           recipient_phone, item_type, shipping_cost, vehicle_type, delivery_type, description,
-          item_status, transaction_status
+          item_status, transaction_status, sender_username
         ) VALUES (
           $1, $2, $3, $4, $5, $6, $7, $8,
           $9, $10, $11, $12, $13, $14, $15, $16, $17,
           $18, $19, $20, $21, $22, $23,
-          $24, $25
+          $24, $25, $26
         )
       `,
       [
@@ -636,6 +643,7 @@ export const createPackage = async (packageData) =>
         nextPackage.description ?? null,
         nextPackage.itemStatus ?? 'Baik',
         normalizeTransactionStatusForStorage(nextPackage.transactionStatus),
+        nextPackage.senderUsername ?? null,
       ]
     );
 
@@ -689,7 +697,8 @@ export const updatePackage = async (id, packageData) =>
           delivery_type = $22,
           description = $23,
           item_status = $24,
-          transaction_status = $25
+          transaction_status = $25,
+          sender_username = $26
         WHERE id = $1
       `,
       [
@@ -718,6 +727,7 @@ export const updatePackage = async (id, packageData) =>
         nextPackage.description ?? null,
         nextPackage.itemStatus ?? 'Baik',
         normalizeTransactionStatusForStorage(nextPackage.transactionStatus),
+        nextPackage.senderUsername ?? null,
       ]
     );
 
@@ -996,5 +1006,39 @@ export const deleteVehicle = async (id) =>
     await client.query('DELETE FROM vehicles WHERE id = $1', [id]);
     return existingVehicle;
   });
+
+export const getCustomerPackages = async (username, client = pool) => {
+  const { rows: packageRows } = await client.query(
+    'SELECT * FROM packages WHERE LOWER(sender_username) = LOWER($1) ORDER BY shipped_at DESC',
+    [username]
+  );
+  const packages = packageRows.map(mapPackageRow);
+
+  if (packages.length === 0) {
+    return [];
+  }
+
+  const packageIds = packages.map((p) => p.id);
+  
+  const [eventResult, phoneResult] = await Promise.all([
+    client.query(
+      'SELECT * FROM package_tracking_events WHERE package_id = ANY($1) ORDER BY timestamp, id',
+      [packageIds]
+    ),
+    client.query(
+      'SELECT name, phone FROM customers WHERE name = ANY($1)',
+      [[...new Set(packages.map((p) => p.recipientName))]]
+    ),
+  ]);
+
+  const trackingEvents = eventResult.rows.map(mapTrackingEventRow);
+  const phonesByName = new Map(phoneResult.rows.map((row) => [row.name.toLowerCase(), row.phone]));
+
+  return packages.map((packageItem) => {
+    const phone = phonesByName.get(packageItem.recipientName.toLowerCase()) ?? '-';
+    const events = trackingEvents.filter((event) => event.deliveryId === packageItem.id);
+    return mapPackageToCourierDelivery(packageItem, events, { phone });
+  });
+};
 
 export { ConflictError, NotFoundError };
