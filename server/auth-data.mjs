@@ -5,6 +5,7 @@ import { createPasswordHash, verifyPasswordHash } from './password-hash.mjs';
 
 export const ADMIN_USERNAME_PREFIX = 'admin_';
 export const ADMIN_VERIFICATION_CODE = 'ADMCARGOLITE';
+const MIN_PHONE_DIGITS = 12;
 
 let authInfrastructurePromise;
 
@@ -33,6 +34,22 @@ const validateUsername = (username) => {
 const validatePassword = (password) => {
   if (!password || String(password).length < 6) {
     throw new BadRequestError('Password minimal 6 karakter.');
+  }
+};
+
+const getPhoneDigitCount = (value) => normalizeText(value).replace(/\D/g, '').length;
+
+const validatePhone = (value, requiredMessage, label = 'Nomor telepon') => {
+  validateRequired(value, requiredMessage);
+
+  if (getPhoneDigitCount(value) < MIN_PHONE_DIGITS) {
+    throw new BadRequestError(`${label} minimal ${MIN_PHONE_DIGITS} digit.`);
+  }
+};
+
+const validateOptionalPhone = (value, label = 'Nomor telepon') => {
+  if (normalizeText(value) && getPhoneDigitCount(value) < MIN_PHONE_DIGITS) {
+    throw new BadRequestError(`${label} minimal ${MIN_PHONE_DIGITS} digit.`);
   }
 };
 
@@ -269,7 +286,7 @@ export const registerCustomerAccount = async (payload) => {
 
     validateRequired(name, 'Nama customer wajib diisi.');
     validateRequired(email, 'Email customer wajib diisi.');
-    validateRequired(phone, 'Nomor telepon customer wajib diisi.');
+    validatePhone(phone, 'Nomor telepon customer wajib diisi.', 'Nomor telepon customer');
     validateRequired(address, 'Alamat customer wajib diisi.');
     validateUsername(username);
     validatePassword(password);
@@ -319,7 +336,7 @@ export const registerAdminAccount = async (payload) => {
 
     validateRequired(name, 'Nama admin wajib diisi.');
     validateRequired(email, 'Email admin wajib diisi.');
-    validateRequired(phone, 'Nomor telepon admin wajib diisi.');
+    validatePhone(phone, 'Nomor telepon admin wajib diisi.', 'Nomor telepon admin');
     validateUsername(username);
     validatePassword(password);
     ensureAdminRequirements(username, verificationCode);
@@ -354,6 +371,7 @@ export const registerCourierAccount = async (payload) => {
 
     validateRequired(courierId, 'ID kurir wajib diisi.');
     validateRequired(email, 'Email kurir wajib diisi.');
+    validateOptionalPhone(phone, 'Nomor telepon kurir');
     validateUsername(username);
     validatePassword(password);
 

@@ -7,6 +7,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { motion } from 'motion/react';
 
 import { useMetadata } from '../../lib/useMetadata';
+import { validateRequiredPhone } from '../../lib/phoneValidation';
+import { scrollToFirstFieldError } from '../../lib/scrollToFieldError';
 
 export function CourierProfile() {
   useMetadata(
@@ -22,9 +24,22 @@ export function CourierProfile() {
     phone: user?.phone || '',
     address: 'Jl. Sudirman No. 123, Jakarta Selatan',
   });
+  const [phoneError, setPhoneError] = useState('');
 
   const handleSave = () => {
-    // Save logic here
+    const nextPhoneError = validateRequiredPhone(
+      formData.phone,
+      'Nomor telepon kurir wajib diisi.',
+      'Nomor telepon kurir'
+    );
+
+    setPhoneError(nextPhoneError);
+
+    if (nextPhoneError) {
+      scrollToFirstFieldError();
+      return;
+    }
+
     setIsEditing(false);
   };
 
@@ -140,11 +155,20 @@ export function CourierProfile() {
                   <Input
                     id="phone"
                     value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    inputMode="tel"
+                    onChange={(e) => {
+                      setFormData({ ...formData, phone: e.target.value });
+                      setPhoneError('');
+                    }}
                     disabled={!isEditing}
-                    className="pl-10"
+                    className={`pl-10 ${phoneError ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                   />
                 </div>
+                {phoneError && (
+                  <p data-field-error="true" className="text-sm font-medium text-red-600">
+                    {phoneError}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">

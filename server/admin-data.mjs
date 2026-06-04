@@ -1,7 +1,27 @@
 import { pool, withTransaction } from './db.mjs';
 import { ConflictError, NotFoundError, BadRequestError } from './errors.mjs';
 
+const MIN_PHONE_DIGITS = 12;
+
 const pad = (value) => String(value).padStart(2, '0');
+
+const normalizeText = (value) => String(value ?? '').trim();
+
+const getPhoneDigitCount = (value) => normalizeText(value).replace(/\D/g, '').length;
+
+const validateRequired = (value, message) => {
+  if (!normalizeText(value)) {
+    throw new BadRequestError(message);
+  }
+};
+
+const validatePhone = (value, requiredMessage, label = 'Nomor telepon') => {
+  validateRequired(value, requiredMessage);
+
+  if (getPhoneDigitCount(value) < MIN_PHONE_DIGITS) {
+    throw new BadRequestError(`${label} minimal ${MIN_PHONE_DIGITS} digit.`);
+  }
+};
 
 const formatDateValue = (date) =>
   [date.getFullYear(), pad(date.getMonth() + 1), pad(date.getDate())].join('-');
@@ -51,6 +71,9 @@ const toTimestampString = (value) => {
 
 const mapPackageStatusToTrackingStatus = (status) =>
   status === 'Selesai' ? 'Paket Terkirim' : 'Dalam Pengiriman';
+
+const isDeliveredPackageStatus = (status) =>
+  status === 'Selesai' || status === 'Sampai Tujuan';
 
 const normalizeTransactionStatusForApi = (status) =>
   status === 'Bayar' || status === 'Lunas' ? 'Bayar' : 'Belum Bayar';
@@ -402,6 +425,35 @@ const ensureEmployeeCanBeDeleted = async (client, employeeId) => {
   }
 };
 
+const validatePackageCreatePayload = (packageData) => {
+  validateRequired(packageData.courierId, 'Kurir wajib dipilih.');
+  validateRequired(packageData.service, 'Layanan wajib dipilih.');
+  validateRequired(packageData.senderName, 'Nama pengirim wajib diisi.');
+  validateRequired(packageData.recipientName, 'Nama penerima wajib diisi.');
+  validatePhone(
+    packageData.recipientPhone,
+    'No telepon penerima wajib diisi.',
+    'No telepon penerima'
+  );
+  validateRequired(packageData.itemType, 'Jenis barang wajib diisi.');
+  validateRequired(packageData.status, 'Status pengiriman wajib dipilih.');
+  validateRequired(packageData.itemStatus, 'Status barang wajib dipilih.');
+  validateRequired(packageData.transactionStatus, 'Status transaksi wajib dipilih.');
+  validateRequired(packageData.origin, 'Asal pengiriman wajib diisi.');
+  validateRequired(packageData.destination, 'Tujuan pengiriman wajib diisi.');
+  validateRequired(
+    isDeliveredPackageStatus(packageData.status)
+      ? packageData.destination
+      : packageData.currentLocation,
+    'Lokasi pengiriman wajib diisi.'
+  );
+  validateRequired(packageData.vehicleType, 'Jenis kendaraan wajib dipilih.');
+
+  if (Number(packageData.weightKg) <= 0) {
+    throw new BadRequestError('Berat barang harus lebih besar dari 0 kg.');
+  }
+};
+
 export const getBootstrapData = async () => {
   const [employees, packages, attendanceRecords, customers, managerProfile, vehicles] = await Promise.all([
     getEmployees(),
@@ -515,6 +567,11 @@ export const getCourierDeliveries = async (courierId, statusFilter, client = poo
 
 export const createEmployee = async (employee) =>
   withTransaction(async (client) => {
+    validateRequired(employee.name, 'Nama kurir wajib diisi.');
+    validateRequired(employee.baseArea, 'Area basis kurir wajib diisi.');
+    validateRequired(employee.coverageArea, 'Area tugas kurir wajib diisi.');
+    validatePhone(employee.phone, 'Nomor telepon kurir wajib diisi.', 'Nomor telepon kurir');
+
     await client.query(
       `
         INSERT INTO couriers (
@@ -542,6 +599,11 @@ export const createEmployee = async (employee) =>
 
 export const updateEmployee = async (id, employee) =>
   withTransaction(async (client) => {
+    validateRequired(employee.name, 'Nama kurir wajib diisi.');
+    validateRequired(employee.baseArea, 'Area basis kurir wajib diisi.');
+    validateRequired(employee.coverageArea, 'Area tugas kurir wajib diisi.');
+    validatePhone(employee.phone, 'Nomor telepon kurir wajib diisi.', 'Nomor telepon kurir');
+
     const result = await client.query(
       `
         UPDATE couriers
@@ -597,6 +659,8 @@ export const deleteEmployee = async (id) =>
 
 export const createPackage = async (packageData) =>
   withTransaction(async (client) => {
+    validatePackageCreatePayload(packageData);
+
     const courierRows = await client.query('SELECT name FROM couriers WHERE id = $1 LIMIT 1', [
       packageData.courierId,
     ]);
@@ -664,70 +728,35 @@ export const updatePackage = async (id, packageData) =>
     if (existingPackage.status === 'Selesai') {
       throw new BadRequestError('Paket yang sudah selesai tidak dapat diubah.');
     }
-    const courierRows = await client.query('SELECT name FROM couriers WHERE id = $1 LIMIT 1', [
-      packageData.courierId,
-    ]);
-    const courierName = courierRows.rows[0]?.name ?? packageData.courierName ?? 'Kurir Belum Diatur';
-    const nextPackage = { ...packageData, courierName };
+
+    const nextStatus = normalizeText(packageData.status ?? existingPackage.status);
+    validateRequired(nextStatus, 'Status pengiriman wajib dipilih.');
+
+    const nextPackage = {
+      ...existingPackage,
+      status: nextStatus,
+      currentLocation: isDeliveredPackageStatus(nextStatus)
+        ? existingPackage.destination
+        : existingPackage.currentLocation,
+      deliveredAt: isDeliveredPackageStatus(nextStatus)
+        ? existingPackage.deliveredAt ?? toTimestampString(new Date())
+        : undefined,
+    };
 
     const result = await client.query(
       `
         UPDATE packages
         SET
-          month_key = $2,
-          week = $3,
-          resi = $4,
-          sender_name = $5,
-          recipient_name = $6,
-          courier_id = $7,
-          courier_name = $8,
-          origin = $9,
-          destination = $10,
-          current_location = $11,
-          service = $12,
-          weight_kg = $13,
-          declared_value = $14,
-          shipped_at = $15,
-          delivered_at = $16,
-          status = $17,
-          recipient_phone = $18,
-          item_type = $19,
-          shipping_cost = $20,
-          vehicle_type = $21,
-          delivery_type = $22,
-          description = $23,
-          item_status = $24,
-          transaction_status = $25,
-          sender_username = $26
+          current_location = $2,
+          delivered_at = $3,
+          status = $4
         WHERE id = $1
       `,
       [
         id,
-        nextPackage.monthKey,
-        nextPackage.week,
-        nextPackage.resi,
-        nextPackage.senderName,
-        nextPackage.recipientName,
-        nextPackage.courierId,
-        courierName,
-        nextPackage.origin,
-        nextPackage.destination,
         nextPackage.currentLocation,
-        nextPackage.service,
-        nextPackage.weightKg,
-        nextPackage.declaredValue,
-        toTimestampString(nextPackage.shippedAt),
-        toTimestampString(nextPackage.deliveredAt),
+        toTimestampString(nextPackage.deliveredAt) ?? null,
         nextPackage.status,
-        nextPackage.recipientPhone ?? null,
-        nextPackage.itemType ?? null,
-        nextPackage.shippingCost ?? 0,
-        nextPackage.vehicleType ?? null,
-        nextPackage.deliveryType ?? 'Reguler',
-        nextPackage.description ?? null,
-        nextPackage.itemStatus ?? 'Baik',
-        normalizeTransactionStatusForStorage(nextPackage.transactionStatus),
-        nextPackage.senderUsername ?? null,
       ]
     );
 
@@ -735,18 +764,10 @@ export const updatePackage = async (id, packageData) =>
       throw new NotFoundError('Data pengiriman tidak ditemukan.');
     }
 
-    await client.query('UPDATE package_tracking_events SET resi = $1 WHERE package_id = $2', [
-      nextPackage.resi,
-      id,
-    ]);
     await syncPackageHistories(client, nextPackage, existingPackage.resi);
 
     const shouldCreateTrackingSnapshot =
-      existingPackage.resi !== nextPackage.resi ||
-      existingPackage.origin !== nextPackage.origin ||
-      existingPackage.destination !== nextPackage.destination ||
       existingPackage.currentLocation !== nextPackage.currentLocation ||
-      existingPackage.shippedAt !== nextPackage.shippedAt ||
       (existingPackage.deliveredAt ?? null) !== (nextPackage.deliveredAt ?? null) ||
       existingPackage.status !== nextPackage.status;
 
@@ -836,6 +857,11 @@ export const deletePackage = async (id) =>
 
 export const createCustomer = async (customer) =>
   withTransaction(async (client) => {
+    validateRequired(customer.name, 'Nama customer wajib diisi.');
+    validateRequired(customer.address, 'Alamat customer wajib diisi.');
+    validateRequired(customer.email, 'Email customer wajib diisi.');
+    validatePhone(customer.phone, 'Nomor telepon customer wajib diisi.', 'Nomor telepon customer');
+
     await client.query(
       `
         INSERT INTO customers (
@@ -872,6 +898,10 @@ export const deleteCustomer = async (id) =>
 
 export const updateManagerProfile = async (profile) =>
   withTransaction(async (client) => {
+    validateRequired(profile.name, 'Nama manager wajib diisi.');
+    validateRequired(profile.email, 'Email manager wajib diisi.');
+    validatePhone(profile.phone, 'Nomor telepon manager wajib diisi.', 'Nomor telepon manager');
+
     const existingResult = await client.query(
       'SELECT employee_id FROM manager_profiles WHERE employee_id = $1 LIMIT 1',
       [profile.employeeId]

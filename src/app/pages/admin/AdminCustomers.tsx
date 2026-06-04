@@ -37,6 +37,8 @@ import {
   TableRow,
 } from '../../components/ui/table';
 import type { CustomerAccount } from '../../data/adminData';
+import { validateRequiredPhone } from '../../lib/phoneValidation';
+import { scrollToFirstFieldError } from '../../lib/scrollToFieldError';
 
 const ITEMS_PER_PAGE = 5;
 const padValue = (value: number, length = 3) => String(value).padStart(length, '0');
@@ -65,6 +67,9 @@ const buildNewCustomerDraft = (customerList: CustomerAccount[]): CustomerAccount
 
 import { useMetadata } from '../../lib/useMetadata';
 
+const getInvalidFieldClass = (hasError: boolean) =>
+  hasError ? 'border-red-500 focus-visible:ring-red-500' : '';
+
 export function AdminCustomers() {
   useMetadata(
     'Kelola Pelanggan (Admin)',
@@ -82,6 +87,7 @@ export function AdminCustomers() {
   const [dialogMode, setDialogMode] = useState<'view' | 'edit' | 'create' | null>(null);
   const [activeCustomerId, setActiveCustomerId] = useState<string | null>(null);
   const [draftCustomer, setDraftCustomer] = useState<CustomerAccount | null>(null);
+  const [customerPhoneError, setCustomerPhoneError] = useState('');
   const [customerToDelete, setCustomerToDelete] = useState<CustomerAccount | null>(null);
 
   const filteredCustomers = useMemo(() => {
@@ -127,11 +133,13 @@ export function AdminCustomers() {
     setDialogMode(null);
     setActiveCustomerId(null);
     setDraftCustomer(null);
+    setCustomerPhoneError('');
   };
 
   const openDetail = (customerId: string) => {
     setActiveCustomerId(customerId);
     setDraftCustomer(null);
+    setCustomerPhoneError('');
     setDialogMode('view');
   };
 
@@ -144,12 +152,14 @@ export function AdminCustomers() {
 
     setActiveCustomerId(customerId);
     setDraftCustomer({ ...targetCustomer });
+    setCustomerPhoneError('');
     setDialogMode('edit');
   };
 
   const openCreate = () => {
     setActiveCustomerId(null);
     setDraftCustomer(buildNewCustomerDraft(customerList));
+    setCustomerPhoneError('');
     setDialogMode('create');
   };
 
@@ -157,6 +167,10 @@ export function AdminCustomers() {
     key: Key,
     value: CustomerAccount[Key]
   ) => {
+    if (key === 'phone') {
+      setCustomerPhoneError('');
+    }
+
     setDraftCustomer((previousDraft) =>
       previousDraft
         ? {
@@ -169,6 +183,19 @@ export function AdminCustomers() {
 
   const handleSaveCustomer = async () => {
     if (!draftCustomer) {
+      return;
+    }
+
+    const phoneError = validateRequiredPhone(
+      draftCustomer.phone,
+      'Nomor telepon customer wajib diisi.',
+      'Nomor telepon customer'
+    );
+
+    setCustomerPhoneError(phoneError);
+
+    if (phoneError) {
+      scrollToFirstFieldError();
       return;
     }
 
@@ -463,9 +490,16 @@ export function AdminCustomers() {
                     <Input
                       id="customer-phone"
                       value={draftCustomer.phone}
+                      inputMode="tel"
                       onChange={(event) => updateDraftCustomer('phone', event.target.value)}
+                      className={getInvalidFieldClass(!!customerPhoneError)}
                       placeholder="08xxxxxxxxxx"
                     />
+                    {customerPhoneError && (
+                      <p data-field-error="true" className="text-sm font-medium text-red-600">
+                        {customerPhoneError}
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-2">

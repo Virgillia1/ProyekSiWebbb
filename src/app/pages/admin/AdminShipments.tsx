@@ -14,6 +14,8 @@ import { AdminTablePagination } from '../../components/admin/AdminTablePaginatio
 import { AdminTableToolbar } from '../../components/admin/AdminTableToolbar';
 import { useAdminData } from '../../contexts/AdminDataContext';
 import { useMetadata } from '../../lib/useMetadata';
+import { validateRequiredPhone } from '../../lib/phoneValidation';
+import { scrollToFirstFieldError } from '../../lib/scrollToFieldError';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -76,6 +78,24 @@ const ITEMS_PER_PAGE = 5;
 const DEFAULT_COURIER_ID = 'COURIER-POOL';
 const DEFAULT_COURIER_NAME = 'Semua Kurir';
 
+type PackageFieldErrorKey =
+  | 'courierId'
+  | 'service'
+  | 'senderName'
+  | 'recipientName'
+  | 'recipientPhone'
+  | 'itemType'
+  | 'status'
+  | 'itemStatus'
+  | 'transactionStatus'
+  | 'origin'
+  | 'destination'
+  | 'currentLocation'
+  | 'weightKg'
+  | 'vehicleType';
+
+type PackageFieldErrors = Partial<Record<PackageFieldErrorKey, string>>;
+
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat('id-ID', {
     style: 'currency',
@@ -115,6 +135,16 @@ const getTransactionStatusClass = (status?: string) =>
   normalizeTransactionStatusForUi(status) === 'Bayar'
     ? 'text-emerald-600'
     : 'text-rose-600';
+
+const getInvalidFieldClass = (hasError: boolean) =>
+  hasError ? 'border-red-500 focus-visible:ring-red-500' : '';
+
+const renderFieldError = (message?: string) =>
+  message ? (
+    <p data-field-error="true" className="text-sm font-medium text-red-600">
+      {message}
+    </p>
+  ) : null;
 
 const getStatusBadgeClass = (status: string) => {
   switch (status) {
@@ -239,6 +269,7 @@ export function AdminShipments() {
   );
   const [activePackageId, setActivePackageId] = useState<string | null>(null);
   const [draftPackage, setDraftPackage] = useState<AdminPackage | null>(null);
+  const [packageFieldErrors, setPackageFieldErrors] = useState<PackageFieldErrors>({});
   const [packageToDelete, setPackageToDelete] = useState<AdminPackage | null>(null);
 
   const isHistoricalMonth = selectedMonth < '2026-04';
@@ -259,6 +290,7 @@ export function AdminShipments() {
 
   const handleCourierChange = (courierId: string) => {
     const courier = employees.find((employee) => employee.id === courierId);
+    setPackageFieldErrors((previousErrors) => ({ ...previousErrors, courierId: '' }));
     setDraftPackage((previousDraft) =>
       previousDraft
         ? {
@@ -285,6 +317,7 @@ export function AdminShipments() {
     setPackageDialogMode(null);
     setActivePackageId(null);
     setDraftPackage(null);
+    setPackageFieldErrors({});
   };
 
   const monthPackages = useMemo(
@@ -360,6 +393,7 @@ export function AdminShipments() {
   const openPackageDetail = (packageId: string) => {
     setActivePackageId(packageId);
     setDraftPackage(null);
+    setPackageFieldErrors({});
     setPackageDialogMode('view');
   };
 
@@ -372,6 +406,7 @@ export function AdminShipments() {
 
     setActivePackageId(packageId);
     setDraftPackage({ ...targetPackage });
+    setPackageFieldErrors({});
     setPackageDialogMode('edit');
   };
 
@@ -380,6 +415,7 @@ export function AdminShipments() {
     const defaultLocation = shippingLocationOptions[0] ?? 'Jakarta Selatan';
 
     setActivePackageId(null);
+    setPackageFieldErrors({});
     setDraftPackage(
       buildNewPackageDraft(
         selectedMonth,
@@ -395,6 +431,11 @@ export function AdminShipments() {
     key: Key,
     value: AdminPackage[Key]
   ) => {
+    setPackageFieldErrors((previousErrors) => ({
+      ...previousErrors,
+      [key]: '',
+    }));
+
     setDraftPackage((previousDraft) =>
       previousDraft
         ? {
@@ -408,77 +449,97 @@ export function AdminShipments() {
     );
   };
 
+  const validatePackageDraft = (packageDraft: AdminPackage): PackageFieldErrors => {
+    const nextErrors: PackageFieldErrors = {};
+
+    if (packageDialogMode === 'edit') {
+      if (!packageDraft.status) {
+        nextErrors.status = 'Status pengiriman wajib dipilih.';
+      }
+
+      return nextErrors;
+    }
+
+    if (!packageDraft.courierId) {
+      nextErrors.courierId = 'Kurir wajib dipilih.';
+    }
+
+    if (!packageDraft.service?.trim()) {
+      nextErrors.service = 'Layanan wajib dipilih.';
+    }
+
+    if (!packageDraft.senderName.trim()) {
+      nextErrors.senderName = 'Nama pengirim wajib diisi.';
+    }
+
+    if (!packageDraft.recipientName.trim()) {
+      nextErrors.recipientName = 'Nama penerima wajib diisi.';
+    }
+
+    const phoneError = validateRequiredPhone(
+      packageDraft.recipientPhone,
+      'No telepon penerima wajib diisi.',
+      'No telepon penerima'
+    );
+
+    if (phoneError) {
+      nextErrors.recipientPhone = phoneError;
+    }
+
+    if (!packageDraft.itemType?.trim()) {
+      nextErrors.itemType = 'Jenis barang wajib diisi.';
+    }
+
+    if (!packageDraft.status) {
+      nextErrors.status = 'Status pengiriman wajib dipilih.';
+    }
+
+    if (!packageDraft.itemStatus) {
+      nextErrors.itemStatus = 'Status barang wajib dipilih.';
+    }
+
+    if (!packageDraft.transactionStatus) {
+      nextErrors.transactionStatus = 'Status transaksi wajib dipilih.';
+    }
+
+    if (!packageDraft.origin.trim()) {
+      nextErrors.origin = 'Asal pengiriman wajib diisi.';
+    }
+
+    if (!packageDraft.destination.trim()) {
+      nextErrors.destination = 'Tujuan pengiriman wajib diisi.';
+    }
+
+    const effectiveCurrentLocation =
+      isHistoricalMonth || isDeliveredStatus(packageDraft.status)
+        ? packageDraft.destination
+        : packageDraft.currentLocation;
+
+    if (!effectiveCurrentLocation.trim()) {
+      nextErrors.currentLocation = 'Lokasi pengiriman wajib diisi.';
+    }
+
+    if (Number(packageDraft.weightKg) <= 0) {
+      nextErrors.weightKg = 'Berat barang harus lebih besar dari 0 kg.';
+    }
+
+    if (!packageDraft.vehicleType?.trim()) {
+      nextErrors.vehicleType = 'Jenis kendaraan wajib dipilih.';
+    }
+
+    return nextErrors;
+  };
+
   const handleSavePackage = async () => {
     if (!draftPackage) {
       return;
     }
 
-    // Validasi: kurir wajib dipilih saat membuat paket baru
-    if (packageDialogMode === 'create' && !draftPackage.courierId) {
-      toast.error('Pilih kurir terlebih dahulu', {
-        description: 'Admin wajib memilih kurir yang bertugas untuk paket ini sebelum menyimpan.',
-      });
-      return;
-    }
+    const nextFieldErrors = validatePackageDraft(draftPackage);
+    setPackageFieldErrors(nextFieldErrors);
 
-    // Validasi: field kosong
-    if (!draftPackage.senderName.trim()) {
-      toast.error('Nama pengirim wajib diisi', {
-        description: 'Tuliskan nama pengirim sebelum menyimpan data kargo.',
-      });
-      return;
-    }
-    if (!draftPackage.origin.trim()) {
-      toast.error('Kota asal wajib diisi', {
-        description: 'Tuliskan kota asal pengiriman sebelum menyimpan data kargo.',
-      });
-      return;
-    }
-    if (!draftPackage.destination.trim()) {
-      toast.error('Kota tujuan wajib diisi', {
-        description: 'Tuliskan kota tujuan pengiriman sebelum menyimpan data kargo.',
-      });
-      return;
-    }
-    if (!draftPackage.currentLocation.trim()) {
-      toast.error('Lokasi pengiriman saat ini wajib diisi', {
-        description: 'Tuliskan lokasi pengiriman saat ini sebelum menyimpan data kargo.',
-      });
-      return;
-    }
-    if (!draftPackage.recipientName.trim()) {
-      toast.error('Nama penerima wajib diisi', {
-        description: 'Tuliskan nama penerima sebelum menyimpan data kargo.',
-      });
-      return;
-    }
-
-    // Validasi: nomor telepon
-    const phoneClean = draftPackage.recipientPhone?.replace(/\D/g, '') ?? '';
-    if (!draftPackage.recipientPhone?.trim()) {
-      toast.error('Nomor telepon penerima wajib diisi', {
-        description: 'Masukkan nomor telepon penerima sebelum menyimpan data kargo.',
-      });
-      return;
-    }
-    if (phoneClean.length < 9 || phoneClean.length > 15) {
-      toast.error('Format nomor telepon tidak valid', {
-        description: 'Nomor telepon penerima harus berupa angka dengan panjang 9-15 digit.',
-      });
-      return;
-    }
-
-    // Validasi: input angka (berat & harga barang)
-    if (Number(draftPackage.weightKg) <= 0) {
-      toast.error('Berat barang tidak valid', {
-        description: 'Berat barang harus lebih besar dari 0 kg.',
-      });
-      return;
-    }
-    if (Number(draftPackage.declaredValue) < 0) {
-      toast.error('Nilai barang tidak valid', {
-        description: 'Nilai barang yang dideklarasikan tidak boleh negatif.',
-      });
+    if (Object.keys(nextFieldErrors).length > 0) {
+      scrollToFirstFieldError();
       return;
     }
 
@@ -921,6 +982,8 @@ export function AdminShipments() {
                   }
                 }
 
+                const isPackageEditLocked = packageDialogMode === 'edit';
+
                 return (
                   <div className="space-y-5">
                     {isHistoricalMonth && (
@@ -941,8 +1004,12 @@ export function AdminShipments() {
                         <Select
                           value={draftPackage.service}
                           onValueChange={(value) => updateDraftPackage('service', value)}
+                          disabled={isPackageEditLocked}
                         >
-                          <SelectTrigger id="package-service">
+                          <SelectTrigger
+                            id="package-service"
+                            className={getInvalidFieldClass(!!packageFieldErrors.service)}
+                          >
                             <SelectValue placeholder="Pilih layanan" />
                           </SelectTrigger>
                           <SelectContent>
@@ -953,6 +1020,7 @@ export function AdminShipments() {
                             ))}
                           </SelectContent>
                         </Select>
+                        {renderFieldError(packageFieldErrors.service)}
                       </div>
 
                       <div className="space-y-2">
@@ -961,8 +1029,11 @@ export function AdminShipments() {
                           id="package-sender"
                           value={draftPackage.senderName}
                           onChange={(event) => updateDraftPackage('senderName', event.target.value)}
+                          disabled={isPackageEditLocked}
+                          className={getInvalidFieldClass(!!packageFieldErrors.senderName)}
                           placeholder="Tulis nama pengirim"
                         />
+                        {renderFieldError(packageFieldErrors.senderName)}
                       </div>
 
                       <div className="space-y-2">
@@ -970,6 +1041,7 @@ export function AdminShipments() {
                         <Select
                           value={draftPackage.senderUsername && customerUsernames.includes(draftPackage.senderUsername) ? draftPackage.senderUsername : 'NONE'}
                           onValueChange={(value) => updateDraftPackage('senderUsername', value === 'NONE' ? '' : value)}
+                          disabled={isPackageEditLocked}
                         >
                           <SelectTrigger id="package-sender-username">
                             <SelectValue placeholder="— Pilih Username Customer —" />
@@ -991,8 +1063,11 @@ export function AdminShipments() {
                           id="package-recipient"
                           value={draftPackage.recipientName}
                           onChange={(event) => updateDraftPackage('recipientName', event.target.value)}
+                          disabled={isPackageEditLocked}
+                          className={getInvalidFieldClass(!!packageFieldErrors.recipientName)}
                           placeholder="Tulis nama penerima"
                         />
+                        {renderFieldError(packageFieldErrors.recipientName)}
                       </div>
 
                       <div className="space-y-2">
@@ -1000,9 +1075,13 @@ export function AdminShipments() {
                         <Input
                           id="package-recipient-phone"
                           value={draftPackage.recipientPhone ?? ''}
+                          inputMode="tel"
                           onChange={(event) => updateDraftPackage('recipientPhone', event.target.value)}
+                          disabled={isPackageEditLocked}
+                          className={getInvalidFieldClass(!!packageFieldErrors.recipientPhone)}
                           placeholder="Contoh: 081234567890"
                         />
+                        {renderFieldError(packageFieldErrors.recipientPhone)}
                       </div>
 
                       <div className="space-y-2">
@@ -1017,10 +1096,17 @@ export function AdminShipments() {
                         <Select
                           value={draftPackage.courierId}
                           onValueChange={handleCourierChange}
+                          disabled={isPackageEditLocked}
                         >
                           <SelectTrigger
                             id="package-courier"
-                            className={packageDialogMode === 'create' && !draftPackage.courierId ? 'border-amber-400 bg-amber-50' : ''}
+                            className={
+                              packageFieldErrors.courierId
+                                ? getInvalidFieldClass(true)
+                                : packageDialogMode === 'create' && !draftPackage.courierId
+                                  ? 'border-amber-400 bg-amber-50'
+                                  : ''
+                            }
                           >
                             <SelectValue placeholder="— Pilih Kurir (Wajib) —" />
                           </SelectTrigger>
@@ -1032,6 +1118,7 @@ export function AdminShipments() {
                             ))}
                           </SelectContent>
                         </Select>
+                        {renderFieldError(packageFieldErrors.courierId)}
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="package-item-type">Jenis Barang</Label>
@@ -1039,8 +1126,11 @@ export function AdminShipments() {
                           id="package-item-type"
                           value={draftPackage.itemType ?? ''}
                           onChange={(event) => updateDraftPackage('itemType', event.target.value)}
+                          disabled={isPackageEditLocked}
+                          className={getInvalidFieldClass(!!packageFieldErrors.itemType)}
                           placeholder="Contoh: Pakaian, Alat Rumah Tangga, Kayu, dll."
                         />
+                        {renderFieldError(packageFieldErrors.itemType)}
                       </div>
 
                       <div className="space-y-2">
@@ -1050,7 +1140,10 @@ export function AdminShipments() {
                           onValueChange={(value: PackageStatus) => updateDraftPackage('status', value)}
                           disabled={isHistoricalMonth}
                         >
-                          <SelectTrigger id="package-status">
+                          <SelectTrigger
+                            id="package-status"
+                            className={getInvalidFieldClass(!!packageFieldErrors.status)}
+                          >
                             <SelectValue placeholder="Pilih status" />
                           </SelectTrigger>
                           <SelectContent>
@@ -1061,6 +1154,7 @@ export function AdminShipments() {
                             ))}
                           </SelectContent>
                         </Select>
+                        {renderFieldError(packageFieldErrors.status)}
                       </div>
 
                       <div className="space-y-2">
@@ -1068,8 +1162,12 @@ export function AdminShipments() {
                         <Select
                           value={draftPackage.itemStatus ?? 'Baik'}
                           onValueChange={(value: ItemStatus) => updateDraftPackage('itemStatus', value)}
+                          disabled={isPackageEditLocked}
                         >
-                          <SelectTrigger id="package-item-status">
+                          <SelectTrigger
+                            id="package-item-status"
+                            className={getInvalidFieldClass(!!packageFieldErrors.itemStatus)}
+                          >
                             <SelectValue placeholder="Pilih status barang" />
                           </SelectTrigger>
                           <SelectContent>
@@ -1080,6 +1178,7 @@ export function AdminShipments() {
                             ))}
                           </SelectContent>
                         </Select>
+                        {renderFieldError(packageFieldErrors.itemStatus)}
                       </div>
 
                       <div className="space-y-2">
@@ -1087,8 +1186,12 @@ export function AdminShipments() {
                         <Select
                           value={normalizeTransactionStatusForUi(draftPackage.transactionStatus)}
                           onValueChange={(value: TransactionStatus) => updateDraftPackage('transactionStatus', value)}
+                          disabled={isPackageEditLocked}
                         >
-                          <SelectTrigger id="package-transaction-status">
+                          <SelectTrigger
+                            id="package-transaction-status"
+                            className={getInvalidFieldClass(!!packageFieldErrors.transactionStatus)}
+                          >
                             <SelectValue placeholder="Pilih status transaksi" />
                           </SelectTrigger>
                           <SelectContent>
@@ -1099,6 +1202,7 @@ export function AdminShipments() {
                             ))}
                           </SelectContent>
                         </Select>
+                        {renderFieldError(packageFieldErrors.transactionStatus)}
                       </div>
 
                       <div className="space-y-2">
@@ -1107,8 +1211,11 @@ export function AdminShipments() {
                           id="package-origin"
                           value={draftPackage.origin}
                           onChange={(event) => updateDraftPackage('origin', event.target.value)}
+                          disabled={isPackageEditLocked}
+                          className={getInvalidFieldClass(!!packageFieldErrors.origin)}
                           placeholder="Masukkan kota asal kargo"
                         />
+                        {renderFieldError(packageFieldErrors.origin)}
                       </div>
 
                       <div className="space-y-2">
@@ -1117,8 +1224,11 @@ export function AdminShipments() {
                           id="package-destination"
                           value={draftPackage.destination}
                           onChange={(event) => updateDraftPackage('destination', event.target.value)}
+                          disabled={isPackageEditLocked}
+                          className={getInvalidFieldClass(!!packageFieldErrors.destination)}
                           placeholder="Masukkan kota tujuan kargo"
                         />
+                        {renderFieldError(packageFieldErrors.destination)}
                       </div>
 
                       <div className="space-y-2">
@@ -1131,9 +1241,16 @@ export function AdminShipments() {
                               : draftPackage.currentLocation
                           }
                           onChange={(event) => updateDraftPackage('currentLocation', event.target.value)}
-                          disabled={isHistoricalMonth || draftPackage.status === 'Selesai' || draftPackage.status === 'Sampai Tujuan'}
+                          disabled={
+                            isPackageEditLocked ||
+                            isHistoricalMonth ||
+                            draftPackage.status === 'Selesai' ||
+                            draftPackage.status === 'Sampai Tujuan'
+                          }
+                          className={getInvalidFieldClass(!!packageFieldErrors.currentLocation)}
                           placeholder="Masukkan lokasi terkini kargo"
                         />
+                        {renderFieldError(packageFieldErrors.currentLocation)}
                       </div>
 
                       <div className="space-y-2">
@@ -1145,7 +1262,10 @@ export function AdminShipments() {
                           step="0.1"
                           value={draftPackage.weightKg}
                           onChange={(event) => updateDraftPackage('weightKg', Number(event.target.value))}
+                          disabled={isPackageEditLocked}
+                          className={getInvalidFieldClass(!!packageFieldErrors.weightKg)}
                         />
+                        {renderFieldError(packageFieldErrors.weightKg)}
                       </div>
 
                       <div className="space-y-2">
@@ -1157,7 +1277,7 @@ export function AdminShipments() {
                           step="1000"
                           value={draftPackage.shippingCost ?? 0}
                           readOnly
-                          disabled={isShippingCostLocked(draftPackage.status)}
+                          disabled={isPackageEditLocked || isShippingCostLocked(draftPackage.status)}
                           className="bg-muted/40"
                           placeholder="Harga otomatis mengikuti berat"
                         />
@@ -1176,8 +1296,12 @@ export function AdminShipments() {
                               const combined = defaultModel ? `${value} (${defaultModel})` : value;
                               updateDraftPackage('vehicleType', combined);
                             }}
+                            disabled={isPackageEditLocked}
                           >
-                            <SelectTrigger id="package-vehicle-type">
+                            <SelectTrigger
+                              id="package-vehicle-type"
+                              className={getInvalidFieldClass(!!packageFieldErrors.vehicleType)}
+                            >
                               <SelectValue placeholder="Pilih jenis kendaraan" />
                             </SelectTrigger>
                             <SelectContent>
@@ -1187,6 +1311,7 @@ export function AdminShipments() {
                               <SelectItem value="Fuso Heavy Duty">Fuso Heavy Duty</SelectItem>
                             </SelectContent>
                           </Select>
+                          {renderFieldError(packageFieldErrors.vehicleType)}
                         </div>
 
                         <div className="space-y-2">
@@ -1197,6 +1322,7 @@ export function AdminShipments() {
                               const combined = `${currentType} (${value})`;
                               updateDraftPackage('vehicleType', combined);
                             }}
+                            disabled={isPackageEditLocked}
                           >
                             <SelectTrigger id="package-vehicle-model">
                               <SelectValue placeholder="Pilih kategori/nama kendaraan" />
@@ -1218,14 +1344,17 @@ export function AdminShipments() {
                           id="package-description"
                           value={draftPackage.description ?? ''}
                           onChange={(event) => updateDraftPackage('description', event.target.value)}
+                          disabled={isPackageEditLocked}
                           placeholder="Contoh: Barang pecah belah, harap ditaruh teras jika kosong."
                         />
                       </div>
                     </div>
 
-                    <div className="rounded-2xl border border-border bg-secondary/15 p-4 text-sm text-muted-foreground">
-                      Pengiriman baru akan otomatis mengikuti bulan aktif <span className="font-medium text-foreground">{currentMonthLabel}</span> dan nomor resi dibentuk dari pola <span className="font-medium text-foreground">CKL-YYYYMM-urutan</span>.
-                    </div>
+                    {packageDialogMode === 'create' && (
+                      <div className="rounded-2xl border border-border bg-secondary/15 p-4 text-sm text-muted-foreground">
+                        Pengiriman baru akan otomatis mengikuti bulan aktif <span className="font-medium text-foreground">{currentMonthLabel}</span> dan nomor resi dibentuk dari pola <span className="font-medium text-foreground">CKL-YYYYMM-urutan</span>.
+                      </div>
+                    )}
                   </div>
                 );
               })()}
@@ -1233,7 +1362,7 @@ export function AdminShipments() {
               <DialogFooter>
                 <Button type="button" onClick={handleSavePackage}>
                   <Save className="h-4 w-4" />
-                  Simpan Perubahan
+                  {packageDialogMode === 'edit' ? 'Simpan Status' : 'Simpan Perubahan'}
                 </Button>
                 <Button type="button" variant="outline" onClick={resetPackageDialog}>
                   Kembali

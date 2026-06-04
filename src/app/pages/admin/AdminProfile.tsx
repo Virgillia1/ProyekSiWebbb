@@ -11,6 +11,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { managerProfile } from '../../data/adminData';
 
 import { useMetadata } from '../../lib/useMetadata';
+import { validateRequiredPhone } from '../../lib/phoneValidation';
+import { scrollToFirstFieldError } from '../../lib/scrollToFieldError';
 
 export function AdminProfile() {
   useMetadata(
@@ -34,6 +36,7 @@ export function AdminProfile() {
     startDate: activeManagerProfile.startDate,
     bio: activeManagerProfile.bio,
   });
+  const [phoneError, setPhoneError] = useState('');
 
   useEffect(() => {
     setFormData({
@@ -46,9 +49,23 @@ export function AdminProfile() {
       startDate: activeManagerProfile.startDate,
       bio: activeManagerProfile.bio,
     });
+    setPhoneError('');
   }, [activeManagerProfile, user?.email, user?.name, user?.phone]);
 
   const handleSave = async () => {
+    const nextPhoneError = validateRequiredPhone(
+      formData.phone,
+      'Nomor telepon manager wajib diisi.',
+      'Nomor telepon manager'
+    );
+
+    setPhoneError(nextPhoneError);
+
+    if (nextPhoneError) {
+      scrollToFirstFieldError();
+      return;
+    }
+
     try {
       await updateManagerProfile(formData);
       updateUser({
@@ -111,10 +128,19 @@ export function AdminProfile() {
                   <Input
                     id="manager-phone"
                     value={formData.phone}
-                    onChange={(event) => setFormData((prev) => ({ ...prev, phone: event.target.value }))}
-                    className="pl-10"
+                    inputMode="tel"
+                    onChange={(event) => {
+                      setFormData((prev) => ({ ...prev, phone: event.target.value }));
+                      setPhoneError('');
+                    }}
+                    className={`pl-10 ${phoneError ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                   />
                 </div>
+                {phoneError && (
+                  <p data-field-error="true" className="text-sm font-medium text-red-600">
+                    {phoneError}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">

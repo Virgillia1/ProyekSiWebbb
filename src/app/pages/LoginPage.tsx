@@ -23,10 +23,13 @@ import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
 import cargoLiteLogo from '../../imports/cargolite-logo.png';
 import { useMetadata } from '../lib/useMetadata';
+import { validateRequiredPhone } from '../lib/phoneValidation';
+import { scrollToFirstFieldError } from '../lib/scrollToFieldError';
 
 const ADMIN_VERIFICATION_CODE = 'ADMCARGOLITE';
 
 type RegistrationMode = 'customer' | 'admin' | null;
+type LoginFieldErrors = Partial<Record<'username' | 'password', string>>;
 
 const buildInitialCustomerForm = (): RegisterCustomerPayload => ({
   name: '',
@@ -56,9 +59,11 @@ export function LoginPage() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [loginFieldErrors, setLoginFieldErrors] = useState<LoginFieldErrors>({});
   const [notice, setNotice] = useState('');
   const [registrationMode, setRegistrationMode] = useState<RegistrationMode>(null);
   const [registrationError, setRegistrationError] = useState('');
+  const [registrationPhoneError, setRegistrationPhoneError] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
   const [customerForm, setCustomerForm] = useState<RegisterCustomerPayload>(
     buildInitialCustomerForm()
@@ -80,6 +85,7 @@ export function LoginPage() {
   const openRegistration = (mode: Exclude<RegistrationMode, null>) => {
     setRegistrationMode(mode);
     setRegistrationError('');
+    setRegistrationPhoneError('');
     setError('');
     setNotice('');
   };
@@ -87,12 +93,31 @@ export function LoginPage() {
   const closeRegistration = () => {
     setRegistrationMode(null);
     setRegistrationError('');
+    setRegistrationPhoneError('');
   };
 
   const handleLogin = async (event: React.FormEvent) => {
     event.preventDefault();
     setError('');
     setNotice('');
+
+    const nextFieldErrors: LoginFieldErrors = {};
+
+    if (!username.trim()) {
+      nextFieldErrors.username = 'Username harus diisi!';
+    }
+
+    if (!password.trim()) {
+      nextFieldErrors.password = 'Password harus diisi!';
+    }
+
+    setLoginFieldErrors(nextFieldErrors);
+
+    if (Object.keys(nextFieldErrors).length > 0) {
+      scrollToFirstFieldError();
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -115,6 +140,21 @@ export function LoginPage() {
   const handleCustomerRegistration = async (event: React.FormEvent) => {
     event.preventDefault();
     setRegistrationError('');
+
+    const phoneError = validateRequiredPhone(
+      customerForm.phone,
+      'Nomor telepon customer wajib diisi.',
+      'Nomor telepon customer'
+    );
+
+    if (phoneError) {
+      setRegistrationPhoneError(phoneError);
+      scrollToFirstFieldError();
+      return;
+    }
+
+    setRegistrationPhoneError('');
+
     setIsRegistering(true);
 
     try {
@@ -142,6 +182,21 @@ export function LoginPage() {
   const handleAdminRegistration = async (event: React.FormEvent) => {
     event.preventDefault();
     setRegistrationError('');
+
+    const phoneError = validateRequiredPhone(
+      adminForm.phone,
+      'Nomor telepon admin wajib diisi.',
+      'Nomor telepon admin'
+    );
+
+    if (phoneError) {
+      setRegistrationPhoneError(phoneError);
+      scrollToFirstFieldError();
+      return;
+    }
+
+    setRegistrationPhoneError('');
+
     setIsRegistering(true);
 
     try {
@@ -202,12 +257,23 @@ export function LoginPage() {
                   type="text"
                   placeholder="Masukkan username"
                   value={username}
-                  onChange={(event) => setUsername(event.target.value)}
+                  onChange={(event) => {
+                    setUsername(event.target.value);
+                    setLoginFieldErrors((previousErrors) => ({
+                      ...previousErrors,
+                      username: '',
+                    }));
+                  }}
                   className="pl-10"
-                  required
+                  aria-invalid={!!loginFieldErrors.username}
                   autoFocus
                 />
               </div>
+              {loginFieldErrors.username && (
+                <p data-field-error="true" className="text-sm font-medium text-red-600">
+                  {loginFieldErrors.username}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -219,11 +285,22 @@ export function LoginPage() {
                   type="password"
                   placeholder="********"
                   value={password}
-                  onChange={(event) => setPassword(event.target.value)}
+                  onChange={(event) => {
+                    setPassword(event.target.value);
+                    setLoginFieldErrors((previousErrors) => ({
+                      ...previousErrors,
+                      password: '',
+                    }));
+                  }}
                   className="pl-10"
-                  required
+                  aria-invalid={!!loginFieldErrors.password}
                 />
               </div>
+              {loginFieldErrors.password && (
+                <p data-field-error="true" className="text-sm font-medium text-red-600">
+                  {loginFieldErrors.password}
+                </p>
+              )}
             </div>
 
             {notice && (
@@ -318,15 +395,25 @@ export function LoginPage() {
                 <Input
                   id="customer-phone"
                   value={customerForm.phone}
+                  inputMode="tel"
                   onChange={(event) =>
-                    setCustomerForm((previousForm) => ({
-                      ...previousForm,
-                      phone: event.target.value,
-                    }))
+                    {
+                      setCustomerForm((previousForm) => ({
+                        ...previousForm,
+                        phone: event.target.value,
+                      }));
+                      setRegistrationPhoneError('');
+                    }
                   }
+                  className={registrationPhoneError ? 'border-red-500 focus-visible:ring-red-500' : ''}
                   placeholder="08xxxxxxxxxx"
-                  required
+                  aria-invalid={!!registrationPhoneError}
                 />
+                {registrationMode === 'customer' && registrationPhoneError && (
+                  <p data-field-error="true" className="text-sm font-medium text-red-600">
+                    {registrationPhoneError}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2 md:col-span-2">
@@ -454,15 +541,25 @@ export function LoginPage() {
                 <Input
                   id="admin-phone"
                   value={adminForm.phone}
+                  inputMode="tel"
                   onChange={(event) =>
-                    setAdminForm((previousForm) => ({
-                      ...previousForm,
-                      phone: event.target.value,
-                    }))
+                    {
+                      setAdminForm((previousForm) => ({
+                        ...previousForm,
+                        phone: event.target.value,
+                      }));
+                      setRegistrationPhoneError('');
+                    }
                   }
+                  className={registrationPhoneError ? 'border-red-500 focus-visible:ring-red-500' : ''}
                   placeholder="08xxxxxxxxxx"
-                  required
+                  aria-invalid={!!registrationPhoneError}
                 />
+                {registrationMode === 'admin' && registrationPhoneError && (
+                  <p data-field-error="true" className="text-sm font-medium text-red-600">
+                    {registrationPhoneError}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">

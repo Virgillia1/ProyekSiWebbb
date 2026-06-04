@@ -10,6 +10,12 @@ import { AdminTablePagination } from '../../components/admin/AdminTablePaginatio
 import { AdminTableToolbar } from '../../components/admin/AdminTableToolbar';
 import { useAdminData } from '../../contexts/AdminDataContext';
 import {
+  getPhoneMinimumMessage,
+  hasMinimumPhoneDigits,
+  validateRequiredPhone,
+} from '../../lib/phoneValidation';
+import { scrollToFirstFieldError } from '../../lib/scrollToFieldError';
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -53,6 +59,9 @@ import type { Courier, CourierStatus } from '../../data/adminData';
 const ITEMS_PER_PAGE = 5;
 const courierStatusOptions: CourierStatus[] = ['Aktif', 'Nonaktif'];
 const fallbackVehicleTypeOptions = ['Motor', 'Mobil Box', 'Van', 'Truck Ringan'];
+
+const getInvalidFieldClass = (hasError: boolean) =>
+  hasError ? 'border-red-500 focus-visible:ring-red-500' : '';
 
 const padValue = (value: number, length = 3) => String(value).padStart(length, '0');
 
@@ -107,6 +116,7 @@ export function AdminEmployees() {
   const [dialogMode, setDialogMode] = useState<'view' | 'edit' | 'create' | null>(null);
   const [activeCourierId, setActiveCourierId] = useState<string | null>(null);
   const [draftCourier, setDraftCourier] = useState<Courier | null>(null);
+  const [courierPhoneError, setCourierPhoneError] = useState('');
   const [courierToDelete, setCourierToDelete] = useState<Courier | null>(null);
 
   const [courierAccount, setCourierAccount] = useState<CourierAccountInfo | null>(null);
@@ -114,6 +124,7 @@ export function AdminEmployees() {
   const [accountUsername, setAccountUsername] = useState('');
   const [accountEmail, setAccountEmail] = useState('');
   const [accountPhone, setAccountPhone] = useState('');
+  const [accountPhoneError, setAccountPhoneError] = useState('');
   const [accountPassword, setAccountPassword] = useState('');
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
 
@@ -179,7 +190,9 @@ export function AdminEmployees() {
     setAccountUsername('');
     setAccountEmail('');
     setAccountPhone('');
+    setAccountPhoneError('');
     setAccountPassword('');
+    setCourierPhoneError('');
   };
 
   const fetchCourierAccount = async (id: string) => {
@@ -199,6 +212,8 @@ export function AdminEmployees() {
     setDraftCourier(null);
     setDialogMode('view');
     setAccountUsername('kurir_');
+    setAccountPhoneError('');
+    setCourierPhoneError('');
     void fetchCourierAccount(courierId);
   };
 
@@ -210,6 +225,14 @@ export function AdminEmployees() {
       });
       return;
     }
+
+    if (accountPhone.trim() && !hasMinimumPhoneDigits(accountPhone)) {
+      setAccountPhoneError(getPhoneMinimumMessage('Nomor telepon akun'));
+      scrollToFirstFieldError();
+      return;
+    }
+
+    setAccountPhoneError('');
     
     setIsCreatingAccount(true);
     try {
@@ -239,16 +262,22 @@ export function AdminEmployees() {
 
     setActiveCourierId(courierId);
     setDraftCourier({ ...targetCourier });
+    setCourierPhoneError('');
     setDialogMode('edit');
   };
 
   const openCreateCourier = () => {
     setActiveCourierId(null);
     setDraftCourier(buildNewCourierDraft(couriers));
+    setCourierPhoneError('');
     setDialogMode('create');
   };
 
   const updateDraftCourier = <Key extends keyof Courier>(key: Key, value: Courier[Key]) => {
+    if (key === 'phone') {
+      setCourierPhoneError('');
+    }
+
     setDraftCourier((previousDraft) =>
       previousDraft
         ? {
@@ -261,6 +290,19 @@ export function AdminEmployees() {
 
   const handleSaveCourier = async () => {
     if (!draftCourier) {
+      return;
+    }
+
+    const phoneError = validateRequiredPhone(
+      draftCourier.phone,
+      'Nomor telepon kurir wajib diisi.',
+      'Nomor telepon kurir'
+    );
+
+    setCourierPhoneError(phoneError);
+
+    if (phoneError) {
+      scrollToFirstFieldError();
       return;
     }
 
@@ -605,10 +647,19 @@ export function AdminEmployees() {
                           <Input
                             id="account-phone"
                             value={accountPhone}
-                            onChange={(e) => setAccountPhone(e.target.value)}
+                            inputMode="tel"
+                            onChange={(e) => {
+                              setAccountPhone(e.target.value);
+                              setAccountPhoneError('');
+                            }}
                             placeholder="08xxxxxxxxxx"
-                            className="text-sm"
+                            className={`text-sm ${getInvalidFieldClass(!!accountPhoneError)}`}
                           />
+                          {accountPhoneError && (
+                            <p data-field-error="true" className="text-sm font-medium text-red-600">
+                              {accountPhoneError}
+                            </p>
+                          )}
                         </div>
 
                         <div className="space-y-2">
@@ -737,9 +788,16 @@ export function AdminEmployees() {
                   <Input
                     id="courier-phone"
                     value={draftCourier.phone}
+                    inputMode="tel"
                     onChange={(event) => updateDraftCourier('phone', event.target.value)}
+                    className={getInvalidFieldClass(!!courierPhoneError)}
                     placeholder="08xxxxxxxxxx"
                   />
+                  {courierPhoneError && (
+                    <p data-field-error="true" className="text-sm font-medium text-red-600">
+                      {courierPhoneError}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
