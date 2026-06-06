@@ -1,9 +1,22 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation, Outlet, useNavigate } from 'react-router';
-import { Menu, X, LogOut, User } from 'lucide-react';
+import { Menu, X, LogOut, User, Mail, MapPin, Phone } from 'lucide-react';
 import { Button } from './ui/button';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from './ui/sheet';
 import { useAuth } from '../contexts/AuthContext';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from './ui/dialog';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { updateCustomerProfileRequest } from '../lib/authApi';
+import { validateRequiredPhone } from '../lib/phoneValidation';
+import { scrollToFirstFieldError } from '../lib/scrollToFieldError';
+import { toast } from 'sonner';
 import cargoLiteLogo from '../../imports/cargolite-logo.png';
 
 const navItems = [
@@ -29,7 +42,83 @@ export function Layout() {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
+
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [profileData, setProfileData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    address: '',
+  });
+  const [profileErrors, setProfileErrors] = useState<Record<string, string>>({});
+  const [phoneError, setPhoneError] = useState('');
+
+  useEffect(() => {
+    if (user) {
+      setProfileData({
+        name: user.name || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        address: user.address || '',
+      });
+    }
+  }, [user, isProfileOpen]);
+
+  const handleSaveProfile = async () => {
+    if (!user?.customerId) {
+      toast.error('ID Customer tidak ditemukan pada sesi Anda.');
+      return;
+    }
+
+    const errors: Record<string, string> = {};
+    if (!profileData.name.trim()) {
+      errors.name = 'Nama lengkap wajib diisi.';
+    }
+    if (!profileData.email.trim()) {
+      errors.email = 'Email wajib diisi.';
+    }
+    const nextPhoneError = validateRequiredPhone(
+      profileData.phone,
+      'Nomor telepon customer wajib diisi.',
+      'Nomor telepon customer'
+    );
+    if (nextPhoneError) {
+      errors.phone = nextPhoneError;
+    }
+    if (!profileData.address.trim()) {
+      errors.address = 'Alamat wajib diisi.';
+    }
+
+    setProfileErrors(errors);
+    setPhoneError(nextPhoneError);
+
+    if (Object.keys(errors).length > 0 || nextPhoneError) {
+      scrollToFirstFieldError();
+      return;
+    }
+
+    setIsSavingProfile(true);
+    try {
+      const updatedUser = await updateCustomerProfileRequest(user.customerId, {
+        name: profileData.name.trim(),
+        email: profileData.email.trim(),
+        phone: profileData.phone.trim(),
+        address: profileData.address.trim(),
+      });
+
+      updateUser(updatedUser);
+      toast.success('Profil berhasil diperbarui!');
+      setIsProfileOpen(false);
+    } catch (error) {
+      console.error(error);
+      toast.error(error instanceof Error ? error.message : 'Gagal memperbarui profil.');
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
 
   const isActive = (path: string) => {
     if (path === '/') {
@@ -113,38 +202,87 @@ export function Layout() {
 
             {/* Right: Account Button */}
             <div className="flex items-center gap-4">
-              {user && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleLogout}
-                  className="flex items-center gap-2"
-                >
-                  <LogOut className="h-4 w-4" />
-                  Logout
-                </Button>
-              )}
-              <Link to={user ? accountLink : '/login'}>
-                {user ? (
-                  <div className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-                    <div className="text-right">
-                      <div className="text-sm font-medium">{user.name}</div>
+              {user ? (
+                <div className="relative">
+                  <button
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    className="flex items-center gap-3 hover:opacity-85 transition-all focus:outline-none"
+                    aria-label="Menu akun"
+                  >
+                    <div className="text-right hidden sm:block">
+                      <div className="text-sm font-medium text-foreground">{user.name}</div>
                       <div className="text-xs text-muted-foreground">{roleLabel}</div>
                     </div>
-                    <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center overflow-hidden">
+                    <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center overflow-hidden border border-border/40 shadow-sm">
                       {user.avatar ? (
                         <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
                       ) : (
                         <User className="h-6 w-6 text-white" />
                       )}
                     </div>
-                  </div>
-                ) : (
+                  </button>
+
+                  {isDropdownOpen && (
+                    <>
+                      {/* Click outside overlay */}
+                      <div
+                        className="fixed inset-0 z-10"
+                        onClick={() => setIsDropdownOpen(false)}
+                      />
+                      <div className="absolute right-0 mt-2 w-48 rounded-2xl border border-border bg-white p-2 shadow-lg z-20">
+                        {user.role === 'customer' && (
+                          <>
+                            <Link
+                              to="/my-packages"
+                              onClick={() => setIsDropdownOpen(false)}
+                              className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-foreground hover:bg-secondary transition-colors"
+                            >
+                              Paket Saya
+                            </Link>
+                            <button
+                              onClick={() => {
+                                setIsDropdownOpen(false);
+                                setIsProfileOpen(true);
+                              }}
+                              className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-foreground hover:bg-secondary text-left transition-colors"
+                            >
+                              Edit Profil
+                            </button>
+                            <div className="my-1 border-t border-border" />
+                          </>
+                        )}
+                        {(user.role === 'admin' || user.role === 'courier') && (
+                          <>
+                            <Link
+                              to={accountLink}
+                              onClick={() => setIsDropdownOpen(false)}
+                              className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-foreground hover:bg-secondary transition-colors"
+                            >
+                              Dashboard
+                            </Link>
+                            <div className="my-1 border-t border-border" />
+                          </>
+                        )}
+                        <button
+                          onClick={() => {
+                            setIsDropdownOpen(false);
+                            handleLogout();
+                          }}
+                          className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-red-600 hover:bg-red-50 text-left transition-colors font-medium"
+                        >
+                          Logout
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <Link to="/login" aria-label="Login">
                   <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center hover:bg-primary/90 transition-colors cursor-pointer">
                     <User className="h-6 w-6 text-white" />
                   </div>
-                )}
-              </Link>
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -197,6 +335,146 @@ export function Layout() {
           </div>
         </div>
       </footer>
+
+      {/* Edit Profile Dialog */}
+      <Dialog open={isProfileOpen} onOpenChange={(open) => {
+        if (!open) {
+          setIsProfileOpen(false);
+          setProfileErrors({});
+          setPhoneError('');
+        }
+      }}>
+        <DialogContent className="sm:max-w-md rounded-3xl bg-white p-6 max-h-[90vh] overflow-y-auto z-50">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold flex items-center gap-2">
+              <User className="h-5 w-5 text-primary" />
+              Edit Profil Saya
+            </DialogTitle>
+            <DialogDescription>
+              Perbarui nama, email, nomor telepon, dan alamat Anda.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 my-4">
+            {/* Name Field */}
+            <div className="space-y-1.5">
+              <Label htmlFor="profile-name">Nama Lengkap</Label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="profile-name"
+                  placeholder="Masukkan nama lengkap"
+                  value={profileData.name}
+                  onChange={(e) => {
+                    setProfileData({ ...profileData, name: e.target.value });
+                    setProfileErrors((prev) => ({ ...prev, name: '' }));
+                  }}
+                  className={`pl-9 rounded-xl ${
+                    profileErrors.name ? 'border-red-600 focus-visible:ring-red-600' : 'border-border'
+                  }`}
+                />
+              </div>
+              {profileErrors.name && (
+                <p data-field-error="true" className="text-red-600 text-xs font-medium">{profileErrors.name}</p>
+              )}
+            </div>
+
+            {/* Email Field */}
+            <div className="space-y-1.5">
+              <Label htmlFor="profile-email">Email</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="profile-email"
+                  type="email"
+                  placeholder="nama@email.com"
+                  value={profileData.email}
+                  onChange={(e) => {
+                    setProfileData({ ...profileData, email: e.target.value });
+                    setProfileErrors((prev) => ({ ...prev, email: '' }));
+                  }}
+                  className={`pl-9 rounded-xl ${
+                    profileErrors.email ? 'border-red-600 focus-visible:ring-red-600' : 'border-border'
+                  }`}
+                />
+              </div>
+              {profileErrors.email && (
+                <p data-field-error="true" className="text-red-600 text-xs font-medium">{profileErrors.email}</p>
+              )}
+            </div>
+
+            {/* Phone Field */}
+            <div className="space-y-1.5">
+              <Label htmlFor="profile-phone">Nomor Telepon</Label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="profile-phone"
+                  type="tel"
+                  placeholder="Minimal 12 digit (contoh: 081234567890)"
+                  value={profileData.phone}
+                  onChange={(e) => {
+                    setProfileData({ ...profileData, phone: e.target.value.replace(/\D/g, '') });
+                    setProfileErrors((prev) => ({ ...prev, phone: '' }));
+                    setPhoneError('');
+                  }}
+                  className={`pl-9 rounded-xl ${
+                    phoneError || profileErrors.phone ? 'border-red-600 focus-visible:ring-red-600' : 'border-border'
+                  }`}
+                />
+              </div>
+              {(phoneError || profileErrors.phone) && (
+                <p data-field-error="true" className="text-red-600 text-xs font-medium">{phoneError || profileErrors.phone}</p>
+              )}
+            </div>
+
+            {/* Address Field */}
+            <div className="space-y-1.5">
+              <Label htmlFor="profile-address">Alamat Lengkap</Label>
+              <div className="relative">
+                <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <textarea
+                  id="profile-address"
+                  placeholder="Masukkan alamat lengkap Anda"
+                  value={profileData.address}
+                  onChange={(e) => {
+                    setProfileData({ ...profileData, address: e.target.value });
+                    setProfileErrors((prev) => ({ ...prev, address: '' }));
+                  }}
+                  className={`w-full min-h-[80px] pl-9 pr-3 py-2 text-sm bg-background border rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${
+                    profileErrors.address ? 'border-red-600 focus-visible:ring-red-600' : 'border-border'
+                  }`}
+                />
+              </div>
+              {profileErrors.address && (
+                <p data-field-error="true" className="text-red-600 text-xs font-medium">{profileErrors.address}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2 border-t border-border/40">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsProfileOpen(false);
+                setProfileErrors({});
+                setPhoneError('');
+              }}
+              className="rounded-xl border-border hover:bg-secondary/50"
+              disabled={isSavingProfile}
+            >
+              Batal
+            </Button>
+            <Button
+              onClick={handleSaveProfile}
+              className="bg-primary hover:bg-primary/95 text-white font-semibold rounded-xl"
+              disabled={isSavingProfile}
+            >
+              {isSavingProfile ? 'Menyimpan...' : 'Simpan Perubahan'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

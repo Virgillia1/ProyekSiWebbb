@@ -17,9 +17,25 @@ const validateRequired = (value, message) => {
 
 const validatePhone = (value, requiredMessage, label = 'Nomor telepon') => {
   validateRequired(value, requiredMessage);
-
-  if (getPhoneDigitCount(value) < MIN_PHONE_DIGITS) {
+  const norm = normalizeText(value);
+  if (/\D/.test(norm)) {
+    throw new BadRequestError(`${label} hanya boleh berisi angka.`);
+  }
+  if (norm.length < MIN_PHONE_DIGITS) {
     throw new BadRequestError(`${label} minimal ${MIN_PHONE_DIGITS} digit.`);
+  }
+};
+
+const validateLicensePlate = (value, message = 'Plat nomor harus memiliki minimal 1 huruf dan 1 angka, dengan total minimal 4 karakter.') => {
+  const norm = normalizeText(value);
+  if (!norm) {
+    throw new BadRequestError('Plat nomor wajib diisi.');
+  }
+  const cleanPlate = norm.replace(/\s+/g, '');
+  const hasLetter = /[a-zA-Z]/.test(cleanPlate);
+  const hasNumber = /\d/.test(cleanPlate);
+  if (cleanPlate.length < 4 || !hasLetter || !hasNumber) {
+    throw new BadRequestError(message);
   }
 };
 
@@ -454,14 +470,32 @@ const validatePackageCreatePayload = (packageData) => {
   }
 };
 
+export const getContactMessages = async (client = pool) => {
+  try {
+    const { rows } = await client.query('SELECT * FROM contact_messages ORDER BY created_at DESC');
+    return rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      email: row.email,
+      subject: row.subject,
+      message: row.message,
+      createdAt: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString(),
+    }));
+  } catch (err) {
+    console.error('Failed to fetch contact messages:', err);
+    return [];
+  }
+};
+
 export const getBootstrapData = async () => {
-  const [employees, packages, attendanceRecords, customers, managerProfile, vehicles] = await Promise.all([
+  const [employees, packages, attendanceRecords, customers, managerProfile, vehicles, contactMessages] = await Promise.all([
     getEmployees(),
     getPackages(),
     getAttendanceRecords(),
     getCustomers(),
     getManagerProfile(),
     getVehicles(),
+    getContactMessages(),
   ]);
 
   return {
@@ -471,6 +505,7 @@ export const getBootstrapData = async () => {
     customers,
     managerProfile,
     vehicles,
+    contactMessages,
   };
 };
 
@@ -571,6 +606,9 @@ export const createEmployee = async (employee) =>
     validateRequired(employee.baseArea, 'Area basis kurir wajib diisi.');
     validateRequired(employee.coverageArea, 'Area tugas kurir wajib diisi.');
     validatePhone(employee.phone, 'Nomor telepon kurir wajib diisi.', 'Nomor telepon kurir');
+    if (employee.vehiclePlate && String(employee.vehiclePlate).trim()) {
+      validateLicensePlate(employee.vehiclePlate, 'Nomor kendaraan harus memiliki minimal 1 huruf dan 1 angka, dengan total minimal 4 karakter.');
+    }
 
     await client.query(
       `
@@ -603,6 +641,9 @@ export const updateEmployee = async (id, employee) =>
     validateRequired(employee.baseArea, 'Area basis kurir wajib diisi.');
     validateRequired(employee.coverageArea, 'Area tugas kurir wajib diisi.');
     validatePhone(employee.phone, 'Nomor telepon kurir wajib diisi.', 'Nomor telepon kurir');
+    if (employee.vehiclePlate && String(employee.vehiclePlate).trim()) {
+      validateLicensePlate(employee.vehiclePlate, 'Nomor kendaraan harus memiliki minimal 1 huruf dan 1 angka, dengan total minimal 4 karakter.');
+    }
 
     const result = await client.query(
       `
@@ -885,9 +926,67 @@ export const createCustomer = async (customer) =>
     return getCustomerById(customer.id, client);
   });
 
-export const updateCustomer = async (id, customer) => {
-  throw new ConflictError('Data customer tidak bisa diedit setelah dibuat.');
-};
+export const updateCustomer = async (id, customer) =>
+  withTransaction(async (client) => {
+    validateRequired(customer.name, 'Nama customer wajib diisi.');
+    validateRequired(customer.address, 'Alamat customer wajib diisi.');
+    validateRequired(customer.email, 'Email customer wajib diisi.');
+    validatePhone(customer.phone, 'Nomor telepon customer wajib diisi.', 'Nomor telepon customer');
+
+    const { rowCount: emailConflictCount } = await client.query(
+      'SELECT 1 FROM customers WHERE LOWER(email) = LOWER($1) AND id != $2 LIMIT 1',
+      [customer.email, id]
+    );
+
+    if (emailConflictCount) {
+      throw new ConflictError('Email customer sudah terdaftar di database.');
+    }
+
+    const result = await client.query(
+      `
+        UPDATE customers
+        SET
+          name = $2,
+          address = $3,
+          email = $4,
+          phone = $5,
+          last_activity = CURRENT_DATE
+        WHERE id = $1
+      `,
+      [
+        id,
+        customer.name,
+        customer.address,
+        customer.email,
+        customer.phone,
+      ]
+    );
+
+    if (!result.rowCount) {
+      throw new NotFoundError('Data customer tidak ditemukan.');
+    }
+
+    await client.query(
+      `
+        UPDATE user_accounts
+        SET
+          name = $2,
+          email = $3,
+          phone = $4,
+          address = $5
+        WHERE customer_id = $1
+      `,
+      [
+        id,
+        customer.name,
+        customer.email,
+        customer.phone,
+        customer.address,
+      ]
+    );
+
+    return getCustomerById(id, client);
+  });
 
 export const deleteCustomer = async (id) =>
   withTransaction(async (client) => {
@@ -979,6 +1078,10 @@ export const getVehicleById = async (id, client = pool) => {
 
 export const createVehicle = async (vehicle) =>
   withTransaction(async (client) => {
+    validateRequired(vehicle.name, 'Nama model kendaraan wajib diisi.');
+    validateLicensePlate(vehicle.plateNumber);
+    validateRequired(vehicle.capacity, 'Kapasitas muatan wajib diisi.');
+
     await client.query(
       `
         INSERT INTO vehicles (
@@ -1002,6 +1105,10 @@ export const createVehicle = async (vehicle) =>
 
 export const updateVehicle = async (id, vehicle) =>
   withTransaction(async (client) => {
+    validateRequired(vehicle.name, 'Nama model kendaraan wajib diisi.');
+    validateLicensePlate(vehicle.plateNumber);
+    validateRequired(vehicle.capacity, 'Kapasitas muatan wajib diisi.');
+
     const result = await client.query(
       `
         UPDATE vehicles

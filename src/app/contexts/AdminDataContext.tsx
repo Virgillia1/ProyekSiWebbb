@@ -38,6 +38,7 @@ import {
   deleteEmployeeRequest,
   deletePackageRequest,
   deleteVehicleRequest,
+  deleteContactMessageRequest,
   type AdminBootstrapData,
 } from '../lib/adminApi';
 
@@ -60,6 +61,7 @@ interface AdminDataContextValue extends AdminBootstrapData {
   createVehicle: (vehicle: Vehicle) => Promise<Vehicle>;
   updateVehicle: (vehicle: Vehicle) => Promise<Vehicle>;
   deleteVehicle: (vehicleId: string) => Promise<Vehicle>;
+  deleteContactMessage: (messageId: string) => Promise<{ ok: boolean; message: string }>;
 }
 
 const fallbackData: AdminBootstrapData = {
@@ -69,6 +71,7 @@ const fallbackData: AdminBootstrapData = {
   customers,
   managerProfile,
   vehicles,
+  contactMessages: [],
 };
 
 const adminApiHint =
@@ -164,6 +167,7 @@ export function AdminDataProvider({ children }: { children: ReactNode }) {
       createVehicle: (vehicle) => mutateAndRefresh(createVehicleRequest(vehicle)),
       updateVehicle: (vehicle) => mutateAndRefresh(updateVehicleRequest(vehicle)),
       deleteVehicle: (vehicleId) => mutateAndRefresh(deleteVehicleRequest(vehicleId)),
+      deleteContactMessage: (messageId) => mutateAndRefresh(deleteContactMessageRequest(messageId)),
     }),
     [data, loading, error, notice, isUsingFallback, refreshData, mutateAndRefresh]
   );

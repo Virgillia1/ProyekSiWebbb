@@ -25,17 +25,32 @@ export function CourierProfile() {
     address: 'Jl. Sudirman No. 123, Jakarta Selatan',
   });
   const [phoneError, setPhoneError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const handleSave = () => {
+    const errors: Record<string, string> = {};
+    if (!formData.name?.trim()) {
+      errors.name = 'Nama lengkap wajib diisi.';
+    }
+    if (!formData.email?.trim()) {
+      errors.email = 'Email wajib diisi.';
+    }
     const nextPhoneError = validateRequiredPhone(
       formData.phone,
       'Nomor telepon kurir wajib diisi.',
       'Nomor telepon kurir'
     );
+    if (nextPhoneError) {
+      errors.phone = nextPhoneError;
+    }
+    if (!formData.address?.trim()) {
+      errors.address = 'Alamat wajib diisi.';
+    }
 
+    setFieldErrors(errors);
     setPhoneError(nextPhoneError);
 
-    if (nextPhoneError) {
+    if (Object.keys(errors).length > 0) {
       scrollToFirstFieldError();
       return;
     }
@@ -125,11 +140,19 @@ export function CourierProfile() {
                     <Input
                       id="name"
                       value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      onChange={(e) => {
+                        setFormData({ ...formData, name: e.target.value });
+                        setFieldErrors((prev) => ({ ...prev, name: '' }));
+                      }}
                       disabled={!isEditing}
-                      className="pl-10"
+                      className={`pl-10 ${fieldErrors.name ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                     />
                   </div>
+                  {isEditing && fieldErrors.name && (
+                    <p data-field-error="true" className="text-sm font-medium text-red-600">
+                      {fieldErrors.name}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -140,11 +163,19 @@ export function CourierProfile() {
                       id="email"
                       type="email"
                       value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      onChange={(e) => {
+                        setFormData({ ...formData, email: e.target.value });
+                        setFieldErrors((prev) => ({ ...prev, email: '' }));
+                      }}
                       disabled={!isEditing}
-                      className="pl-10"
+                      className={`pl-10 ${fieldErrors.email ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                     />
                   </div>
+                  {isEditing && fieldErrors.email && (
+                    <p data-field-error="true" className="text-sm font-medium text-red-600">
+                      {fieldErrors.email}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -157,16 +188,17 @@ export function CourierProfile() {
                     value={formData.phone}
                     inputMode="tel"
                     onChange={(e) => {
-                      setFormData({ ...formData, phone: e.target.value });
+                      setFormData({ ...formData, phone: e.target.value.replace(/\D/g, '') });
+                      setFieldErrors((prev) => ({ ...prev, phone: '' }));
                       setPhoneError('');
                     }}
                     disabled={!isEditing}
-                    className={`pl-10 ${phoneError ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                    className={`pl-10 ${phoneError || fieldErrors.phone ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                   />
                 </div>
-                {phoneError && (
+                {isEditing && (phoneError || fieldErrors.phone) && (
                   <p data-field-error="true" className="text-sm font-medium text-red-600">
-                    {phoneError}
+                    {phoneError || fieldErrors.phone}
                   </p>
                 )}
               </div>
@@ -178,11 +210,19 @@ export function CourierProfile() {
                   <Input
                     id="address"
                     value={formData.address}
-                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, address: e.target.value });
+                      setFieldErrors((prev) => ({ ...prev, address: '' }));
+                    }}
                     disabled={!isEditing}
-                    className="pl-10"
+                    className={`pl-10 ${fieldErrors.address ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                   />
                 </div>
+                {isEditing && fieldErrors.address && (
+                  <p data-field-error="true" className="text-sm font-medium text-red-600">
+                    {fieldErrors.address}
+                  </p>
+                )}
               </div>
             </div>
           </div>

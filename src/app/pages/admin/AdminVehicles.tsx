@@ -96,6 +96,7 @@ export function AdminVehicles() {
   const [activeVehicleId, setActiveVehicleId] = useState<string | null>(null);
   const [draftVehicle, setDraftVehicle] = useState<Vehicle | null>(null);
   const [vehicleToDelete, setVehicleToDelete] = useState<Vehicle | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const filteredVehicles = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -146,11 +147,13 @@ export function AdminVehicles() {
     setDialogMode(null);
     setActiveVehicleId(null);
     setDraftVehicle(null);
+    setFieldErrors({});
   };
 
   const openVehicleDetail = (vehicleId: string) => {
     setActiveVehicleId(vehicleId);
     setDraftVehicle(null);
+    setFieldErrors({});
     setDialogMode('view');
   };
 
@@ -163,16 +166,19 @@ export function AdminVehicles() {
 
     setActiveVehicleId(vehicleId);
     setDraftVehicle({ ...targetVehicle });
+    setFieldErrors({});
     setDialogMode('edit');
   };
 
   const openCreateVehicle = () => {
     setActiveVehicleId(null);
     setDraftVehicle(buildNewVehicleDraft(vehicles));
+    setFieldErrors({});
     setDialogMode('create');
   };
 
   const updateDraftVehicle = <Key extends keyof Vehicle>(key: Key, value: Vehicle[Key]) => {
+    setFieldErrors((prev) => ({ ...prev, [key]: '' }));
     setDraftVehicle((previousDraft) =>
       previousDraft
         ? {
@@ -188,8 +194,27 @@ export function AdminVehicles() {
       return;
     }
 
-    if (!draftVehicle.name.trim() || !draftVehicle.plateNumber.trim() || !draftVehicle.capacity.trim()) {
-      toast.error('Harap lengkapi semua field yang wajib diisi.');
+    const errors: Record<string, string> = {};
+    if (!draftVehicle.name?.trim()) {
+      errors.name = 'Nama model kendaraan wajib diisi.';
+    }
+    if (!draftVehicle.plateNumber?.trim()) {
+      errors.plateNumber = 'Plat nomor wajib diisi.';
+    } else {
+      const cleanPlate = draftVehicle.plateNumber.replace(/\s+/g, '');
+      const hasLetter = /[a-zA-Z]/.test(cleanPlate);
+      const hasNumber = /\d/.test(cleanPlate);
+      if (cleanPlate.length < 4 || !hasLetter || !hasNumber) {
+        errors.plateNumber = 'Plat nomor harus memiliki minimal 1 huruf dan 1 angka, dengan total minimal 4 karakter.';
+      }
+    }
+    if (!draftVehicle.capacity?.trim()) {
+      errors.capacity = 'Kapasitas muatan wajib diisi.';
+    }
+
+    setFieldErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
       return;
     }
 
@@ -460,14 +485,20 @@ export function AdminVehicles() {
                   <Input id="vehicle-id" value={draftVehicle.id} readOnly className="bg-muted/40" />
                 </div>
 
-                <div className="space-y-2">
+                 <div className="space-y-2">
                   <Label htmlFor="vehicle-name">Nama Model Kendaraan</Label>
                   <Input
                     id="vehicle-name"
                     value={draftVehicle.name}
                     onChange={(event) => updateDraftVehicle('name', event.target.value)}
                     placeholder="Contoh: Isuzu Elf Box, Grand Max"
+                    className={fieldErrors.name ? 'border-red-500 focus-visible:ring-red-500' : ''}
                   />
+                  {fieldErrors.name && (
+                    <p data-field-error="true" className="text-sm font-medium text-red-600">
+                      {fieldErrors.name}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -496,7 +527,13 @@ export function AdminVehicles() {
                     value={draftVehicle.plateNumber}
                     onChange={(event) => updateDraftVehicle('plateNumber', event.target.value)}
                     placeholder="Contoh: B 9021 UX"
+                    className={fieldErrors.plateNumber ? 'border-red-500 focus-visible:ring-red-500' : ''}
                   />
+                  {fieldErrors.plateNumber && (
+                    <p data-field-error="true" className="text-sm font-medium text-red-600">
+                      {fieldErrors.plateNumber}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -506,7 +543,13 @@ export function AdminVehicles() {
                     value={draftVehicle.capacity}
                     onChange={(event) => updateDraftVehicle('capacity', event.target.value)}
                     placeholder="Contoh: 1500 kg, 8 ton"
+                    className={fieldErrors.capacity ? 'border-red-500 focus-visible:ring-red-500' : ''}
                   />
+                  {fieldErrors.capacity && (
+                    <p data-field-error="true" className="text-sm font-medium text-red-600">
+                      {fieldErrors.capacity}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">

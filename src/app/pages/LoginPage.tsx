@@ -1,12 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { ArrowLeft, Lock, ShieldCheck, User, UserPlus } from 'lucide-react';
+import { ArrowLeft, Lock, User, UserPlus } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useAuth } from '../contexts/AuthContext';
 import {
-  registerAdminRequest,
   registerCustomerRequest,
-  type RegisterAdminPayload,
   type RegisterCustomerPayload,
 } from '../lib/authApi';
 import { Button } from '../components/ui/button';
@@ -25,10 +23,9 @@ import cargoLiteLogo from '../../imports/cargolite-logo.png';
 import { useMetadata } from '../lib/useMetadata';
 import { validateRequiredPhone } from '../lib/phoneValidation';
 import { scrollToFirstFieldError } from '../lib/scrollToFieldError';
+import { toast } from 'sonner';
 
-const ADMIN_VERIFICATION_CODE = 'ADMCARGOLITE';
-
-type RegistrationMode = 'customer' | 'admin' | null;
+type RegistrationMode = 'customer' | null;
 type LoginFieldErrors = Partial<Record<'username' | 'password', string>>;
 
 const buildInitialCustomerForm = (): RegisterCustomerPayload => ({
@@ -38,15 +35,6 @@ const buildInitialCustomerForm = (): RegisterCustomerPayload => ({
   phone: '',
   address: '',
   password: '',
-});
-
-const buildInitialAdminForm = (): RegisterAdminPayload => ({
-  name: '',
-  username: 'admin_',
-  email: '',
-  phone: '',
-  password: '',
-  verificationCode: '',
 });
 
 export function LoginPage() {
@@ -63,12 +51,11 @@ export function LoginPage() {
   const [notice, setNotice] = useState('');
   const [registrationMode, setRegistrationMode] = useState<RegistrationMode>(null);
   const [registrationError, setRegistrationError] = useState('');
-  const [registrationPhoneError, setRegistrationPhoneError] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
   const [customerForm, setCustomerForm] = useState<RegisterCustomerPayload>(
     buildInitialCustomerForm()
   );
-  const [adminForm, setAdminForm] = useState<RegisterAdminPayload>(buildInitialAdminForm());
+  const [customerFieldErrors, setCustomerFieldErrors] = useState<Record<string, string>>({});
 
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -85,15 +72,15 @@ export function LoginPage() {
   const openRegistration = (mode: Exclude<RegistrationMode, null>) => {
     setRegistrationMode(mode);
     setRegistrationError('');
-    setRegistrationPhoneError('');
     setError('');
     setNotice('');
+    setCustomerFieldErrors({});
   };
 
   const closeRegistration = () => {
     setRegistrationMode(null);
     setRegistrationError('');
-    setRegistrationPhoneError('');
+    setCustomerFieldErrors({});
   };
 
   const handleLogin = async (event: React.FormEvent) => {
@@ -123,6 +110,10 @@ export function LoginPage() {
     try {
       const authenticatedUser = await login(username, password);
 
+      toast.success('Login Berhasil!', {
+        description: `Selamat datang kembali, ${authenticatedUser.name}!`,
+      });
+
       if (authenticatedUser.role === 'admin') {
         navigate('/admin/dashboard');
       } else if (authenticatedUser.role === 'courier') {
@@ -141,19 +132,39 @@ export function LoginPage() {
     event.preventDefault();
     setRegistrationError('');
 
+    const errors: Record<string, string> = {};
+    if (!customerForm.name.trim()) {
+      errors.name = 'Nama customer wajib diisi.';
+    }
+    if (!customerForm.username.trim()) {
+      errors.username = 'Username customer wajib diisi.';
+    }
+    if (!customerForm.email.trim()) {
+      errors.email = 'Email customer wajib diisi.';
+    }
     const phoneError = validateRequiredPhone(
       customerForm.phone,
       'Nomor telepon customer wajib diisi.',
       'Nomor telepon customer'
     );
-
     if (phoneError) {
-      setRegistrationPhoneError(phoneError);
+      errors.phone = phoneError;
+    }
+    if (!customerForm.address.trim()) {
+      errors.address = 'Alamat customer wajib diisi.';
+    }
+    if (!customerForm.password.trim()) {
+      errors.password = 'Password customer wajib diisi.';
+    } else if (customerForm.password.length < 6) {
+      errors.password = 'Password minimal 6 karakter.';
+    }
+
+    setCustomerFieldErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
       scrollToFirstFieldError();
       return;
     }
-
-    setRegistrationPhoneError('');
 
     setIsRegistering(true);
 
@@ -163,9 +174,9 @@ export function LoginPage() {
 
       setUsername(normalizedUsername);
       setPassword('');
-      setNotice(
-        `Akun customer berhasil dibuat dan tersimpan di database. Silakan login dengan username ${normalizedUsername}.`
-      );
+      toast.success('Akun Customer Dibuat!', {
+        description: `Silakan login dengan username ${normalizedUsername}.`,
+      });
       setCustomerForm(buildInitialCustomerForm());
       closeRegistration();
     } catch (registrationIssue) {
@@ -179,47 +190,7 @@ export function LoginPage() {
     }
   };
 
-  const handleAdminRegistration = async (event: React.FormEvent) => {
-    event.preventDefault();
-    setRegistrationError('');
 
-    const phoneError = validateRequiredPhone(
-      adminForm.phone,
-      'Nomor telepon admin wajib diisi.',
-      'Nomor telepon admin'
-    );
-
-    if (phoneError) {
-      setRegistrationPhoneError(phoneError);
-      scrollToFirstFieldError();
-      return;
-    }
-
-    setRegistrationPhoneError('');
-
-    setIsRegistering(true);
-
-    try {
-      await registerAdminRequest(adminForm);
-      const normalizedUsername = adminForm.username.trim().toLowerCase();
-
-      setUsername(normalizedUsername);
-      setPassword('');
-      setNotice(
-        `Akun admin berhasil dibuat dan tersimpan di database. Silakan login dengan username ${normalizedUsername}.`
-      );
-      setAdminForm(buildInitialAdminForm());
-      closeRegistration();
-    } catch (registrationIssue) {
-      setRegistrationError(
-        registrationIssue instanceof Error
-          ? registrationIssue.message
-          : 'Gagal membuat akun admin.'
-      );
-    } finally {
-      setIsRegistering(false);
-    }
-  };
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-gradient-to-br from-primary/5 via-white to-primary/10 px-4">
@@ -316,14 +287,15 @@ export function LoginPage() {
             </Button>
           </form>
 
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <Button type="button" variant="outline" onClick={() => openRegistration('customer')}>
+          <div className="mt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => openRegistration('customer')}
+              className="w-full flex items-center justify-center gap-2 rounded-xl"
+            >
               <UserPlus className="h-4 w-4" />
-              Buat Akun Customer
-            </Button>
-            <Button type="button" variant="outline" onClick={() => openRegistration('admin')}>
-              <ShieldCheck className="h-4 w-4" />
-              Buat Akun Admin
+              Daftar
             </Button>
           </div>
 
@@ -346,15 +318,21 @@ export function LoginPage() {
                 <Input
                   id="customer-name"
                   value={customerForm.name}
-                  onChange={(event) =>
+                  onChange={(event) => {
                     setCustomerForm((previousForm) => ({
                       ...previousForm,
                       name: event.target.value,
-                    }))
-                  }
+                    }));
+                    setCustomerFieldErrors((prev) => ({ ...prev, name: '' }));
+                  }}
+                  className={customerFieldErrors.name ? 'border-red-500 focus-visible:ring-red-500' : ''}
                   placeholder="Nama customer"
-                  required
                 />
+                {customerFieldErrors.name && (
+                  <p data-field-error="true" className="text-sm font-medium text-red-600">
+                    {customerFieldErrors.name}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -362,15 +340,21 @@ export function LoginPage() {
                 <Input
                   id="customer-username"
                   value={customerForm.username}
-                  onChange={(event) =>
+                  onChange={(event) => {
                     setCustomerForm((previousForm) => ({
                       ...previousForm,
                       username: event.target.value,
-                    }))
-                  }
+                    }));
+                    setCustomerFieldErrors((prev) => ({ ...prev, username: '' }));
+                  }}
+                  className={customerFieldErrors.username ? 'border-red-500 focus-visible:ring-red-500' : ''}
                   placeholder="contoh: pelangganbaru"
-                  required
                 />
+                {customerFieldErrors.username && (
+                  <p data-field-error="true" className="text-sm font-medium text-red-600">
+                    {customerFieldErrors.username}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -379,15 +363,21 @@ export function LoginPage() {
                   id="customer-email"
                   type="email"
                   value={customerForm.email}
-                  onChange={(event) =>
+                  onChange={(event) => {
                     setCustomerForm((previousForm) => ({
                       ...previousForm,
                       email: event.target.value,
-                    }))
-                  }
+                    }));
+                    setCustomerFieldErrors((prev) => ({ ...prev, email: '' }));
+                  }}
+                  className={customerFieldErrors.email ? 'border-red-500 focus-visible:ring-red-500' : ''}
                   placeholder="nama@email.com"
-                  required
                 />
+                {customerFieldErrors.email && (
+                  <p data-field-error="true" className="text-sm font-medium text-red-600">
+                    {customerFieldErrors.email}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -396,22 +386,19 @@ export function LoginPage() {
                   id="customer-phone"
                   value={customerForm.phone}
                   inputMode="tel"
-                  onChange={(event) =>
-                    {
-                      setCustomerForm((previousForm) => ({
-                        ...previousForm,
-                        phone: event.target.value,
-                      }));
-                      setRegistrationPhoneError('');
-                    }
-                  }
-                  className={registrationPhoneError ? 'border-red-500 focus-visible:ring-red-500' : ''}
+                  onChange={(event) => {
+                    setCustomerForm((previousForm) => ({
+                      ...previousForm,
+                      phone: event.target.value.replace(/\D/g, ''),
+                    }));
+                    setCustomerFieldErrors((prev) => ({ ...prev, phone: '' }));
+                  }}
+                  className={customerFieldErrors.phone ? 'border-red-500 focus-visible:ring-red-500' : ''}
                   placeholder="08xxxxxxxxxx"
-                  aria-invalid={!!registrationPhoneError}
                 />
-                {registrationMode === 'customer' && registrationPhoneError && (
+                {customerFieldErrors.phone && (
                   <p data-field-error="true" className="text-sm font-medium text-red-600">
-                    {registrationPhoneError}
+                    {customerFieldErrors.phone}
                   </p>
                 )}
               </div>
@@ -421,15 +408,21 @@ export function LoginPage() {
                 <Textarea
                   id="customer-address"
                   value={customerForm.address}
-                  onChange={(event) =>
+                  onChange={(event) => {
                     setCustomerForm((previousForm) => ({
                       ...previousForm,
                       address: event.target.value,
-                    }))
-                  }
+                    }));
+                    setCustomerFieldErrors((prev) => ({ ...prev, address: '' }));
+                  }}
+                  className={customerFieldErrors.address ? 'border-red-500 focus-visible:ring-red-500' : ''}
                   placeholder="Alamat lengkap customer"
-                  required
                 />
+                {customerFieldErrors.address && (
+                  <p data-field-error="true" className="text-sm font-medium text-red-600">
+                    {customerFieldErrors.address}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2 md:col-span-2">
@@ -438,15 +431,21 @@ export function LoginPage() {
                   id="customer-password"
                   type="password"
                   value={customerForm.password}
-                  onChange={(event) =>
+                  onChange={(event) => {
                     setCustomerForm((previousForm) => ({
                       ...previousForm,
                       password: event.target.value,
-                    }))
-                  }
+                    }));
+                    setCustomerFieldErrors((prev) => ({ ...prev, password: '' }));
+                  }}
+                  className={customerFieldErrors.password ? 'border-red-500 focus-visible:ring-red-500' : ''}
                   placeholder="Minimal 6 karakter"
-                  required
                 />
+                {customerFieldErrors.password && (
+                  <p data-field-error="true" className="text-sm font-medium text-red-600">
+                    {customerFieldErrors.password}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -468,151 +467,7 @@ export function LoginPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={registrationMode === 'admin'} onOpenChange={(open) => !open && closeRegistration()}>
-        <DialogContent className="max-w-xl">
-          <DialogHeader>
-            <DialogTitle>Buat Akun Admin</DialogTitle>
-            <DialogDescription>
-              Username admin tetap wajib diawali <span className="font-mono">admin_</span> dan
-              harus memakai kode verifikasi resmi.
-            </DialogDescription>
-          </DialogHeader>
 
-          <form onSubmit={handleAdminRegistration} className="space-y-4">
-            <div className="rounded-xl border border-[#63D25F]/30 bg-[#63D25F]/8 p-4 text-sm text-foreground">
-              <div className="font-semibold">KODE VERIFIKASI ADMIN: {ADMIN_VERIFICATION_CODE}</div>
-              <div className="mt-1 text-muted-foreground">
-                Gunakan kode ini persis sama saat membuat akun admin baru.
-              </div>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="admin-name">Nama</Label>
-                <Input
-                  id="admin-name"
-                  value={adminForm.name}
-                  onChange={(event) =>
-                    setAdminForm((previousForm) => ({
-                      ...previousForm,
-                      name: event.target.value,
-                    }))
-                  }
-                  placeholder="Nama admin"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="admin-username">Username Admin</Label>
-                <Input
-                  id="admin-username"
-                  value={adminForm.username}
-                  onChange={(event) =>
-                    setAdminForm((previousForm) => ({
-                      ...previousForm,
-                      username: event.target.value,
-                    }))
-                  }
-                  placeholder="admin_namaanda"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="admin-email">Email</Label>
-                <Input
-                  id="admin-email"
-                  type="email"
-                  value={adminForm.email}
-                  onChange={(event) =>
-                    setAdminForm((previousForm) => ({
-                      ...previousForm,
-                      email: event.target.value,
-                    }))
-                  }
-                  placeholder="admin@email.com"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="admin-phone">No. Telepon</Label>
-                <Input
-                  id="admin-phone"
-                  value={adminForm.phone}
-                  inputMode="tel"
-                  onChange={(event) =>
-                    {
-                      setAdminForm((previousForm) => ({
-                        ...previousForm,
-                        phone: event.target.value,
-                      }));
-                      setRegistrationPhoneError('');
-                    }
-                  }
-                  className={registrationPhoneError ? 'border-red-500 focus-visible:ring-red-500' : ''}
-                  placeholder="08xxxxxxxxxx"
-                  aria-invalid={!!registrationPhoneError}
-                />
-                {registrationMode === 'admin' && registrationPhoneError && (
-                  <p data-field-error="true" className="text-sm font-medium text-red-600">
-                    {registrationPhoneError}
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="admin-password">Password</Label>
-                <Input
-                  id="admin-password"
-                  type="password"
-                  value={adminForm.password}
-                  onChange={(event) =>
-                    setAdminForm((previousForm) => ({
-                      ...previousForm,
-                      password: event.target.value,
-                    }))
-                  }
-                  placeholder="Minimal 6 karakter"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="admin-verification-code">Kode Verifikasi Admin</Label>
-                <Input
-                  id="admin-verification-code"
-                  value={adminForm.verificationCode}
-                  onChange={(event) =>
-                    setAdminForm((previousForm) => ({
-                      ...previousForm,
-                      verificationCode: event.target.value,
-                    }))
-                  }
-                  placeholder={ADMIN_VERIFICATION_CODE}
-                  required
-                />
-              </div>
-            </div>
-
-            {registrationError && (
-              <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
-                {registrationError}
-              </div>
-            )}
-
-            <DialogFooter>
-              <Button type="submit" disabled={isRegistering}>
-                {isRegistering ? 'Menyimpan...' : 'Simpan Akun Admin'}
-              </Button>
-              <Button type="button" variant="outline" onClick={closeRegistration}>
-                Batal
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

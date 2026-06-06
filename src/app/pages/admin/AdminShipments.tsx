@@ -1076,7 +1076,7 @@ export function AdminShipments() {
                           id="package-recipient-phone"
                           value={draftPackage.recipientPhone ?? ''}
                           inputMode="tel"
-                          onChange={(event) => updateDraftPackage('recipientPhone', event.target.value)}
+                          onChange={(event) => updateDraftPackage('recipientPhone', event.target.value.replace(/\D/g, ''))}
                           disabled={isPackageEditLocked}
                           className={getInvalidFieldClass(!!packageFieldErrors.recipientPhone)}
                           placeholder="Contoh: 081234567890"

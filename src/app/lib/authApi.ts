@@ -10,6 +10,8 @@ export interface AuthUser {
   avatar?: string;
   employeeId?: string;
   courierId?: string;
+  address?: string;
+  customerId?: string;
 }
 
 export interface RegisterCustomerPayload {
@@ -69,5 +71,18 @@ export const registerCustomerRequest = (payload: RegisterCustomerPayload) =>
 export const registerAdminRequest = (payload: RegisterAdminPayload) =>
   requestJson<AuthUser>('/api/auth/register/admin', {
     method: 'POST',
+    body: JSON.stringify(payload),
+  });
+
+export interface UpdateCustomerProfilePayload {
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+}
+
+export const updateCustomerProfileRequest = (customerId: string, payload: UpdateCustomerProfilePayload) =>
+  requestJson<AuthUser>(`/api/customer/profile/${customerId}`, {
+    method: 'PUT',
     body: JSON.stringify(payload),
   });

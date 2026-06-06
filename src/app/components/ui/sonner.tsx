@@ -21,9 +21,11 @@ const Toaster = ({ ...props }: ToasterProps) => {
       toastOptions={{
         ...toastOptions,
         classNames: {
-          toast: "bg-white text-[#064e3b] border border-[#d9f5df] shadow-lg",
-          title: "text-[#064e3b] font-semibold",
-          description: "text-[#0a0a0a]",
+          toast: "group toast bg-white text-foreground border border-border shadow-lg font-sans",
+          title: "text-foreground font-semibold group-data-[type=success]:text-white group-data-[type=error]:text-white",
+          description: "text-muted-foreground group-data-[type=success]:text-emerald-100 group-data-[type=error]:text-rose-100",
+          success: "!bg-emerald-600 !text-white !border-emerald-700",
+          error: "!bg-red-600 !text-white !border-red-700",
           ...toastOptions?.classNames,
         },
       }}

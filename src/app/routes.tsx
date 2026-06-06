@@ -19,6 +19,7 @@ const AdminProfile = lazy(() => import('./pages/admin/AdminProfile').then(module
 const AdminSettings = lazy(() => import('./pages/admin/AdminSettings').then(module => ({ default: module.AdminSettings })));
 const AdminShipments = lazy(() => import('./pages/admin/AdminShipments').then(module => ({ default: module.AdminShipments })));
 const AdminVehicles = lazy(() => import('./pages/admin/AdminVehicles').then(module => ({ default: module.AdminVehicles })));
+const AdminMessages = lazy(() => import('./pages/admin/AdminMessages').then(module => ({ default: module.AdminMessages })));
 const MyPackages = lazy(() => import('./pages/MyPackages').then(module => ({ default: module.MyPackages })));
 
 import { CourierLayout } from './components/CourierLayout';
@@ -64,6 +65,10 @@ export const router = createBrowserRouter([
       {
         path: 'profile',
         Component: AdminProfile,
+      },
+      {
+        path: 'messages',
+        Component: AdminMessages,
       },
       {
         path: 'settings',

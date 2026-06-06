@@ -25,8 +25,11 @@ import {
   registerAdminAccount,
   registerCustomerAccount,
   registerCourierAccount,
+  getAuthUserByCustomerId,
+  ensureAuthInfrastructure,
 } from './auth-data.mjs';
 import { BadRequestError, ConflictError } from './errors.mjs';
+import { pool } from './db.mjs';
 
 const app = express();
 const port = Number(process.env.PORT ?? 3001);
@@ -181,6 +184,24 @@ app.put('/api/admin/customers/:id', async (request, response) => {
   response.json(customer);
 });
 
+app.put('/api/customer/profile/:id', async (request, response) => {
+  const updatedCustomer = await updateCustomer(request.params.id, request.body);
+  const authUser = await getAuthUserByCustomerId(request.params.id);
+  if (authUser) {
+    response.json(authUser);
+  } else {
+    response.json({
+      id: request.body.id || '',
+      name: updatedCustomer.name,
+      email: updatedCustomer.email,
+      phone: updatedCustomer.phone,
+      address: updatedCustomer.address,
+      role: 'customer',
+      customerId: request.params.id
+    });
+  }
+});
+
 app.delete('/api/admin/customers/:id', async (request, response) => {
   const customer = await deleteCustomer(request.params.id);
   response.json(customer);
@@ -189,6 +210,30 @@ app.delete('/api/admin/customers/:id', async (request, response) => {
 app.put('/api/admin/manager-profile', async (request, response) => {
   const profile = await updateManagerProfile(request.body);
   response.json(profile);
+});
+
+app.post('/api/contact', async (request, response) => {
+  await ensureAuthInfrastructure();
+  const { name, email, subject, message } = request.body;
+
+  if (!name?.trim()) return response.status(400).json({ message: 'Nama wajib diisi.' });
+  if (!email?.trim()) return response.status(400).json({ message: 'Email wajib diisi.' });
+  if (!subject?.trim()) return response.status(400).json({ message: 'Subjek wajib diisi.' });
+  if (!message?.trim()) return response.status(400).json({ message: 'Pesan wajib diisi.' });
+
+  const id = `MSG-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  await pool.query(
+    'INSERT INTO contact_messages (id, name, email, subject, message) VALUES ($1, $2, $3, $4, $5)',
+    [id, name.trim(), email.trim(), subject.trim(), message.trim()]
+  );
+
+  response.status(201).json({ ok: true, message: 'Pesan berhasil dikirim.' });
+});
+
+app.delete('/api/admin/messages/:id', async (request, response) => {
+  await ensureAuthInfrastructure();
+  await pool.query('DELETE FROM contact_messages WHERE id = $1', [request.params.id]);
+  response.json({ ok: true, message: 'Pesan berhasil dihapus.' });
 });
 
 app.use((error, _request, response, _next) => {

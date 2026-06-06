@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Camera, Upload, X, MapPin, TruckIcon, CheckCircle2, Clock, Package as PackageIcon } from 'lucide-react';
 import {
   Dialog,
@@ -44,6 +44,13 @@ export function UpdateStatusModal({ open, onOpenChange, delivery, onUpdateStatus
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (!open) {
+      setFieldErrors({});
+    }
+  }, [open]);
 
   const selectedStatusOption = statusOptions.find(opt => opt.value === selectedStatus);
   const needsPhoto = selectedStatusOption?.needsPhoto || false;
@@ -101,18 +108,20 @@ export function UpdateStatusModal({ open, onOpenChange, delivery, onUpdateStatus
   };
 
   const handleSubmit = () => {
+    const errors: Record<string, string> = {};
     if (!selectedStatus) {
-      toast.error('Pilih status terlebih dahulu');
-      return;
+      errors.selectedStatus = 'Status paket wajib dipilih.';
     }
-
     if (!location.trim()) {
-      toast.error('Masukkan lokasi');
-      return;
+      errors.location = 'Lokasi wajib diisi.';
+    }
+    if (needsPhoto && !photoPreview) {
+      errors.photo = 'Upload foto bukti pengiriman.';
     }
 
-    if (needsPhoto && !photoPreview) {
-      toast.error('Upload foto bukti pengiriman');
+    setFieldErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
       return;
     }
 
@@ -153,8 +162,14 @@ export function UpdateStatusModal({ open, onOpenChange, delivery, onUpdateStatus
           {/* Status Selection */}
           <div className="space-y-2">
             <Label htmlFor="status">Status Paket</Label>
-            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-              <SelectTrigger>
+            <Select
+              value={selectedStatus}
+              onValueChange={(val) => {
+                setSelectedStatus(val);
+                setFieldErrors((prev) => ({ ...prev, selectedStatus: '' }));
+              }}
+            >
+              <SelectTrigger className={fieldErrors.selectedStatus ? 'border-red-500 focus:ring-red-500' : ''}>
                 <SelectValue placeholder="Pilih status paket..." />
               </SelectTrigger>
               <SelectContent>
@@ -171,6 +186,11 @@ export function UpdateStatusModal({ open, onOpenChange, delivery, onUpdateStatus
                 })}
               </SelectContent>
             </Select>
+            {fieldErrors.selectedStatus && (
+              <p data-field-error="true" className="text-sm font-medium text-red-600">
+                {fieldErrors.selectedStatus}
+              </p>
+            )}
           </div>
 
           {/* Location Input */}
@@ -182,10 +202,18 @@ export function UpdateStatusModal({ open, onOpenChange, delivery, onUpdateStatus
                 id="location"
                 placeholder="Contoh: Jakarta Selatan, Cikampek, dll."
                 value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                className="pl-10"
+                onChange={(e) => {
+                  setLocation(e.target.value);
+                  setFieldErrors((prev) => ({ ...prev, location: '' }));
+                }}
+                className={`pl-10 ${fieldErrors.location ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
               />
             </div>
+            {fieldErrors.location && (
+              <p data-field-error="true" className="text-sm font-medium text-red-600">
+                {fieldErrors.location}
+              </p>
+            )}
           </div>
 
           {/* Description Input */}
@@ -203,7 +231,7 @@ export function UpdateStatusModal({ open, onOpenChange, delivery, onUpdateStatus
           {needsPhoto && (
             <div className="space-y-2">
               <Label>Foto Bukti Pengiriman *</Label>
-              <div className="border-2 border-dashed border-border rounded-lg p-4">
+              <div className={`border-2 border-dashed rounded-lg p-4 ${fieldErrors.photo ? 'border-red-500' : 'border-border'}`}>
                 {photoPreview ? (
                   <div className="relative">
                     <img
@@ -234,7 +262,10 @@ export function UpdateStatusModal({ open, onOpenChange, delivery, onUpdateStatus
                       ref={fileInputRef}
                       type="file"
                       accept="image/*"
-                      onChange={handlePhotoChange}
+                      onChange={(e) => {
+                        handlePhotoChange(e);
+                        setFieldErrors((prev) => ({ ...prev, photo: '' }));
+                      }}
                       className="hidden"
                       id="photo-upload"
                     />
@@ -249,9 +280,15 @@ export function UpdateStatusModal({ open, onOpenChange, delivery, onUpdateStatus
                   </div>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground">
-                Foto harus menunjukkan paket yang telah diterima oleh penerima
-              </p>
+              {fieldErrors.photo ? (
+                <p data-field-error="true" className="text-sm font-medium text-red-600">
+                  {fieldErrors.photo}
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Foto harus menunjukkan paket yang telah diterima oleh penerima
+                </p>
+              )}
             </div>
           )}
         </div>

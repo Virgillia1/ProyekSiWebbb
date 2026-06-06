@@ -5,6 +5,7 @@ import type {
   Employee,
   ManagerProfile,
   Vehicle,
+  ContactMessage,
 } from '../data/adminData';
 
 export interface AdminBootstrapData {
@@ -14,6 +15,7 @@ export interface AdminBootstrapData {
   customers: CustomerAccount[];
   managerProfile: ManagerProfile | null;
   vehicles: Vehicle[];
+  contactMessages: ContactMessage[];
 }
 
 const requestJson = async <T>(input: RequestInfo | URL, init?: RequestInit): Promise<T> => {
@@ -141,4 +143,9 @@ export const createCourierAccountRequest = (courierId: string, payload: CourierA
 
 export const getCourierAccountInfoRequest = (courierId: string) =>
   requestJson<CourierAccountInfo>(`/api/admin/couriers/${courierId}/courier-account`);
+
+export const deleteContactMessageRequest = (messageId: string) =>
+  requestJson<{ ok: boolean; message: string }>(`/api/admin/messages/${messageId}`, {
+    method: 'DELETE',
+  });
 

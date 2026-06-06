@@ -1,15 +1,76 @@
-import { MapPin, Phone, Mail, Clock } from 'lucide-react';
+import { useState } from 'react';
+import { MapPin, Phone, Mail, Clock, Send } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
 import { motion } from 'motion/react';
 import { useMetadata } from '../lib/useMetadata';
+import { toast } from 'sonner';
 
 export function ContactPage() {
   useMetadata(
     'Hubungi Kami',
     'Ada pertanyaan atau keluhan mengenai pengiriman kargo Anda? Hubungi tim support CargoLite melalui form kontak ini.'
   );
+
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [subject, setSubject] = useState('');
+  const [message, setMessage] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const newErrors: Record<string, string> = {};
+    if (!name.trim()) newErrors.name = 'Nama lengkap wajib diisi.';
+    if (!email.trim()) newErrors.email = 'Alamat email wajib diisi.';
+    if (!subject.trim()) newErrors.subject = 'Subjek pesan wajib diisi.';
+    if (!message.trim()) newErrors.message = 'Isi pesan wajib diisi.';
+
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) {
+      return;
+    }
+
+    setIsSending(true);
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: name.trim(),
+          email: email.trim(),
+          subject: subject.trim(),
+          message: message.trim(),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Gagal mengirim pesan.');
+      }
+
+      toast.success('Pesan Anda berhasil terkirim!', {
+        description: 'Tim support kami akan segera menindaklanjuti pesan Anda.',
+      });
+
+      setName('');
+      setEmail('');
+      setSubject('');
+      setMessage('');
+    } catch (err) {
+      console.error(err);
+      toast.error(err instanceof Error ? err.message : 'Terjadi kesalahan saat mengirim pesan.');
+    } finally {
+      setIsSending(false);
+    }
+  };
 
   return (
     <div>
@@ -23,7 +84,7 @@ export function ContactPage() {
           >
             <h1 className="text-5xl font-bold mb-4">Contact Us</h1>
             <p className="text-xl text-green-100 max-w-2xl">
-              Get in touch with our team. We're here to help!
+              Hubungi tim layanan kami. Kami siap membantu pertanyaan dan keluhan Anda secara cepat!
             </p>
           </motion.div>
         </div>
@@ -40,28 +101,75 @@ export function ContactPage() {
               transition={{ duration: 0.6 }}
               viewport={{ once: true }}
             >
-              <h2 className="text-3xl font-bold mb-6">Send us a Message</h2>
-              <form className="space-y-6">
+              <h2 className="text-3xl font-bold mb-6">Kirim Pesan</h2>
+              <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Name</label>
-                    <Input placeholder="Your name" />
+                  <div className="space-y-1.5">
+                    <label className="block text-sm font-medium text-foreground">Nama Lengkap</label>
+                    <Input
+                      placeholder="Nama Anda"
+                      value={name}
+                      onChange={(e) => {
+                        setName(e.target.value);
+                        setErrors((prev) => ({ ...prev, name: '' }));
+                      }}
+                      className={errors.name ? 'border-red-600 focus-visible:ring-red-600' : 'border-border'}
+                    />
+                    {errors.name && (
+                      <p className="text-red-600 text-xs font-medium">{errors.name}</p>
+                    )}
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Email</label>
-                    <Input type="email" placeholder="your@email.com" />
+                  <div className="space-y-1.5">
+                    <label className="block text-sm font-medium text-foreground">Email</label>
+                    <Input
+                      type="email"
+                      placeholder="nama@email.com"
+                      value={email}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        setErrors((prev) => ({ ...prev, email: '' }));
+                      }}
+                      className={errors.email ? 'border-red-600 focus-visible:ring-red-600' : 'border-border'}
+                    />
+                    {errors.email && (
+                      <p className="text-red-600 text-xs font-medium">{errors.email}</p>
+                    )}
                   </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Subject</label>
-                  <Input placeholder="What is this about?" />
+                <div className="space-y-1.5">
+                  <label className="block text-sm font-medium text-foreground">Subjek</label>
+                  <Input
+                    placeholder="Mengenai hal apa pesan ini?"
+                    value={subject}
+                    onChange={(e) => {
+                      setSubject(e.target.value);
+                      setErrors((prev) => ({ ...prev, subject: '' }));
+                    }}
+                    className={errors.subject ? 'border-red-600 focus-visible:ring-red-600' : 'border-border'}
+                  />
+                  {errors.subject && (
+                    <p className="text-red-600 text-xs font-medium">{errors.subject}</p>
+                  )}
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Message</label>
-                  <Textarea placeholder="Tell us more..." rows={6} />
+                <div className="space-y-1.5">
+                  <label className="block text-sm font-medium text-foreground">Pesan</label>
+                  <Textarea
+                    placeholder="Tuliskan pertanyaan atau keluhan Anda secara detail di sini..."
+                    rows={6}
+                    value={message}
+                    onChange={(e) => {
+                      setMessage(e.target.value);
+                      setErrors((prev) => ({ ...prev, message: '' }));
+                    }}
+                    className={errors.message ? 'border-red-600 focus-visible:ring-red-600' : 'border-border'}
+                  />
+                  {errors.message && (
+                    <p className="text-red-600 text-xs font-medium">{errors.message}</p>
+                  )}
                 </div>
-                <Button type="submit" size="lg" className="w-full">
-                  Send Message
+                <Button type="submit" size="lg" className="w-full gap-2 rounded-xl" disabled={isSending}>
+                  <Send className="h-4 w-4" />
+                  {isSending ? 'Mengirim...' : 'Kirim Pesan'}
                 </Button>
               </form>
             </motion.div>
@@ -75,9 +183,9 @@ export function ContactPage() {
               className="space-y-8"
             >
               <div>
-                <h2 className="text-3xl font-bold mb-6">Contact Information</h2>
+                <h2 className="text-3xl font-bold mb-6">Informasi Kontak</h2>
                 <p className="text-muted-foreground mb-8">
-                  Reach out to us through any of these channels. Our team is ready to assist you.
+                  Hubungi kami melalui saluran berikut. Tim layanan pelanggan kami siap membantu menyelesaikan kendala logistik Anda.
                 </p>
               </div>
 
@@ -87,7 +195,7 @@ export function ContactPage() {
                     <MapPin className="h-6 w-6 text-primary" />
                   </div>
                   <div>
-                    <h3 className="font-semibold mb-1">Office Location</h3>
+                    <h3 className="font-semibold mb-1">Kantor Pusat</h3>
                     <p className="text-muted-foreground text-sm">
                       Jl. Sudirman Kav. 52-53<br />
                       Jakarta Selatan, 12190<br />
@@ -101,7 +209,7 @@ export function ContactPage() {
                     <Phone className="h-6 w-6 text-primary" />
                   </div>
                   <div>
-                    <h3 className="font-semibold mb-1">Phone</h3>
+                    <h3 className="font-semibold mb-1">Telepon & Fax</h3>
                     <p className="text-muted-foreground text-sm">
                       +62 21 1234 5678<br />
                       +62 21 8765 4321 (Fax)
@@ -114,7 +222,7 @@ export function ContactPage() {
                     <Mail className="h-6 w-6 text-primary" />
                   </div>
                   <div>
-                    <h3 className="font-semibold mb-1">Email</h3>
+                    <h3 className="font-semibold mb-1">Email Support</h3>
                     <p className="text-muted-foreground text-sm">
                       info@cargolite.com<br />
                       support@cargolite.com
@@ -127,11 +235,11 @@ export function ContactPage() {
                     <Clock className="h-6 w-6 text-primary" />
                   </div>
                   <div>
-                    <h3 className="font-semibold mb-1">Business Hours</h3>
+                    <h3 className="font-semibold mb-1">Jam Operasional</h3>
                     <p className="text-muted-foreground text-sm">
-                      Monday - Friday: 8:00 AM - 6:00 PM<br />
-                      Saturday: 9:00 AM - 3:00 PM<br />
-                      Sunday: Closed
+                      Senin - Jumat: 08:00 - 18:00 WIB<br />
+                      Sabtu: 09:00 - 15:00 WIB<br />
+                      Minggu: Libur
                     </p>
                   </div>
                 </div>
@@ -139,7 +247,7 @@ export function ContactPage() {
 
               {/* Social Media */}
               <div className="pt-6 border-t">
-                <h3 className="font-semibold mb-4">Follow Us</h3>
+                <h3 className="font-semibold mb-4">Ikuti Kami</h3>
                 <div className="flex gap-4">
                   {['Facebook', 'Twitter', 'Instagram', 'LinkedIn'].map((social) => (
                     <button
@@ -165,11 +273,11 @@ export function ContactPage() {
             transition={{ duration: 0.6 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-3xl font-bold mb-6 text-center">Find Us</h2>
+            <h2 className="text-3xl font-bold mb-6 text-center">Lokasi Kami</h2>
             <div className="bg-card rounded-xl overflow-hidden h-96 flex items-center justify-center border-2 border-dashed">
               <div className="text-center text-muted-foreground">
                 <MapPin className="h-12 w-12 mx-auto mb-4" />
-                <p>Interactive Map Placeholder</p>
+                <p className="font-semibold">Peta Lokasi Kantor CargoLite</p>
                 <p className="text-sm">Jl. Sudirman Kav. 52-53, Jakarta Selatan</p>
               </div>
             </div>

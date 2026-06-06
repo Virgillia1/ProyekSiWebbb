@@ -118,6 +118,8 @@ export function AdminEmployees() {
   const [draftCourier, setDraftCourier] = useState<Courier | null>(null);
   const [courierPhoneError, setCourierPhoneError] = useState('');
   const [courierToDelete, setCourierToDelete] = useState<Courier | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [accountErrors, setAccountErrors] = useState<Record<string, string>>({});
 
   const [courierAccount, setCourierAccount] = useState<CourierAccountInfo | null>(null);
   const [isLoadingAccount, setIsLoadingAccount] = useState(false);
@@ -193,6 +195,8 @@ export function AdminEmployees() {
     setAccountPhoneError('');
     setAccountPassword('');
     setCourierPhoneError('');
+    setFieldErrors({});
+    setAccountErrors({});
   };
 
   const fetchCourierAccount = async (id: string) => {
@@ -214,25 +218,37 @@ export function AdminEmployees() {
     setAccountUsername('kurir_');
     setAccountPhoneError('');
     setCourierPhoneError('');
+    setFieldErrors({});
+    setAccountErrors({});
     void fetchCourierAccount(courierId);
   };
 
   const handleCreateCourierAccount = async () => {
     if (!activeCourierId) return;
-    if (!accountUsername || !accountEmail || !accountPassword) {
-      toast.error('Lengkapi data akun terlebih dahulu.', {
-        description: 'Username, Email, dan Password wajib diisi.',
-      });
-      return;
+    const errors: Record<string, string> = {};
+    if (!accountUsername.trim()) {
+      errors.username = 'Username wajib diisi.';
+    }
+    if (!accountEmail.trim()) {
+      errors.email = 'Email wajib diisi.';
+    }
+    if (!accountPassword.trim()) {
+      errors.password = 'Password wajib diisi.';
+    } else if (accountPassword.length < 6) {
+      errors.password = 'Password minimal 6 karakter.';
     }
 
     if (accountPhone.trim() && !hasMinimumPhoneDigits(accountPhone)) {
-      setAccountPhoneError(getPhoneMinimumMessage('Nomor telepon akun'));
+      errors.phone = getPhoneMinimumMessage('Nomor telepon akun');
+    }
+
+    setAccountErrors(errors);
+    setAccountPhoneError(errors.phone || '');
+
+    if (Object.keys(errors).length > 0) {
       scrollToFirstFieldError();
       return;
     }
-
-    setAccountPhoneError('');
     
     setIsCreatingAccount(true);
     try {
@@ -263,6 +279,7 @@ export function AdminEmployees() {
     setActiveCourierId(courierId);
     setDraftCourier({ ...targetCourier });
     setCourierPhoneError('');
+    setFieldErrors({});
     setDialogMode('edit');
   };
 
@@ -270,6 +287,7 @@ export function AdminEmployees() {
     setActiveCourierId(null);
     setDraftCourier(buildNewCourierDraft(couriers));
     setCourierPhoneError('');
+    setFieldErrors({});
     setDialogMode('create');
   };
 
@@ -277,6 +295,7 @@ export function AdminEmployees() {
     if (key === 'phone') {
       setCourierPhoneError('');
     }
+    setFieldErrors((prev) => ({ ...prev, [key]: '' }));
 
     setDraftCourier((previousDraft) =>
       previousDraft
@@ -293,23 +312,38 @@ export function AdminEmployees() {
       return;
     }
 
+    const errors: Record<string, string> = {};
+    if (!draftCourier.name?.trim()) {
+      errors.name = 'Nama kurir wajib diisi.';
+    }
+    if (!draftCourier.baseArea?.trim()) {
+      errors.baseArea = 'Area basis wajib diisi.';
+    }
+    if (!draftCourier.coverageArea?.trim()) {
+      errors.coverageArea = 'Area tugas wajib diisi.';
+    }
+    if (draftCourier.vehiclePlate?.trim()) {
+      const cleanPlate = draftCourier.vehiclePlate.replace(/\s+/g, '');
+      const hasLetter = /[a-zA-Z]/.test(cleanPlate);
+      const hasNumber = /\d/.test(cleanPlate);
+      if (cleanPlate.length < 4 || !hasLetter || !hasNumber) {
+        errors.vehiclePlate = 'Plat nomor harus memiliki minimal 1 huruf dan 1 angka, dengan total minimal 4 karakter.';
+      }
+    }
     const phoneError = validateRequiredPhone(
       draftCourier.phone,
       'Nomor telepon kurir wajib diisi.',
       'Nomor telepon kurir'
     );
-
-    setCourierPhoneError(phoneError);
-
     if (phoneError) {
-      scrollToFirstFieldError();
-      return;
+      errors.phone = phoneError;
     }
 
-    if (!draftCourier.name || !draftCourier.baseArea || !draftCourier.coverageArea || !draftCourier.phone) {
-      toast.error('Lengkapi data kurir terlebih dahulu.', {
-        description: 'Nama, area basis, area tugas, dan nomor telepon wajib diisi.',
-      });
+    setFieldErrors(errors);
+    setCourierPhoneError(phoneError);
+
+    if (Object.keys(errors).length > 0) {
+      scrollToFirstFieldError();
       return;
     }
 
@@ -623,11 +657,19 @@ export function AdminEmployees() {
                             <Input
                               id="account-username"
                               value={accountUsername}
-                              onChange={(e) => setAccountUsername(e.target.value)}
+                              onChange={(e) => {
+                                setAccountUsername(e.target.value);
+                                setAccountErrors((prev) => ({ ...prev, username: '' }));
+                              }}
                               placeholder="Masukkan username"
-                              className="pl-9 text-sm"
+                              className={`pl-9 text-sm ${accountErrors.username ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                             />
                           </div>
+                          {accountErrors.username && (
+                            <p data-field-error="true" className="text-sm font-medium text-red-600">
+                              {accountErrors.username}
+                            </p>
+                          )}
                         </div>
 
                         <div className="space-y-2">
@@ -636,10 +678,18 @@ export function AdminEmployees() {
                             id="account-email"
                             type="email"
                             value={accountEmail}
-                            onChange={(e) => setAccountEmail(e.target.value)}
+                            onChange={(e) => {
+                              setAccountEmail(e.target.value);
+                              setAccountErrors((prev) => ({ ...prev, email: '' }));
+                            }}
                             placeholder="nama@cargolite.com"
-                            className="text-sm"
+                            className={`text-sm ${accountErrors.email ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                           />
+                          {accountErrors.email && (
+                            <p data-field-error="true" className="text-sm font-medium text-red-600">
+                              {accountErrors.email}
+                            </p>
+                          )}
                         </div>
 
                         <div className="space-y-2">
@@ -649,15 +699,16 @@ export function AdminEmployees() {
                             value={accountPhone}
                             inputMode="tel"
                             onChange={(e) => {
-                              setAccountPhone(e.target.value);
+                              setAccountPhone(e.target.value.replace(/\D/g, ''));
+                              setAccountErrors((prev) => ({ ...prev, phone: '' }));
                               setAccountPhoneError('');
                             }}
                             placeholder="08xxxxxxxxxx"
-                            className={`text-sm ${getInvalidFieldClass(!!accountPhoneError)}`}
+                            className={`text-sm ${getInvalidFieldClass(!!accountPhoneError || !!accountErrors.phone)}`}
                           />
-                          {accountPhoneError && (
+                          {(accountPhoneError || accountErrors.phone) && (
                             <p data-field-error="true" className="text-sm font-medium text-red-600">
-                              {accountPhoneError}
+                              {accountPhoneError || accountErrors.phone}
                             </p>
                           )}
                         </div>
@@ -670,11 +721,19 @@ export function AdminEmployees() {
                               id="account-password"
                               type="password"
                               value={accountPassword}
-                              onChange={(e) => setAccountPassword(e.target.value)}
+                              onChange={(e) => {
+                                setAccountPassword(e.target.value);
+                                setAccountErrors((prev) => ({ ...prev, password: '' }));
+                              }}
                               placeholder="Minimal 6 karakter"
-                              className="pl-9 text-sm"
+                              className={`pl-9 text-sm ${accountErrors.password ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                             />
                           </div>
+                          {accountErrors.password && (
+                            <p data-field-error="true" className="text-sm font-medium text-red-600">
+                              {accountErrors.password}
+                            </p>
+                          )}
                         </div>
                       </div>
 
@@ -731,7 +790,13 @@ export function AdminEmployees() {
                     value={draftCourier.name}
                     onChange={(event) => updateDraftCourier('name', event.target.value)}
                     placeholder="Tulis nama kurir"
+                    className={fieldErrors.name ? 'border-red-500 focus-visible:ring-red-500' : ''}
                   />
+                  {fieldErrors.name && (
+                    <p data-field-error="true" className="text-sm font-medium text-red-600">
+                      {fieldErrors.name}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -741,7 +806,13 @@ export function AdminEmployees() {
                     value={draftCourier.baseArea}
                     onChange={(event) => updateDraftCourier('baseArea', event.target.value)}
                     placeholder="Contoh: Hub Bandung"
+                    className={fieldErrors.baseArea ? 'border-red-500 focus-visible:ring-red-500' : ''}
                   />
+                  {fieldErrors.baseArea && (
+                    <p data-field-error="true" className="text-sm font-medium text-red-600">
+                      {fieldErrors.baseArea}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -751,7 +822,13 @@ export function AdminEmployees() {
                     value={draftCourier.coverageArea}
                     onChange={(event) => updateDraftCourier('coverageArea', event.target.value)}
                     placeholder="Contoh: Bandung Raya"
+                    className={fieldErrors.coverageArea ? 'border-red-500 focus-visible:ring-red-500' : ''}
                   />
+                  {fieldErrors.coverageArea && (
+                    <p data-field-error="true" className="text-sm font-medium text-red-600">
+                      {fieldErrors.coverageArea}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -780,7 +857,13 @@ export function AdminEmployees() {
                     value={draftCourier.vehiclePlate}
                     onChange={(event) => updateDraftCourier('vehiclePlate', event.target.value)}
                     placeholder="Contoh: D 4210 BDS"
+                    className={fieldErrors.vehiclePlate ? 'border-red-500 focus-visible:ring-red-500' : ''}
                   />
+                  {fieldErrors.vehiclePlate && (
+                    <p data-field-error="true" className="text-sm font-medium text-red-600">
+                      {fieldErrors.vehiclePlate}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -789,13 +872,13 @@ export function AdminEmployees() {
                     id="courier-phone"
                     value={draftCourier.phone}
                     inputMode="tel"
-                    onChange={(event) => updateDraftCourier('phone', event.target.value)}
-                    className={getInvalidFieldClass(!!courierPhoneError)}
+                    onChange={(event) => updateDraftCourier('phone', event.target.value.replace(/\D/g, ''))}
+                    className={getInvalidFieldClass(!!courierPhoneError || !!fieldErrors.phone)}
                     placeholder="08xxxxxxxxxx"
                   />
-                  {courierPhoneError && (
+                  {(courierPhoneError || fieldErrors.phone) && (
                     <p data-field-error="true" className="text-sm font-medium text-red-600">
-                      {courierPhoneError}
+                      {courierPhoneError || fieldErrors.phone}
                     </p>
                   )}
                 </div>

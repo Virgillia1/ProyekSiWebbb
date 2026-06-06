@@ -114,6 +114,15 @@ export interface ManagerProfile {
   bio: string;
 }
 
+export interface ContactMessage {
+  id: string;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  createdAt: string;
+}
+
 export const monthOptions = [
   { value: '2026-01', label: 'Januari 2026' },
   { value: '2026-02', label: 'Februari 2026' },

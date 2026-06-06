@@ -41,15 +41,24 @@ const getPhoneDigitCount = (value) => normalizeText(value).replace(/\D/g, '').le
 
 const validatePhone = (value, requiredMessage, label = 'Nomor telepon') => {
   validateRequired(value, requiredMessage);
-
-  if (getPhoneDigitCount(value) < MIN_PHONE_DIGITS) {
+  const norm = normalizeText(value);
+  if (/\D/.test(norm)) {
+    throw new BadRequestError(`${label} hanya boleh berisi angka.`);
+  }
+  if (norm.length < MIN_PHONE_DIGITS) {
     throw new BadRequestError(`${label} minimal ${MIN_PHONE_DIGITS} digit.`);
   }
 };
 
 const validateOptionalPhone = (value, label = 'Nomor telepon') => {
-  if (normalizeText(value) && getPhoneDigitCount(value) < MIN_PHONE_DIGITS) {
-    throw new BadRequestError(`${label} minimal ${MIN_PHONE_DIGITS} digit.`);
+  const norm = normalizeText(value);
+  if (norm) {
+    if (/\D/.test(norm)) {
+      throw new BadRequestError(`${label} hanya boleh berisi angka.`);
+    }
+    if (norm.length < MIN_PHONE_DIGITS) {
+      throw new BadRequestError(`${label} minimal ${MIN_PHONE_DIGITS} digit.`);
+    }
   }
 };
 
@@ -73,6 +82,8 @@ const mapAuthUserRow = (row) => ({
   avatar: row.avatar_url ?? undefined,
   employeeId: row.employee_id ?? row.courier_id ?? undefined,
   courierId: row.courier_id ?? row.employee_id ?? undefined,
+  address: row.address ?? undefined,
+  customerId: row.customer_id ?? undefined,
 });
 
 const getNextCustomerId = async (client) => {
@@ -99,6 +110,8 @@ const getAccountByUsername = async (client, username) => {
         COALESCE(c.name, ua.name) AS name,
         COALESCE(c.email, ua.email) AS email,
         COALESCE(c.phone, ua.phone) AS phone,
+        COALESCE(c.address, ua.address) AS address,
+        ua.customer_id,
         ua.avatar_url,
         NULL AS courier_id,
         NULL AS employee_id
@@ -114,6 +127,8 @@ const getAccountByUsername = async (client, username) => {
         ca.name,
         ca.email,
         ca.phone,
+        NULL AS address,
+        NULL AS customer_id,
         ca.avatar_url,
         ca.courier_id,
         ca.courier_id AS employee_id
@@ -126,6 +141,19 @@ const getAccountByUsername = async (client, username) => {
 
   return rows[0] ?? null;
 };
+
+export const getAuthUserByCustomerId = async (customerId) => {
+  await ensureAuthInfrastructure();
+  const { rows } = await pool.query(
+    'SELECT username FROM user_accounts WHERE customer_id = $1 LIMIT 1',
+    [customerId]
+  );
+  const username = rows[0]?.username;
+  if (!username) return null;
+  const account = await getAccountByUsername(pool, username);
+  return mapAuthUserRow(account);
+};
+
 
 const ensureUsernameAvailable = async (client, username) => {
   const { rowCount } = await client.query(
@@ -199,6 +227,17 @@ const createAuthInfrastructure = async () => {
       address TEXT NULL,
       avatar_url TEXT NULL,
       customer_id TEXT NULL UNIQUE REFERENCES customers(id) ON DELETE SET NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS contact_messages (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL,
+      subject TEXT NOT NULL,
+      message TEXT NOT NULL,
       created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
     )
   `);

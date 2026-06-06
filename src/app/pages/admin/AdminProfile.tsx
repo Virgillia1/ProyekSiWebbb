@@ -37,6 +37,7 @@ export function AdminProfile() {
     bio: activeManagerProfile.bio,
   });
   const [phoneError, setPhoneError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     setFormData({
@@ -50,18 +51,36 @@ export function AdminProfile() {
       bio: activeManagerProfile.bio,
     });
     setPhoneError('');
+    setFieldErrors({});
   }, [activeManagerProfile, user?.email, user?.name, user?.phone]);
 
   const handleSave = async () => {
+    const errors: Record<string, string> = {};
+    if (!formData.name?.trim()) {
+      errors.name = 'Nama wajib diisi.';
+    }
+    if (!formData.email?.trim()) {
+      errors.email = 'Email wajib diisi.';
+    }
     const nextPhoneError = validateRequiredPhone(
       formData.phone,
       'Nomor telepon manager wajib diisi.',
       'Nomor telepon manager'
     );
+    if (nextPhoneError) {
+      errors.phone = nextPhoneError;
+    }
+    if (!formData.address?.trim()) {
+      errors.address = 'Alamat wajib diisi.';
+    }
+    if (!formData.department?.trim()) {
+      errors.department = 'Departemen wajib diisi.';
+    }
 
+    setFieldErrors(errors);
     setPhoneError(nextPhoneError);
 
-    if (nextPhoneError) {
+    if (Object.keys(errors).length > 0) {
       scrollToFirstFieldError();
       return;
     }
@@ -99,10 +118,18 @@ export function AdminProfile() {
                   <Input
                     id="manager-name"
                     value={formData.name}
-                    onChange={(event) => setFormData((prev) => ({ ...prev, name: event.target.value }))}
-                    className="pl-10"
+                    onChange={(event) => {
+                      setFormData((prev) => ({ ...prev, name: event.target.value }));
+                      setFieldErrors((prev) => ({ ...prev, name: '' }));
+                    }}
+                    className={`pl-10 ${fieldErrors.name ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                   />
                 </div>
+                {fieldErrors.name && (
+                  <p data-field-error="true" className="text-sm font-medium text-red-600">
+                    {fieldErrors.name}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -113,10 +140,18 @@ export function AdminProfile() {
                     id="manager-email"
                     type="email"
                     value={formData.email}
-                    onChange={(event) => setFormData((prev) => ({ ...prev, email: event.target.value }))}
-                    className="pl-10"
+                    onChange={(event) => {
+                      setFormData((prev) => ({ ...prev, email: event.target.value }));
+                      setFieldErrors((prev) => ({ ...prev, email: '' }));
+                    }}
+                    className={`pl-10 ${fieldErrors.email ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                   />
                 </div>
+                {fieldErrors.email && (
+                  <p data-field-error="true" className="text-sm font-medium text-red-600">
+                    {fieldErrors.email}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -130,15 +165,16 @@ export function AdminProfile() {
                     value={formData.phone}
                     inputMode="tel"
                     onChange={(event) => {
-                      setFormData((prev) => ({ ...prev, phone: event.target.value }));
+                      setFormData((prev) => ({ ...prev, phone: event.target.value.replace(/\D/g, '') }));
+                      setFieldErrors((prev) => ({ ...prev, phone: '' }));
                       setPhoneError('');
                     }}
-                    className={`pl-10 ${phoneError ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                    className={`pl-10 ${phoneError || fieldErrors.phone ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                   />
                 </div>
-                {phoneError && (
+                {(phoneError || fieldErrors.phone) && (
                   <p data-field-error="true" className="text-sm font-medium text-red-600">
-                    {phoneError}
+                    {phoneError || fieldErrors.phone}
                   </p>
                 )}
               </div>
@@ -161,10 +197,18 @@ export function AdminProfile() {
                 <Textarea
                   id="manager-address"
                   value={formData.address}
-                  onChange={(event) => setFormData((prev) => ({ ...prev, address: event.target.value }))}
-                  className="pl-10"
+                  onChange={(event) => {
+                    setFormData((prev) => ({ ...prev, address: event.target.value }));
+                    setFieldErrors((prev) => ({ ...prev, address: '' }));
+                  }}
+                  className={`pl-10 ${fieldErrors.address ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                 />
               </div>
+              {fieldErrors.address && (
+                <p data-field-error="true" className="text-sm font-medium text-red-600">
+                  {fieldErrors.address}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -174,10 +218,18 @@ export function AdminProfile() {
                 <Input
                   id="manager-department"
                   value={formData.department}
-                  onChange={(event) => setFormData((prev) => ({ ...prev, department: event.target.value }))}
-                  className="pl-10"
+                  onChange={(event) => {
+                    setFormData((prev) => ({ ...prev, department: event.target.value }));
+                    setFieldErrors((prev) => ({ ...prev, department: '' }));
+                  }}
+                  className={`pl-10 ${fieldErrors.department ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                 />
               </div>
+              {fieldErrors.department && (
+                <p data-field-error="true" className="text-sm font-medium text-red-600">
+                  {fieldErrors.department}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">

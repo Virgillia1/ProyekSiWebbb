@@ -89,6 +89,7 @@ export function AdminCustomers() {
   const [draftCustomer, setDraftCustomer] = useState<CustomerAccount | null>(null);
   const [customerPhoneError, setCustomerPhoneError] = useState('');
   const [customerToDelete, setCustomerToDelete] = useState<CustomerAccount | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const filteredCustomers = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -134,12 +135,14 @@ export function AdminCustomers() {
     setActiveCustomerId(null);
     setDraftCustomer(null);
     setCustomerPhoneError('');
+    setFieldErrors({});
   };
 
   const openDetail = (customerId: string) => {
     setActiveCustomerId(customerId);
     setDraftCustomer(null);
     setCustomerPhoneError('');
+    setFieldErrors({});
     setDialogMode('view');
   };
 
@@ -153,6 +156,7 @@ export function AdminCustomers() {
     setActiveCustomerId(customerId);
     setDraftCustomer({ ...targetCustomer });
     setCustomerPhoneError('');
+    setFieldErrors({});
     setDialogMode('edit');
   };
 
@@ -160,6 +164,7 @@ export function AdminCustomers() {
     setActiveCustomerId(null);
     setDraftCustomer(buildNewCustomerDraft(customerList));
     setCustomerPhoneError('');
+    setFieldErrors({});
     setDialogMode('create');
   };
 
@@ -170,6 +175,7 @@ export function AdminCustomers() {
     if (key === 'phone') {
       setCustomerPhoneError('');
     }
+    setFieldErrors((prev) => ({ ...prev, [key]: '' }));
 
     setDraftCustomer((previousDraft) =>
       previousDraft
@@ -186,15 +192,29 @@ export function AdminCustomers() {
       return;
     }
 
+    const errors: Record<string, string> = {};
+    if (!draftCustomer.name?.trim()) {
+      errors.name = 'Nama customer wajib diisi.';
+    }
+    if (!draftCustomer.address?.trim()) {
+      errors.address = 'Alamat customer wajib diisi.';
+    }
+    if (!draftCustomer.email?.trim()) {
+      errors.email = 'Email customer wajib diisi.';
+    }
     const phoneError = validateRequiredPhone(
       draftCustomer.phone,
       'Nomor telepon customer wajib diisi.',
       'Nomor telepon customer'
     );
+    if (phoneError) {
+      errors.phone = phoneError;
+    }
 
+    setFieldErrors(errors);
     setCustomerPhoneError(phoneError);
 
-    if (phoneError) {
+    if (Object.keys(errors).length > 0) {
       scrollToFirstFieldError();
       return;
     }
@@ -461,7 +481,13 @@ export function AdminCustomers() {
                       value={draftCustomer.name}
                       onChange={(event) => updateDraftCustomer('name', event.target.value)}
                       placeholder="Tulis nama customer"
+                      className={fieldErrors.name ? 'border-red-500 focus-visible:ring-red-500' : ''}
                     />
+                    {fieldErrors.name && (
+                      <p data-field-error="true" className="text-sm font-medium text-red-600">
+                        {fieldErrors.name}
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-2 md:col-span-2">
@@ -471,7 +497,13 @@ export function AdminCustomers() {
                       value={draftCustomer.address}
                       onChange={(event) => updateDraftCustomer('address', event.target.value)}
                       placeholder="Tulis alamat customer"
+                      className={fieldErrors.address ? 'border-red-500 focus-visible:ring-red-500' : ''}
                     />
+                    {fieldErrors.address && (
+                      <p data-field-error="true" className="text-sm font-medium text-red-600">
+                        {fieldErrors.address}
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -482,7 +514,13 @@ export function AdminCustomers() {
                       value={draftCustomer.email}
                       onChange={(event) => updateDraftCustomer('email', event.target.value)}
                       placeholder="email@contoh.com"
+                      className={fieldErrors.email ? 'border-red-500 focus-visible:ring-red-500' : ''}
                     />
+                    {fieldErrors.email && (
+                      <p data-field-error="true" className="text-sm font-medium text-red-600">
+                        {fieldErrors.email}
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -491,13 +529,13 @@ export function AdminCustomers() {
                       id="customer-phone"
                       value={draftCustomer.phone}
                       inputMode="tel"
-                      onChange={(event) => updateDraftCustomer('phone', event.target.value)}
-                      className={getInvalidFieldClass(!!customerPhoneError)}
+                      onChange={(event) => updateDraftCustomer('phone', event.target.value.replace(/\D/g, ''))}
+                      className={getInvalidFieldClass(!!customerPhoneError || !!fieldErrors.phone)}
                       placeholder="08xxxxxxxxxx"
                     />
-                    {customerPhoneError && (
+                    {(customerPhoneError || fieldErrors.phone) && (
                       <p data-field-error="true" className="text-sm font-medium text-red-600">
-                        {customerPhoneError}
+                        {customerPhoneError || fieldErrors.phone}
                       </p>
                     )}
                   </div>

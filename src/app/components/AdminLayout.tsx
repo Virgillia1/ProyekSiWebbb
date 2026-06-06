@@ -12,6 +12,7 @@ import {
   User,
   UserRoundCog,
   Users,
+  Mail,
 } from 'lucide-react';
 import cargoLiteLogo from '../../imports/cargolite-logo.png';
 import { useAdminData, AdminDataProvider } from '../contexts/AdminDataContext';
@@ -53,6 +54,7 @@ const navItems = [
   { name: 'Data Customer', path: '/admin/customers', icon: Users },
   { name: 'Data Kendaraan', path: '/admin/vehicles', icon: Truck },
   { name: 'Profil Manager', path: '/admin/profile', icon: User },
+  { name: 'Pesan Masuk', path: '/admin/messages', icon: Mail },
   { name: 'Settings', path: '/admin/settings', icon: Settings },
 ];
 
@@ -76,7 +78,7 @@ function AdminLayoutShell() {
 
   useEffect(() => {
     if (!user) {
-      navigate('/404', { replace: true });
+      navigate('/', { replace: true });
     } else if (user.role !== 'admin') {
       navigate('/404', { replace: true });
     }
