@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { PackageCheck, PencilLine, Save, SendToBack, Trash2, Users } from 'lucide-react';
+import { Loader2, PackageCheck, PencilLine, Save, SendToBack, Trash2, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { AdminTablePagination } from '../../components/admin/AdminTablePagination';
 import { AdminTableToolbar } from '../../components/admin/AdminTableToolbar';
@@ -87,9 +87,9 @@ export function AdminCustomers() {
   const [dialogMode, setDialogMode] = useState<'view' | 'edit' | 'create' | null>(null);
   const [activeCustomerId, setActiveCustomerId] = useState<string | null>(null);
   const [draftCustomer, setDraftCustomer] = useState<CustomerAccount | null>(null);
-  const [customerPhoneError, setCustomerPhoneError] = useState('');
   const [customerToDelete, setCustomerToDelete] = useState<CustomerAccount | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [isSavingCustomer, setIsSavingCustomer] = useState(false);
 
   const filteredCustomers = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -134,14 +134,12 @@ export function AdminCustomers() {
     setDialogMode(null);
     setActiveCustomerId(null);
     setDraftCustomer(null);
-    setCustomerPhoneError('');
     setFieldErrors({});
   };
 
   const openDetail = (customerId: string) => {
     setActiveCustomerId(customerId);
     setDraftCustomer(null);
-    setCustomerPhoneError('');
     setFieldErrors({});
     setDialogMode('view');
   };
@@ -155,7 +153,6 @@ export function AdminCustomers() {
 
     setActiveCustomerId(customerId);
     setDraftCustomer({ ...targetCustomer });
-    setCustomerPhoneError('');
     setFieldErrors({});
     setDialogMode('edit');
   };
@@ -163,7 +160,6 @@ export function AdminCustomers() {
   const openCreate = () => {
     setActiveCustomerId(null);
     setDraftCustomer(buildNewCustomerDraft(customerList));
-    setCustomerPhoneError('');
     setFieldErrors({});
     setDialogMode('create');
   };
@@ -172,9 +168,6 @@ export function AdminCustomers() {
     key: Key,
     value: CustomerAccount[Key]
   ) => {
-    if (key === 'phone') {
-      setCustomerPhoneError('');
-    }
     setFieldErrors((prev) => ({ ...prev, [key]: '' }));
 
     setDraftCustomer((previousDraft) =>
@@ -212,13 +205,13 @@ export function AdminCustomers() {
     }
 
     setFieldErrors(errors);
-    setCustomerPhoneError(phoneError);
 
     if (Object.keys(errors).length > 0) {
       scrollToFirstFieldError();
       return;
     }
 
+    setIsSavingCustomer(true);
     try {
       if (dialogMode === 'create') {
         await createCustomer(draftCustomer);
@@ -235,6 +228,8 @@ export function AdminCustomers() {
       resetDialog();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Gagal menyimpan data customer.');
+    } finally {
+      setIsSavingCustomer(false);
     }
   };
 
@@ -530,12 +525,12 @@ export function AdminCustomers() {
                       value={draftCustomer.phone}
                       inputMode="tel"
                       onChange={(event) => updateDraftCustomer('phone', event.target.value.replace(/\D/g, ''))}
-                      className={getInvalidFieldClass(!!customerPhoneError || !!fieldErrors.phone)}
+                      className={getInvalidFieldClass(!!fieldErrors.phone)}
                       placeholder="08xxxxxxxxxx"
                     />
-                    {(customerPhoneError || fieldErrors.phone) && (
+                    {fieldErrors.phone && (
                       <p data-field-error="true" className="text-sm font-medium text-red-600">
-                        {customerPhoneError || fieldErrors.phone}
+                        {fieldErrors.phone}
                       </p>
                     )}
                   </div>
@@ -586,11 +581,15 @@ export function AdminCustomers() {
               </div>
 
               <DialogFooter>
-                <Button type="button" onClick={handleSaveCustomer}>
-                  <Save className="h-4 w-4" />
-                  Simpan Perubahan
+                <Button type="button" onClick={handleSaveCustomer} disabled={isSavingCustomer}>
+                  {isSavingCustomer ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
+                  {isSavingCustomer ? 'Menyimpan...' : 'Simpan Perubahan'}
                 </Button>
-                <Button type="button" variant="outline" onClick={resetDialog}>
+                <Button type="button" variant="outline" onClick={resetDialog} disabled={isSavingCustomer}>
                   Kembali
                 </Button>
               </DialogFooter>
@@ -604,8 +603,8 @@ export function AdminCustomers() {
           <AlertDialogHeader>
             <AlertDialogTitle>Hapus data customer?</AlertDialogTitle>
             <AlertDialogDescription>
-              Data {customerToDelete?.name} akan dihapus dari Neon bersama riwayat customer yang
-              terkait. Tindakan ini tidak bisa dibatalkan.
+              Data {customerToDelete?.name} akan dihapus permanen. Anda yakin akan menghapus data
+              tersebut?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

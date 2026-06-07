@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { PencilLine, Save, Trash2, Truck, User, Lock } from 'lucide-react';
+import { Loader2, PencilLine, Save, Trash2, Truck, User, Lock } from 'lucide-react';
 import {
   getCourierAccountInfoRequest,
   createCourierAccountRequest,
@@ -120,6 +120,7 @@ export function AdminEmployees() {
   const [courierToDelete, setCourierToDelete] = useState<Courier | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [accountErrors, setAccountErrors] = useState<Record<string, string>>({});
+  const [isSavingCourier, setIsSavingCourier] = useState(false);
 
   const [courierAccount, setCourierAccount] = useState<CourierAccountInfo | null>(null);
   const [isLoadingAccount, setIsLoadingAccount] = useState(false);
@@ -347,6 +348,7 @@ export function AdminEmployees() {
       return;
     }
 
+    setIsSavingCourier(true);
     try {
       if (dialogMode === 'create') {
         await createCourier(draftCourier);
@@ -363,6 +365,8 @@ export function AdminEmployees() {
       resetDialog();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Gagal menyimpan data kurir.');
+    } finally {
+      setIsSavingCourier(false);
     }
   };
 
@@ -931,11 +935,15 @@ export function AdminEmployees() {
               </div>
 
               <DialogFooter>
-                <Button type="button" onClick={handleSaveCourier}>
-                  <Save className="h-4 w-4" />
-                  Simpan Perubahan
+                <Button type="button" onClick={handleSaveCourier} disabled={isSavingCourier}>
+                  {isSavingCourier ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
+                  {isSavingCourier ? 'Menyimpan...' : 'Simpan Perubahan'}
                 </Button>
-                <Button type="button" variant="outline" onClick={resetDialog}>
+                <Button type="button" variant="outline" onClick={resetDialog} disabled={isSavingCourier}>
                   Kembali
                 </Button>
               </DialogFooter>
@@ -952,9 +960,8 @@ export function AdminEmployees() {
           <AlertDialogHeader>
             <AlertDialogTitle>Hapus data kurir?</AlertDialogTitle>
             <AlertDialogDescription>
-              Data {courierToDelete?.name} akan dihapus langsung dari Neon. Jika kurir ini masih
-              dipakai pada data pengiriman, hapus akan ditolak sampai paket terkait dipindahkan ke
-              kurir lain.
+              Data {courierToDelete?.name} akan dihapus permanen. Anda yakin akan menghapus data
+              tersebut?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

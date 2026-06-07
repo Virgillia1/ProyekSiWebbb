@@ -375,7 +375,7 @@ export function Layout() {
                 />
               </div>
               {profileErrors.name && (
-                <p data-field-error="true" className="text-red-600 text-xs font-medium">{profileErrors.name}</p>
+                <p data-field-error="true" className="text-sm font-medium text-red-600">{profileErrors.name}</p>
               )}
             </div>
 
@@ -399,7 +399,7 @@ export function Layout() {
                 />
               </div>
               {profileErrors.email && (
-                <p data-field-error="true" className="text-red-600 text-xs font-medium">{profileErrors.email}</p>
+                <p data-field-error="true" className="text-sm font-medium text-red-600">{profileErrors.email}</p>
               )}
             </div>
 
@@ -424,7 +424,7 @@ export function Layout() {
                 />
               </div>
               {(phoneError || profileErrors.phone) && (
-                <p data-field-error="true" className="text-red-600 text-xs font-medium">{phoneError || profileErrors.phone}</p>
+                <p data-field-error="true" className="text-sm font-medium text-red-600">{phoneError || profileErrors.phone}</p>
               )}
             </div>
 
@@ -447,7 +447,7 @@ export function Layout() {
                 />
               </div>
               {profileErrors.address && (
-                <p data-field-error="true" className="text-red-600 text-xs font-medium">{profileErrors.address}</p>
+                <p data-field-error="true" className="text-sm font-medium text-red-600">{profileErrors.address}</p>
               )}
             </div>
           </div>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Building2, Mail, MapPin, Phone, Save, UserRound } from 'lucide-react';
+import { Building2, Loader2, Mail, MapPin, Phone, Save, UserRound } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
@@ -38,6 +38,7 @@ export function AdminProfile() {
   });
   const [phoneError, setPhoneError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   useEffect(() => {
     setFormData({
@@ -85,6 +86,7 @@ export function AdminProfile() {
       return;
     }
 
+    setIsSavingProfile(true);
     try {
       await updateManagerProfile(formData);
       updateUser({
@@ -98,6 +100,8 @@ export function AdminProfile() {
       });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Gagal menyimpan profil manager.');
+    } finally {
+      setIsSavingProfile(false);
     }
   };
 
@@ -242,9 +246,13 @@ export function AdminProfile() {
               />
             </div>
 
-            <Button onClick={handleSave}>
-              <Save className="mr-2 h-4 w-4" />
-              Simpan Perubahan
+            <Button onClick={handleSave} disabled={isSavingProfile}>
+              {isSavingProfile ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="mr-2 h-4 w-4" />
+              )}
+              {isSavingProfile ? 'Menyimpan...' : 'Simpan Perubahan'}
             </Button>
           </CardContent>
         </Card>

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import {
   CheckCircle2,
+  Loader2,
   Package,
   PackageSearch,
   PencilLine,
@@ -271,6 +272,7 @@ export function AdminShipments() {
   const [draftPackage, setDraftPackage] = useState<AdminPackage | null>(null);
   const [packageFieldErrors, setPackageFieldErrors] = useState<PackageFieldErrors>({});
   const [packageToDelete, setPackageToDelete] = useState<AdminPackage | null>(null);
+  const [isSavingPackage, setIsSavingPackage] = useState(false);
 
   const isHistoricalMonth = selectedMonth < '2026-04';
   const activeCouriers = useMemo(
@@ -545,6 +547,7 @@ export function AdminShipments() {
 
     const nextPackage = normalizePackageDraft(draftPackage, isHistoricalMonth);
 
+    setIsSavingPackage(true);
     try {
       if (packageDialogMode === 'create') {
         await createPackage(nextPackage);
@@ -561,6 +564,8 @@ export function AdminShipments() {
       resetPackageDialog();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Gagal menyimpan data pengiriman.');
+    } finally {
+      setIsSavingPackage(false);
     }
   };
 
@@ -1360,11 +1365,19 @@ export function AdminShipments() {
               })()}
 
               <DialogFooter>
-                <Button type="button" onClick={handleSavePackage}>
-                  <Save className="h-4 w-4" />
-                  {packageDialogMode === 'edit' ? 'Simpan Status' : 'Simpan Perubahan'}
+                <Button type="button" onClick={handleSavePackage} disabled={isSavingPackage}>
+                  {isSavingPackage ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
+                  {isSavingPackage
+                    ? 'Menyimpan...'
+                    : packageDialogMode === 'edit'
+                      ? 'Simpan Status'
+                      : 'Simpan Perubahan'}
                 </Button>
-                <Button type="button" variant="outline" onClick={resetPackageDialog}>
+                <Button type="button" variant="outline" onClick={resetPackageDialog} disabled={isSavingPackage}>
                   Kembali
                 </Button>
               </DialogFooter>
@@ -1378,8 +1391,8 @@ export function AdminShipments() {
           <AlertDialogHeader>
             <AlertDialogTitle>Hapus data pengiriman?</AlertDialogTitle>
             <AlertDialogDescription>
-              Resi {packageToDelete?.resi} akan dihapus dari Neon beserta tracking event dan
-              riwayat customer yang terkait. Tindakan ini tidak bisa dibatalkan.
+              Resi {packageToDelete?.resi} akan dihapus permanen. Anda yakin akan menghapus data
+              tersebut?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -116,7 +116,9 @@ export function ContactPage() {
                       className={errors.name ? 'border-red-600 focus-visible:ring-red-600' : 'border-border'}
                     />
                     {errors.name && (
-                      <p className="text-red-600 text-xs font-medium">{errors.name}</p>
+                      <p data-field-error="true" className="text-sm font-medium text-red-600">
+                        {errors.name}
+                      </p>
                     )}
                   </div>
                   <div className="space-y-1.5">
@@ -132,7 +134,9 @@ export function ContactPage() {
                       className={errors.email ? 'border-red-600 focus-visible:ring-red-600' : 'border-border'}
                     />
                     {errors.email && (
-                      <p className="text-red-600 text-xs font-medium">{errors.email}</p>
+                      <p data-field-error="true" className="text-sm font-medium text-red-600">
+                        {errors.email}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -148,7 +152,9 @@ export function ContactPage() {
                     className={errors.subject ? 'border-red-600 focus-visible:ring-red-600' : 'border-border'}
                   />
                   {errors.subject && (
-                    <p className="text-red-600 text-xs font-medium">{errors.subject}</p>
+                    <p data-field-error="true" className="text-sm font-medium text-red-600">
+                      {errors.subject}
+                    </p>
                   )}
                 </div>
                 <div className="space-y-1.5">
@@ -164,7 +170,9 @@ export function ContactPage() {
                     className={errors.message ? 'border-red-600 focus-visible:ring-red-600' : 'border-border'}
                   />
                   {errors.message && (
-                    <p className="text-red-600 text-xs font-medium">{errors.message}</p>
+                    <p data-field-error="true" className="text-sm font-medium text-red-600">
+                      {errors.message}
+                    </p>
                   )}
                 </div>
                 <Button type="submit" size="lg" className="w-full gap-2 rounded-xl" disabled={isSending}>

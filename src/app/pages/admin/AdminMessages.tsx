@@ -140,8 +140,9 @@ export function AdminMessages() {
                             <AlertDialogHeader>
                               <AlertDialogTitle>Hapus Pesan Kontak?</AlertDialogTitle>
                               <AlertDialogDescription>
-                                Tindakan ini bersifat permanen. Pesan dari{' '}
-                                <span className="font-semibold text-foreground">{msg.name}</span> dengan subjek "{msg.subject}" akan dihapus dari database.
+                                Pesan dari <span className="font-semibold text-foreground">{msg.name}</span>{' '}
+                                dengan subjek "{msg.subject}" akan dihapus permanen. Anda yakin akan
+                                menghapus data tersebut?
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { PencilLine, Save, Trash2, Truck, PlusCircle, Wrench, ShieldAlert } from 'lucide-react';
+import { Loader2, PencilLine, Save, Trash2, Truck, PlusCircle, Wrench, ShieldAlert } from 'lucide-react';
 import { toast } from 'sonner';
 import { AdminTablePagination } from '../../components/admin/AdminTablePagination';
 import { AdminTableToolbar } from '../../components/admin/AdminTableToolbar';
@@ -97,6 +97,7 @@ export function AdminVehicles() {
   const [draftVehicle, setDraftVehicle] = useState<Vehicle | null>(null);
   const [vehicleToDelete, setVehicleToDelete] = useState<Vehicle | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [isSavingVehicle, setIsSavingVehicle] = useState(false);
 
   const filteredVehicles = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -218,6 +219,7 @@ export function AdminVehicles() {
       return;
     }
 
+    setIsSavingVehicle(true);
     try {
       if (dialogMode === 'create') {
         await createVehicle(draftVehicle);
@@ -234,6 +236,8 @@ export function AdminVehicles() {
       resetDialog();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Gagal menyimpan data kendaraan.');
+    } finally {
+      setIsSavingVehicle(false);
     }
   };
 
@@ -573,11 +577,15 @@ export function AdminVehicles() {
               </div>
 
               <DialogFooter className="mt-6">
-                <Button type="button" onClick={handleSaveVehicle}>
-                  <Save className="h-4 w-4" />
-                  Simpan Perubahan
+                <Button type="button" onClick={handleSaveVehicle} disabled={isSavingVehicle}>
+                  {isSavingVehicle ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
+                  {isSavingVehicle ? 'Menyimpan...' : 'Simpan Perubahan'}
                 </Button>
-                <Button type="button" variant="outline" onClick={resetDialog}>
+                <Button type="button" variant="outline" onClick={resetDialog} disabled={isSavingVehicle}>
                   Kembali
                 </Button>
               </DialogFooter>
@@ -594,7 +602,7 @@ export function AdminVehicles() {
               Hapus armada kendaraan?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Armada <strong>{vehicleToDelete?.name}</strong> dengan plat nomor <strong>{vehicleToDelete?.plateNumber}</strong> akan dihapus permanen dari Neon. Tindakan ini tidak dapat dibatalkan.
+              Armada <strong>{vehicleToDelete?.name}</strong> dengan plat nomor <strong>{vehicleToDelete?.plateNumber}</strong> akan dihapus permanen. Anda yakin akan menghapus data tersebut?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
