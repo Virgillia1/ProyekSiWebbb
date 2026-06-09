@@ -17,9 +17,7 @@ export function CourierLayout() {
   const { user, logout } = useAuth();
 
   useEffect(() => {
-    if (!user) {
-      navigate('/', { replace: true });
-    } else if (user.role !== 'courier') {
+    if (!user || user.role !== 'courier') {
       navigate('/404', { replace: true });
     }
   }, [user, navigate]);
