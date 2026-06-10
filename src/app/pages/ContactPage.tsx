@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { MapPin, Phone, Mail, Clock, Send } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -6,6 +6,7 @@ import { Textarea } from '../components/ui/textarea';
 import { motion } from 'motion/react';
 import { useMetadata } from '../lib/useMetadata';
 import { toast } from 'sonner';
+import { useAuth } from '../contexts/AuthContext';
 
 export function ContactPage() {
   useMetadata(
@@ -13,12 +14,20 @@ export function ContactPage() {
     'Ada pertanyaan atau keluhan mengenai pengiriman kargo Anda? Hubungi tim support CargoLite melalui form kontak ini.'
   );
 
+  const { user } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (user) {
+      setName(user.name || '');
+      setEmail(user.email || '');
+    }
+  }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,6 +122,7 @@ export function ContactPage() {
                         setName(e.target.value);
                         setErrors((prev) => ({ ...prev, name: '' }));
                       }}
+                      disabled={!!user}
                       className={errors.name ? 'border-red-600 focus-visible:ring-red-600' : 'border-border'}
                     />
                     {errors.name && (
@@ -131,6 +141,7 @@ export function ContactPage() {
                         setEmail(e.target.value);
                         setErrors((prev) => ({ ...prev, email: '' }));
                       }}
+                      disabled={!!user}
                       className={errors.email ? 'border-red-600 focus-visible:ring-red-600' : 'border-border'}
                     />
                     {errors.email && (

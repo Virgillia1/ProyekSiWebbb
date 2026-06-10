@@ -26,6 +26,38 @@ export function AdminMessages() {
 
   const { contactMessages, deleteContactMessage, refreshData, isUsingFallback } = useAdminData();
   const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [feedbackText, setFeedbackText] = useState('');
+  const [isSendingFeedback, setIsSendingFeedback] = useState(false);
+
+  const handleSendFeedback = async (id: string) => {
+    if (!feedbackText.trim()) {
+      toast.error('Tanggapan tidak boleh kosong.');
+      return;
+    }
+    setIsSendingFeedback(true);
+    try {
+      const response = await fetch(`/api/admin/messages/${id}/feedback`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ feedback: feedbackText.trim() }),
+      });
+      if (!response.ok) {
+        throw new Error('Gagal mengirim tanggapan');
+      }
+      toast.success('Tanggapan berhasil dikirim!');
+      setEditingMessageId(null);
+      setFeedbackText('');
+      void refreshData();
+    } catch (err) {
+      console.error(err);
+      toast.error('Gagal mengirim tanggapan.');
+    } finally {
+      setIsSendingFeedback(false);
+    }
+  };
 
   const handleDelete = async (id: string) => {
     try {
@@ -164,6 +196,71 @@ export function AdminMessages() {
                       <p className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed bg-secondary/20 p-3 rounded-2xl border border-border/40">
                         {msg.message}
                       </p>
+
+                      {/* Admin Feedback Display / Form */}
+                      <div className="mt-4 pt-4 border-t border-border/40 space-y-3">
+                        <h4 className="text-xs font-bold text-foreground">Tanggapan Admin:</h4>
+                        {msg.feedback ? (
+                          <div className="bg-emerald-50/50 border border-emerald-100 text-emerald-800 p-3 rounded-2xl text-xs leading-relaxed">
+                            <p className="whitespace-pre-wrap">{msg.feedback}</p>
+                            <Button
+                              variant="link"
+                              size="sm"
+                              className="text-xs text-[#2F8A2E] hover:text-[#256c24] p-0 h-auto mt-2 block font-semibold text-left"
+                              onClick={() => {
+                                setEditingMessageId(msg.id);
+                                setFeedbackText(msg.feedback || '');
+                              }}
+                            >
+                              Ubah Tanggapan
+                            </Button>
+                          </div>
+                        ) : (
+                          editingMessageId === msg.id ? (
+                            <div className="space-y-2">
+                              <textarea
+                                value={feedbackText}
+                                onChange={(e) => setFeedbackText(e.target.value)}
+                                placeholder="Tulis tanggapan atau solusi untuk laporan ini..."
+                                className="w-full text-xs p-2.5 border border-border rounded-xl focus:outline-none focus:ring-1 focus:ring-primary min-h-[60px]"
+                              />
+                              <div className="flex gap-2 justify-end">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-xs"
+                                  onClick={() => {
+                                    setEditingMessageId(null);
+                                    setFeedbackText('');
+                                  }}
+                                >
+                                  Batal
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  className="text-xs bg-primary hover:bg-primary/95 text-white"
+                                  onClick={() => handleSendFeedback(msg.id)}
+                                  disabled={isSendingFeedback}
+                                >
+                                  {isSendingFeedback ? 'Mengirim...' : 'Kirim'}
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-xs border-primary/20 text-primary hover:bg-primary/5 font-semibold gap-1 rounded-xl"
+                              onClick={() => {
+                                setEditingMessageId(msg.id);
+                                setFeedbackText('');
+                              }}
+                            >
+                              Tanggapi Laporan
+                            </Button>
+                          )
+                        )}
+                      </div>
 
                       {/* Sender details and Date */}
                       <div className="pt-3 border-t border-border/40 space-y-2 text-xs text-muted-foreground">

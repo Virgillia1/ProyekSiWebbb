@@ -479,6 +479,7 @@ export const getContactMessages = async (client = pool) => {
       email: row.email,
       subject: row.subject,
       message: row.message,
+      feedback: row.feedback ?? null,
       createdAt: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString(),
     }));
   } catch (err) {

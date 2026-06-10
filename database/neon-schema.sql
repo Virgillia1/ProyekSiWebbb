@@ -1,3 +1,4 @@
+DROP TABLE IF EXISTS contact_messages;
 DROP TABLE IF EXISTS customer_histories;
 DROP TABLE IF EXISTS courier_accounts;
 DROP TABLE IF EXISTS user_accounts;
@@ -159,3 +160,13 @@ CREATE INDEX idx_user_accounts_customer_id ON user_accounts(customer_id);
 CREATE INDEX idx_courier_accounts_courier_id ON courier_accounts(courier_id);
 CREATE INDEX idx_customer_histories_customer_id ON customer_histories(customer_id);
 CREATE INDEX idx_customer_histories_resi ON customer_histories(resi);
+
+CREATE TABLE contact_messages (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  message TEXT NOT NULL,
+  feedback TEXT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

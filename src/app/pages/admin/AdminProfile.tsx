@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Building2, Loader2, Mail, MapPin, Phone, Save, UserRound } from 'lucide-react';
+import { Loader2, Mail, MapPin, Phone, Save, UserRound } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
@@ -74,9 +74,6 @@ export function AdminProfile() {
     if (!formData.address?.trim()) {
       errors.address = 'Alamat wajib diisi.';
     }
-    if (!formData.department?.trim()) {
-      errors.department = 'Departemen wajib diisi.';
-    }
 
     setFieldErrors(errors);
     setPhoneError(nextPhoneError);
@@ -122,6 +119,7 @@ export function AdminProfile() {
                   <Input
                     id="manager-name"
                     value={formData.name}
+                    disabled
                     onChange={(event) => {
                       setFormData((prev) => ({ ...prev, name: event.target.value }));
                       setFieldErrors((prev) => ({ ...prev, name: '' }));
@@ -159,39 +157,27 @@ export function AdminProfile() {
               </div>
             </div>
 
-            <div className="grid gap-5 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="manager-phone">Nomor Telepon</Label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="manager-phone"
-                    value={formData.phone}
-                    inputMode="tel"
-                    onChange={(event) => {
-                      setFormData((prev) => ({ ...prev, phone: event.target.value.replace(/\D/g, '') }));
-                      setFieldErrors((prev) => ({ ...prev, phone: '' }));
-                      setPhoneError('');
-                    }}
-                    className={`pl-10 ${phoneError || fieldErrors.phone ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
-                  />
-                </div>
-                {(phoneError || fieldErrors.phone) && (
-                  <p data-field-error="true" className="text-sm font-medium text-red-600">
-                    {phoneError || fieldErrors.phone}
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="manager-start">Mulai Menjabat</Label>
+            <div className="space-y-2">
+              <Label htmlFor="manager-phone">Nomor Telepon</Label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  id="manager-start"
-                  type="date"
-                  value={formData.startDate}
-                  onChange={(event) => setFormData((prev) => ({ ...prev, startDate: event.target.value }))}
+                  id="manager-phone"
+                  value={formData.phone}
+                  inputMode="tel"
+                  onChange={(event) => {
+                    setFormData((prev) => ({ ...prev, phone: event.target.value.replace(/\D/g, '') }));
+                    setFieldErrors((prev) => ({ ...prev, phone: '' }));
+                    setPhoneError('');
+                  }}
+                  className={`pl-10 ${phoneError || fieldErrors.phone ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                 />
               </div>
+              {(phoneError || fieldErrors.phone) && (
+                <p data-field-error="true" className="text-sm font-medium text-red-600">
+                  {phoneError || fieldErrors.phone}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -201,6 +187,7 @@ export function AdminProfile() {
                 <Textarea
                   id="manager-address"
                   value={formData.address}
+                  disabled
                   onChange={(event) => {
                     setFormData((prev) => ({ ...prev, address: event.target.value }));
                     setFieldErrors((prev) => ({ ...prev, address: '' }));
@@ -215,36 +202,9 @@ export function AdminProfile() {
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="manager-department">Departemen</Label>
-              <div className="relative">
-                <Building2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="manager-department"
-                  value={formData.department}
-                  onChange={(event) => {
-                    setFormData((prev) => ({ ...prev, department: event.target.value }));
-                    setFieldErrors((prev) => ({ ...prev, department: '' }));
-                  }}
-                  className={`pl-10 ${fieldErrors.department ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
-                />
-              </div>
-              {fieldErrors.department && (
-                <p data-field-error="true" className="text-sm font-medium text-red-600">
-                  {fieldErrors.department}
-                </p>
-              )}
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="manager-bio">Ringkasan Profil</Label>
-              <Textarea
-                id="manager-bio"
-                value={formData.bio}
-                onChange={(event) => setFormData((prev) => ({ ...prev, bio: event.target.value }))}
-                className="min-h-32"
-              />
-            </div>
+
+
 
             <Button onClick={handleSave} disabled={isSavingProfile}>
               {isSavingProfile ? (

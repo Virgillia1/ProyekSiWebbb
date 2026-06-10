@@ -120,6 +120,7 @@ export interface ContactMessage {
   email: string;
   subject: string;
   message: string;
+  feedback?: string | null;
   createdAt: string;
 }
 

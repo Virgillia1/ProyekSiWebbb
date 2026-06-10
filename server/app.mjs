@@ -236,6 +236,38 @@ app.delete('/api/admin/messages/:id', async (request, response) => {
   response.json({ ok: true, message: 'Pesan berhasil dihapus.' });
 });
 
+app.get('/api/customer/messages', async (request, response) => {
+  await ensureAuthInfrastructure();
+  const { email } = request.query;
+  if (!email) {
+    return response.status(400).json({ message: 'Email wajib disertakan.' });
+  }
+  const { rows } = await pool.query(
+    'SELECT * FROM contact_messages WHERE LOWER(email) = LOWER($1) ORDER BY created_at DESC',
+    [email]
+  );
+  response.json(rows.map(row => ({
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    subject: row.subject,
+    message: row.message,
+    feedback: row.feedback ?? null,
+    createdAt: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString(),
+  })));
+});
+
+app.put('/api/admin/messages/:id/feedback', async (request, response) => {
+  await ensureAuthInfrastructure();
+  const { id } = request.params;
+  const { feedback } = request.body;
+  await pool.query(
+    'UPDATE contact_messages SET feedback = $1 WHERE id = $2',
+    [feedback, id]
+  );
+  response.json({ ok: true, message: 'Feedback berhasil dikirim.' });
+});
+
 app.use((error, _request, response, _next) => {
   if (error instanceof NotFoundError) {
     response.status(404).json({ message: error.message });

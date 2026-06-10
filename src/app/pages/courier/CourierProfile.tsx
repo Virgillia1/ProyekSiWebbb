@@ -144,7 +144,7 @@ export function CourierProfile() {
                         setFormData({ ...formData, name: e.target.value });
                         setFieldErrors((prev) => ({ ...prev, name: '' }));
                       }}
-                      disabled={!isEditing}
+                      disabled={true}
                       className={`pl-10 ${fieldErrors.name ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                     />
                   </div>
@@ -167,7 +167,7 @@ export function CourierProfile() {
                         setFormData({ ...formData, email: e.target.value });
                         setFieldErrors((prev) => ({ ...prev, email: '' }));
                       }}
-                      disabled={!isEditing}
+                      disabled={true}
                       className={`pl-10 ${fieldErrors.email ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                     />
                   </div>
@@ -192,7 +192,7 @@ export function CourierProfile() {
                       setFieldErrors((prev) => ({ ...prev, phone: '' }));
                       setPhoneError('');
                     }}
-                    disabled={!isEditing}
+                    disabled={true}
                     className={`pl-10 ${phoneError || fieldErrors.phone ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                   />
                 </div>

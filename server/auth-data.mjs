@@ -249,6 +249,9 @@ const createAuthInfrastructure = async () => {
   await pool.query(
     'ALTER TABLE packages ADD COLUMN IF NOT EXISTS sender_username TEXT NULL'
   );
+  await pool.query(
+    'ALTER TABLE contact_messages ADD COLUMN IF NOT EXISTS feedback TEXT NULL'
+  );
 };
 
 export const ensureAuthInfrastructure = async () => {

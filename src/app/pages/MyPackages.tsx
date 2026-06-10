@@ -39,6 +39,8 @@ export function MyPackages() {
   const [packages, setPackages] = useState<CourierDelivery[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedPackage, setSelectedPackage] = useState<CourierDelivery | null>(null);
+  const [reports, setReports] = useState<any[]>([]);
+  const [isLoadingReports, setIsLoadingReports] = useState(true);
 
   const loadPackages = async (silent = false) => {
     if (!user?.username) return;
@@ -54,8 +56,25 @@ export function MyPackages() {
     }
   };
 
+  const loadReports = async (silent = false) => {
+    if (!user?.email) return;
+    if (!silent) setIsLoadingReports(true);
+    try {
+      const res = await fetch(`/api/customer/messages?email=${encodeURIComponent(user.email)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setReports(data);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoadingReports(false);
+    }
+  };
+
   useEffect(() => {
-    loadPackages();
+    void loadPackages();
+    void loadReports();
   }, [user]);
 
   const getStatusBadge = (status: string) => {
@@ -118,7 +137,10 @@ export function MyPackages() {
           </p>
         </div>
         <Button
-          onClick={() => loadPackages(true)}
+          onClick={() => {
+            void loadPackages(true);
+            void loadReports(true);
+          }}
           variant="outline"
           className="self-start sm:self-center border-primary/20 hover:bg-primary/5 hover:text-primary gap-2"
         >
@@ -324,6 +346,77 @@ export function MyPackages() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Section Laporan & Pengaduan Saya */}
+      <div className="pt-8 border-t border-border/80 space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight text-foreground">
+            Laporan & Pengaduan Saya
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Pantau tanggapan dan solusi dari admin atas pertanyaan atau kendala pengiriman yang Anda laporkan.
+          </p>
+        </div>
+
+        {isLoadingReports ? (
+          <div className="flex flex-col items-center justify-center py-12 space-y-3">
+            <RefreshCw className="h-8 w-8 text-primary animate-spin" />
+            <p className="text-xs text-muted-foreground">Memuat laporan...</p>
+          </div>
+        ) : reports.length === 0 ? (
+          <Card className="border-dashed border-border/80 p-8 text-center bg-white shadow-sm rounded-2xl">
+            <CardContent className="flex flex-col items-center justify-center space-y-4 py-8">
+              <div className="h-16 w-16 rounded-full bg-secondary/80 flex items-center justify-center text-muted-foreground">
+                <FileText className="h-8 w-8" />
+              </div>
+              <div>
+                <CardTitle className="text-base">Belum Ada Laporan</CardTitle>
+                <CardDescription className="max-w-md mx-auto mt-2">
+                  Anda belum pernah membuat laporan atau keluhan. Jika memiliki kendala, Anda dapat mengirimkannya melalui halaman Hubungi Kami menggunakan email akun Anda ({user?.email}).
+                </CardDescription>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2">
+            {reports.map((report) => (
+              <Card key={report.id} className="border-border/60 hover:shadow-sm transition-all duration-300 rounded-2xl bg-white shadow-sm flex flex-col justify-between overflow-hidden">
+                <CardContent className="p-6 space-y-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-primary bg-primary/10 px-2.5 py-0.5 rounded-full">
+                      {report.subject || 'Laporan Pengiriman'}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">
+                      {formatDate(report.createdAt)}
+                    </span>
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-xs font-bold text-foreground">Pesan Laporan:</p>
+                    <p className="text-xs text-foreground/90 whitespace-pre-wrap leading-relaxed bg-secondary/20 p-3 rounded-xl border border-border/40">
+                      {report.message}
+                    </p>
+                  </div>
+
+                  {report.feedback ? (
+                    <div className="bg-emerald-50 border border-emerald-100 text-emerald-800 p-3 rounded-xl space-y-1">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 flex items-center gap-1">
+                        <CheckCircle2 className="h-3.5 w-3.5" /> Tanggapan Admin:
+                      </p>
+                      <p className="text-xs leading-relaxed whitespace-pre-wrap">{report.feedback}</p>
+                    </div>
+                  ) : (
+                    <div className="bg-amber-50 border border-amber-100 text-amber-800 p-3 rounded-xl space-y-1 flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-amber-600 shrink-0" />
+                      <p className="text-xs leading-relaxed font-medium">Menunggu tanggapan admin...</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
