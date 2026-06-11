@@ -39,6 +39,10 @@ export const router = createBrowserRouter([
     Component: AdminLayout,
     children: [
       {
+        index: true,
+        element: <Navigate to="/admin/dashboard" replace />,
+      },
+      {
         path: 'dashboard',
         Component: AdminDashboard,
       },

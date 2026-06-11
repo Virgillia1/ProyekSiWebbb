@@ -1,5 +1,5 @@
 import { Suspense, useEffect, useState } from 'react';
-import { Link, Outlet, useLocation, useNavigate } from 'react-router';
+import { Link, Navigate, Outlet, useLocation, useNavigate } from 'react-router';
 import {
   ClipboardList,
   LayoutDashboard,
@@ -75,14 +75,6 @@ function AdminLayoutShell() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { loading } = useAdminData();
-
-  useEffect(() => {
-    if (!user) {
-      navigate('/', { replace: true });
-    } else if (user.role !== 'admin') {
-      navigate('/404', { replace: true });
-    }
-  }, [user, navigate]);
 
   const isActive = (path: string) => location.pathname.startsWith(path);
 
@@ -272,6 +264,16 @@ function AdminLayoutShell() {
 }
 
 export function AdminLayout() {
+  const { user } = useAuth();
+
+  if (!user) {
+    return <Navigate to="/404" replace />;
+  }
+
+  if (user.role !== 'admin') {
+    return <Navigate to="/404" replace />;
+  }
+
   return (
     <AdminDataProvider>
       <AdminLayoutShell />
