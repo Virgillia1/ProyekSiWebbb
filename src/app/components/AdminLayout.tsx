@@ -1,5 +1,5 @@
 import { Suspense, useEffect, useState } from 'react';
-import { Link, Navigate, Outlet, useLocation, useNavigate } from 'react-router';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router';
 import {
   ClipboardList,
   LayoutDashboard,
@@ -17,6 +17,7 @@ import {
 import cargoLiteLogo from '../../imports/cargolite-logo.png';
 import { useAdminData, AdminDataProvider } from '../contexts/AdminDataContext';
 import { useAuth } from '../contexts/AuthContext';
+import { NotFound } from '../pages/NotFound';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from './ui/sheet';
@@ -267,11 +268,11 @@ export function AdminLayout() {
   const { user } = useAuth();
 
   if (!user) {
-    return <Navigate to="/404" replace />;
+    return <NotFound />;
   }
 
   if (user.role !== 'admin') {
-    return <Navigate to="/404" replace />;
+    return <NotFound />;
   }
 
   return (
