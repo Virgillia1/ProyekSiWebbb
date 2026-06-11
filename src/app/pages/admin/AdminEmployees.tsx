@@ -14,6 +14,7 @@ import {
   hasMinimumPhoneDigits,
   validateRequiredPhone,
 } from '../../lib/phoneValidation';
+import { validateRequiredEmail } from '../../lib/emailValidation';
 import { scrollToFirstFieldError } from '../../lib/scrollToFieldError';
 import {
   AlertDialog,
@@ -230,8 +231,9 @@ export function AdminEmployees() {
     if (!accountUsername.trim()) {
       errors.username = 'Username wajib diisi.';
     }
-    if (!accountEmail.trim()) {
-      errors.email = 'Email wajib diisi.';
+    const emailError = validateRequiredEmail(accountEmail);
+    if (emailError) {
+      errors.email = emailError;
     }
     if (!accountPassword.trim()) {
       errors.password = 'Password wajib diisi.';

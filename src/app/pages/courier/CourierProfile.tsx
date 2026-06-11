@@ -7,6 +7,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { motion } from 'motion/react';
 
 import { useMetadata } from '../../lib/useMetadata';
+import { validateRequiredEmail } from '../../lib/emailValidation';
 import { validateRequiredPhone } from '../../lib/phoneValidation';
 import { scrollToFirstFieldError } from '../../lib/scrollToFieldError';
 
@@ -32,8 +33,9 @@ export function CourierProfile() {
     if (!formData.name?.trim()) {
       errors.name = 'Nama lengkap wajib diisi.';
     }
-    if (!formData.email?.trim()) {
-      errors.email = 'Email wajib diisi.';
+    const emailError = validateRequiredEmail(formData.email);
+    if (emailError) {
+      errors.email = emailError;
     }
     const nextPhoneError = validateRequiredPhone(
       formData.phone,

@@ -14,6 +14,7 @@ import {
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { updateCustomerProfileRequest } from '../lib/authApi';
+import { validateRequiredEmail } from '../lib/emailValidation';
 import { validateRequiredPhone } from '../lib/phoneValidation';
 import { scrollToFirstFieldError } from '../lib/scrollToFieldError';
 import { toast } from 'sonner';
@@ -77,8 +78,9 @@ export function Layout() {
     if (!profileData.name.trim()) {
       errors.name = 'Nama lengkap wajib diisi.';
     }
-    if (!profileData.email.trim()) {
-      errors.email = 'Email wajib diisi.';
+    const emailError = validateRequiredEmail(profileData.email);
+    if (emailError) {
+      errors.email = emailError;
     }
     const nextPhoneError = validateRequiredPhone(
       profileData.phone,

@@ -11,6 +11,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { managerProfile } from '../../data/adminData';
 
 import { useMetadata } from '../../lib/useMetadata';
+import { validateRequiredEmail } from '../../lib/emailValidation';
 import { validateRequiredPhone } from '../../lib/phoneValidation';
 import { scrollToFirstFieldError } from '../../lib/scrollToFieldError';
 
@@ -60,8 +61,9 @@ export function AdminProfile() {
     if (!formData.name?.trim()) {
       errors.name = 'Nama wajib diisi.';
     }
-    if (!formData.email?.trim()) {
-      errors.email = 'Email wajib diisi.';
+    const emailError = validateRequiredEmail(formData.email);
+    if (emailError) {
+      errors.email = emailError;
     }
     const nextPhoneError = validateRequiredPhone(
       formData.phone,

@@ -37,6 +37,7 @@ import {
   TableRow,
 } from '../../components/ui/table';
 import type { CustomerAccount } from '../../data/adminData';
+import { validateRequiredEmail } from '../../lib/emailValidation';
 import { validateRequiredPhone } from '../../lib/phoneValidation';
 import { scrollToFirstFieldError } from '../../lib/scrollToFieldError';
 
@@ -192,8 +193,13 @@ export function AdminCustomers() {
     if (!draftCustomer.address?.trim()) {
       errors.address = 'Alamat customer wajib diisi.';
     }
-    if (!draftCustomer.email?.trim()) {
-      errors.email = 'Email customer wajib diisi.';
+    const emailError = validateRequiredEmail(
+      draftCustomer.email,
+      'Email customer wajib diisi.',
+      'Format email customer tidak valid.'
+    );
+    if (emailError) {
+      errors.email = emailError;
     }
     const phoneError = validateRequiredPhone(
       draftCustomer.phone,

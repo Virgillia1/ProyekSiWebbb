@@ -32,6 +32,11 @@ export interface RegisterAdminPayload {
   verificationCode: string;
 }
 
+export interface ResetPasswordPayload {
+  username: string;
+  password: string;
+}
+
 const requestJson = async <T>(input: RequestInfo | URL, init?: RequestInit): Promise<T> => {
   const response = await fetch(input, {
     headers: {
@@ -44,13 +49,16 @@ const requestJson = async <T>(input: RequestInfo | URL, init?: RequestInit): Pro
   if (!response.ok) {
     const fallbackMessage = 'Permintaan autentikasi gagal.';
     const responseText = await response.text();
+    let errorMessage = responseText || fallbackMessage;
 
     try {
       const errorBody = JSON.parse(responseText) as { message?: string };
-      throw new Error(errorBody.message || fallbackMessage);
+      errorMessage = errorBody.message || fallbackMessage;
     } catch {
-      throw new Error(responseText || fallbackMessage);
+      errorMessage = responseText || fallbackMessage;
     }
+
+    throw new Error(errorMessage);
   }
 
   return (await response.json()) as T;
@@ -70,6 +78,12 @@ export const registerCustomerRequest = (payload: RegisterCustomerPayload) =>
 
 export const registerAdminRequest = (payload: RegisterAdminPayload) =>
   requestJson<AuthUser>('/api/auth/register/admin', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+
+export const resetPasswordRequest = (payload: ResetPasswordPayload) =>
+  requestJson<{ ok: boolean; message: string }>('/api/auth/reset-password', {
     method: 'POST',
     body: JSON.stringify(payload),
   });

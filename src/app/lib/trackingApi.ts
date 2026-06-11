@@ -43,12 +43,16 @@ const requestJson = async <T>(input: RequestInfo | URL, init?: RequestInit): Pro
   const responseText = await response.text();
 
   if (!response.ok) {
+    let errorMessage = responseText || 'Gagal mengambil data tracking.';
+
     try {
       const errorBody = JSON.parse(responseText) as { message?: string };
-      throw new Error(errorBody.message || 'Gagal mengambil data tracking.');
+      errorMessage = errorBody.message || 'Gagal mengambil data tracking.';
     } catch {
-      throw new Error(responseText || 'Gagal mengambil data tracking.');
+      errorMessage = responseText || 'Gagal mengambil data tracking.';
     }
+
+    throw new Error(errorMessage);
   }
 
   return JSON.parse(responseText) as T;

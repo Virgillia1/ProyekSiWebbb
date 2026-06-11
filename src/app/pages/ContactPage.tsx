@@ -7,6 +7,7 @@ import { motion } from 'motion/react';
 import { useMetadata } from '../lib/useMetadata';
 import { toast } from 'sonner';
 import { useAuth } from '../contexts/AuthContext';
+import { validateRequiredEmail } from '../lib/emailValidation';
 
 export function ContactPage() {
   useMetadata(
@@ -34,7 +35,12 @@ export function ContactPage() {
 
     const newErrors: Record<string, string> = {};
     if (!name.trim()) newErrors.name = 'Nama lengkap wajib diisi.';
-    if (!email.trim()) newErrors.email = 'Alamat email wajib diisi.';
+    const emailError = validateRequiredEmail(
+      email,
+      'Alamat email wajib diisi.',
+      'Format alamat email tidak valid.'
+    );
+    if (emailError) newErrors.email = emailError;
     if (!subject.trim()) newErrors.subject = 'Subjek pesan wajib diisi.';
     if (!message.trim()) newErrors.message = 'Isi pesan wajib diisi.';
 
@@ -111,7 +117,7 @@ export function ContactPage() {
               viewport={{ once: true }}
             >
               <h2 className="text-3xl font-bold mb-6">Kirim Pesan</h2>
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handleSubmit} noValidate className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="block text-sm font-medium text-foreground">Nama Lengkap</label>

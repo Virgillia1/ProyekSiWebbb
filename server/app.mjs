@@ -27,6 +27,7 @@ import {
   registerCourierAccount,
   getAuthUserByCustomerId,
   ensureAuthInfrastructure,
+  resetAccountPassword,
 } from './auth-data.mjs';
 import { BadRequestError, ConflictError } from './errors.mjs';
 import { pool } from './db.mjs';
@@ -43,6 +44,11 @@ app.get('/api/health', (_request, response) => {
 app.post('/api/auth/login', async (request, response) => {
   const user = await loginWithAccount(request.body?.username, request.body?.password);
   response.json(user);
+});
+
+app.post('/api/auth/reset-password', async (request, response) => {
+  await resetAccountPassword(request.body);
+  response.json({ ok: true, message: 'Password berhasil diubah.' });
 });
 
 app.post('/api/auth/register/customer', async (request, response) => {

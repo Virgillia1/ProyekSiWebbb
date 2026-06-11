@@ -315,6 +315,38 @@ export const loginWithAccount = async (username, password) => {
   };
 };
 
+export const resetAccountPassword = async (payload) => {
+  await ensureAuthInfrastructure();
+
+  const username = normalizeUsername(payload?.username);
+  const password = String(payload?.password ?? '');
+
+  validateUsername(username);
+  validatePassword(password);
+
+  const passwordHash = await createPasswordHash(password);
+
+  const { rowCount } = await pool.query(
+    'UPDATE user_accounts SET password_hash = $1 WHERE username = $2',
+    [passwordHash, username]
+  );
+
+  if (rowCount) {
+    return { ok: true };
+  }
+
+  const { rowCount: courierRowCount } = await pool.query(
+    'UPDATE courier_accounts SET password_hash = $1 WHERE username = $2',
+    [passwordHash, username]
+  );
+
+  if (courierRowCount) {
+    return { ok: true };
+  }
+
+  throw new BadRequestError('Username tidak di temukan');
+};
+
 export const registerCustomerAccount = async (payload) => {
   await ensureAuthInfrastructure();
 

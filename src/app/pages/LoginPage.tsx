@@ -5,6 +5,7 @@ import { motion } from 'motion/react';
 import { useAuth } from '../contexts/AuthContext';
 import {
   registerCustomerRequest,
+  resetPasswordRequest,
   type RegisterCustomerPayload,
 } from '../lib/authApi';
 import { Button } from '../components/ui/button';
@@ -21,12 +22,20 @@ import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
 import cargoLiteLogo from '../../imports/cargolite-logo.png';
 import { useMetadata } from '../lib/useMetadata';
+import { validateRequiredEmail } from '../lib/emailValidation';
 import { validateRequiredPhone } from '../lib/phoneValidation';
 import { scrollToFirstFieldError } from '../lib/scrollToFieldError';
 import { toast } from 'sonner';
 
 type RegistrationMode = 'customer' | null;
 type LoginFieldErrors = Partial<Record<'username' | 'password', string>>;
+type ResetPasswordFieldErrors = Partial<Record<'username' | 'password' | 'confirmPassword', string>>;
+
+interface ResetPasswordForm {
+  username: string;
+  password: string;
+  confirmPassword: string;
+}
 
 const buildInitialCustomerForm = (): RegisterCustomerPayload => ({
   name: '',
@@ -35,6 +44,12 @@ const buildInitialCustomerForm = (): RegisterCustomerPayload => ({
   phone: '',
   address: '',
   password: '',
+});
+
+const buildInitialResetPasswordForm = (username = ''): ResetPasswordForm => ({
+  username,
+  password: '',
+  confirmPassword: '',
 });
 
 export function LoginPage() {
@@ -52,6 +67,14 @@ export function LoginPage() {
   const [registrationMode, setRegistrationMode] = useState<RegistrationMode>(null);
   const [registrationError, setRegistrationError] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
+  const [isResetPasswordOpen, setIsResetPasswordOpen] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [resetPasswordError, setResetPasswordError] = useState('');
+  const [resetPasswordForm, setResetPasswordForm] = useState<ResetPasswordForm>(
+    buildInitialResetPasswordForm()
+  );
+  const [resetPasswordFieldErrors, setResetPasswordFieldErrors] =
+    useState<ResetPasswordFieldErrors>({});
   const [customerForm, setCustomerForm] = useState<RegisterCustomerPayload>(
     buildInitialCustomerForm()
   );
@@ -81,6 +104,22 @@ export function LoginPage() {
     setRegistrationMode(null);
     setRegistrationError('');
     setCustomerFieldErrors({});
+  };
+
+  const openResetPassword = () => {
+    setResetPasswordForm(buildInitialResetPasswordForm(username.trim().toLowerCase()));
+    setResetPasswordFieldErrors({});
+    setResetPasswordError('');
+    setError('');
+    setNotice('');
+    setIsResetPasswordOpen(true);
+  };
+
+  const closeResetPassword = () => {
+    setIsResetPasswordOpen(false);
+    setResetPasswordError('');
+    setResetPasswordFieldErrors({});
+    setResetPasswordForm(buildInitialResetPasswordForm());
   };
 
   const handleLogin = async (event: React.FormEvent) => {
@@ -128,6 +167,61 @@ export function LoginPage() {
     }
   };
 
+  const handleResetPassword = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setResetPasswordError('');
+    setNotice('');
+
+    const nextFieldErrors: ResetPasswordFieldErrors = {};
+    const normalizedUsername = resetPasswordForm.username.trim().toLowerCase();
+
+    if (!normalizedUsername) {
+      nextFieldErrors.username = 'Username wajib diisi.';
+    }
+
+    if (!resetPasswordForm.password.trim()) {
+      nextFieldErrors.password = 'Password baru wajib diisi.';
+    } else if (resetPasswordForm.password.length < 6) {
+      nextFieldErrors.password = 'Password minimal 6 karakter.';
+    }
+
+    if (!resetPasswordForm.confirmPassword.trim()) {
+      nextFieldErrors.confirmPassword = 'Ketik ulang password baru.';
+    } else if (resetPasswordForm.confirmPassword !== resetPasswordForm.password) {
+      nextFieldErrors.confirmPassword = 'Konfirmasi password tidak sama.';
+    }
+
+    setResetPasswordFieldErrors(nextFieldErrors);
+
+    if (Object.keys(nextFieldErrors).length > 0) {
+      scrollToFirstFieldError();
+      return;
+    }
+
+    setIsResettingPassword(true);
+
+    try {
+      await resetPasswordRequest({
+        username: normalizedUsername,
+        password: resetPasswordForm.password,
+      });
+
+      setUsername(normalizedUsername);
+      setPassword('');
+      closeResetPassword();
+      toast.success('Password Berhasil Diubah!', {
+        description: 'Silakan login dengan password baru Anda.',
+      });
+      setNotice('Password berhasil diubah. Silakan login dengan password baru Anda.');
+    } catch (resetIssue) {
+      setResetPasswordError(
+        resetIssue instanceof Error ? resetIssue.message : 'Gagal mengubah password.'
+      );
+    } finally {
+      setIsResettingPassword(false);
+    }
+  };
+
   const handleCustomerRegistration = async (event: React.FormEvent) => {
     event.preventDefault();
     setRegistrationError('');
@@ -139,8 +233,13 @@ export function LoginPage() {
     if (!customerForm.username.trim()) {
       errors.username = 'Username customer wajib diisi.';
     }
-    if (!customerForm.email.trim()) {
-      errors.email = 'Email customer wajib diisi.';
+    const emailError = validateRequiredEmail(
+      customerForm.email,
+      'Email customer wajib diisi.',
+      'Format email customer tidak valid.'
+    );
+    if (emailError) {
+      errors.email = emailError;
     }
     const phoneError = validateRequiredPhone(
       customerForm.phone,
@@ -218,7 +317,7 @@ export function LoginPage() {
         </div>
 
         <div className="rounded-2xl border border-border bg-white p-8 shadow-xl">
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleLogin} noValidate className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="username">Username</Label>
               <div className="relative">
@@ -267,6 +366,15 @@ export function LoginPage() {
                   aria-invalid={!!loginFieldErrors.password}
                 />
               </div>
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={openResetPassword}
+                  className="text-sm font-medium text-blue-600 transition-colors hover:text-blue-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                >
+                  Lupa password?
+                </button>
+              </div>
               {loginFieldErrors.password && (
                 <p data-field-error="true" className="text-sm font-medium text-red-600">
                   {loginFieldErrors.password}
@@ -302,6 +410,128 @@ export function LoginPage() {
         </div>
       </motion.div>
 
+      <Dialog open={isResetPasswordOpen} onOpenChange={(open) => !open && closeResetPassword()}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reset Password</DialogTitle>
+            <DialogDescription>
+              Masukkan username akun yang sudah terdaftar. Sistem akan mencari akun tersebut lalu mengganti password baru yang diketik dua kali.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleResetPassword} noValidate className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="reset-username">Username Terdaftar</Label>
+              <Input
+                id="reset-username"
+                value={resetPasswordForm.username}
+                onChange={(event) => {
+                  setResetPasswordForm((previousForm) => ({
+                    ...previousForm,
+                    username: event.target.value,
+                  }));
+                  setResetPasswordFieldErrors((previousErrors) => ({
+                    ...previousErrors,
+                    username: '',
+                  }));
+                }}
+                className={
+                  resetPasswordFieldErrors.username
+                    ? 'border-red-500 focus-visible:ring-red-500'
+                    : ''
+                }
+                placeholder="Masukkan username yang sudah ada"
+                autoFocus
+              />
+              {resetPasswordFieldErrors.username && (
+                <p data-field-error="true" className="text-sm font-medium text-red-600">
+                  {resetPasswordFieldErrors.username}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="reset-password">Password Baru</Label>
+              <Input
+                id="reset-password"
+                type="password"
+                value={resetPasswordForm.password}
+                onChange={(event) => {
+                  setResetPasswordForm((previousForm) => ({
+                    ...previousForm,
+                    password: event.target.value,
+                  }));
+                  setResetPasswordFieldErrors((previousErrors) => ({
+                    ...previousErrors,
+                    password: '',
+                    confirmPassword:
+                      previousErrors.confirmPassword === 'Konfirmasi password tidak sama.'
+                        ? ''
+                        : previousErrors.confirmPassword,
+                  }));
+                }}
+                className={
+                  resetPasswordFieldErrors.password
+                    ? 'border-red-500 focus-visible:ring-red-500'
+                    : ''
+                }
+                placeholder="Minimal 6 karakter"
+              />
+              {resetPasswordFieldErrors.password && (
+                <p data-field-error="true" className="text-sm font-medium text-red-600">
+                  {resetPasswordFieldErrors.password}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="reset-confirm-password">Ketik Ulang Password</Label>
+              <Input
+                id="reset-confirm-password"
+                type="password"
+                value={resetPasswordForm.confirmPassword}
+                onChange={(event) => {
+                  setResetPasswordForm((previousForm) => ({
+                    ...previousForm,
+                    confirmPassword: event.target.value,
+                  }));
+                  setResetPasswordFieldErrors((previousErrors) => ({
+                    ...previousErrors,
+                    confirmPassword: '',
+                  }));
+                }}
+                className={
+                  resetPasswordFieldErrors.confirmPassword
+                    ? 'border-red-500 focus-visible:ring-red-500'
+                    : ''
+                }
+                placeholder="Ulangi password baru"
+              />
+              {resetPasswordFieldErrors.confirmPassword && (
+                <p data-field-error="true" className="text-sm font-medium text-red-600">
+                  {resetPasswordFieldErrors.confirmPassword}
+                </p>
+              )}
+            </div>
+
+            {resetPasswordError && (
+              <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
+                {resetPasswordError}
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button type="submit" disabled={isResettingPassword}>
+                {isResettingPassword ? 'Menyimpan...' : 'Ubah Password'}
+              </Button>
+              <Button type="button" variant="outline" onClick={closeResetPassword}>
+                Batal
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={registrationMode === 'customer'} onOpenChange={(open) => !open && closeRegistration()}>
         <DialogContent className="max-w-xl">
           <DialogHeader>
@@ -311,7 +541,7 @@ export function LoginPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleCustomerRegistration} className="space-y-4">
+          <form onSubmit={handleCustomerRegistration} noValidate className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="customer-name">Nama</Label>
