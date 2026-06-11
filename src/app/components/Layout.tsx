@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { Link, useLocation, Outlet, useNavigate } from 'react-router';
 import { Menu, X, LogOut, User, Mail, MapPin, Phone } from 'lucide-react';
 import { Button } from './ui/button';
@@ -39,7 +39,7 @@ function BrandLogo({ className = '' }: { className?: string }) {
   );
 }
 
-export function Layout() {
+export function Layout({ children }: { children?: ReactNode } = {}) {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -292,7 +292,7 @@ export function Layout() {
 
       {/* Main Content */}
       <main className="flex-1">
-        <Outlet />
+        {children ?? <Outlet />}
       </main>
 
       {/* Footer */}

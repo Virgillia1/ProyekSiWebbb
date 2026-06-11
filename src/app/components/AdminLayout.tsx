@@ -18,6 +18,7 @@ import cargoLiteLogo from '../../imports/cargolite-logo.png';
 import { useAdminData, AdminDataProvider } from '../contexts/AdminDataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { NotFound } from '../pages/NotFound';
+import { Layout } from './Layout';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from './ui/sheet';
@@ -268,11 +269,19 @@ export function AdminLayout() {
   const { user } = useAuth();
 
   if (!user) {
-    return <NotFound />;
+    return (
+      <Layout>
+        <NotFound />
+      </Layout>
+    );
   }
 
   if (user.role !== 'admin') {
-    return <NotFound />;
+    return (
+      <Layout>
+        <NotFound />
+      </Layout>
+    );
   }
 
   return (
